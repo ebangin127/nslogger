@@ -2,7 +2,7 @@ unit uSMARTManager;
 
 interface
 
-uses Generics.Collections, Math, SysUtils,
+uses Classes, Generics.Collections, Math, SysUtils,
      uDiskFunctions, uSMARTFunctions;
 
 type
@@ -17,17 +17,20 @@ type
   private
     FSMARTInfo: SENDCMDOUTPARAMS;
 
-    function IndexOfById(ID: Word): Integer;
+    function IndexOfById(ID: Smallint): Integer;
     function GetAllSMARTID(SMARTData: SENDCMDOUTPARAMS): Boolean;
   public
     function Compare(a, b: TSMARTManager): TSMARTDeltaList;
     function GetSMARTValueById(ID: Word): TSMARTResult;
     function AssignSMARTData(SMARTData: SENDCMDOUTPARAMS): Boolean;
+
+    function Save(Path: String): Boolean;
+    function Load(Path: String): Boolean;
   end;
 
 implementation
 
-function TSMARTManager.IndexOfById(ID: Word): Integer;
+function TSMARTManager.IndexOfById(ID: Smallint): Integer;
 var
   i: Integer;
 begin
@@ -142,5 +145,42 @@ function TSMARTManager.AssignSMARTData(SMARTData: SENDCMDOUTPARAMS): Boolean;
 begin
   result := GetAllSMARTID(SMARTData);
 end;
+
+function TSMARTManager.Save(Path: String): Boolean;
+var
+  DestFile: TFileStream;
+begin
+  result := false;
+
+  try
+    DestFile := TFileStream.Create(Path, fmOpenWrite);
+  except
+    exit;
+  end;
+
+  DestFile.Seek(0, soBeginning);
+  DestFile.Write(FSMARTInfo, sizeof(SENDCMDOUTPARAMS));
+
+  FreeAndNil(DestFile);
+  result := true;
+end;
+
+function TSMARTManager.Load(Path: String): Boolean;
+var
+  SrcFile: TFileStream;
+begin
+  result := false;
+  try
+    SrcFile := TFileStream.Create(Path, fmOpenRead);
+  except
+    exit;
+  end;
+
+  SrcFile.Read(FSMARTInfo, sizeof(SENDCMDOUTPARAMS));
+
+  FreeAndNil(SrcFile);
+  result := true;
+end;
+
 
 end.

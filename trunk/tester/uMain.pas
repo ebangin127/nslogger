@@ -57,6 +57,11 @@ type
     { Public declarations }
   end;
 
+type
+  TmakeJEDECList  = function (TraceList: Pointer; path: PChar): PTGListHeader;
+  TmakeJEDECClass = function: Pointer;
+  TdeleteJEDECClass = procedure(delClass: Pointer);
+
 var
   fMain: TfMain;
   TestThread: TGSTestThread;
@@ -87,6 +92,12 @@ end;
 procedure TfMain.WmAfterShow(var Msg: TMessage);
 var
   SSDInfo: TSSDInfo;
+  makeJEDECList: TmakeJEDECList;
+  makeJEDECClass: TmakeJEDECClass;
+  deleteJEDECClass: TdeleteJEDECClass;
+  Handle: THandle;
+  JClass: PTGSList;
+  Header: PTGListHeader;
 begin
   fSetting := TfSetting.Create(self);
   fSetting.ShowModal;
@@ -96,6 +107,19 @@ begin
     Close;
     exit;
   end;
+
+  {
+  Handle := LoadLibrary('D:\내 작업들\GStorage\trunk\tester\Win32\Debug\MakeDLL.dll');
+  if Handle <> 0 then
+  begin
+    @makeJEDECList := GetProcAddress(Handle, 'makeJEDECList');
+    @makeJEDECClass := GetProcAddress(Handle, 'makeJedecClass');
+    @deleteJEDECClass := GetProcAddress(Handle, 'deleteJedecClass');
+    JClass := makeJEDECClass;
+    Header := makeJEDECList(JClass, PChar('D:\mtu.txt'));
+    deleteJEDECClass(JClass);
+  end;
+  }
 
   SSDInfo := TSSDInfo.Create;
   SSDInfo.SetDeviceName('PhysicalDrive' + IntToStr(FDiskNum));
@@ -129,7 +153,7 @@ begin
   TestList.Test(false);
 
   TestThread := TGSTestThread.Create(true);
-  TestThread.SetDisk(1);
+  TestThread.SetDisk(FDiskNum);
   TestThread.AssignBufferSetting(128 shl 10, 100);
   TestThread.AssignListHeader(TestList.GetListHeader);
   TestThread.StartThread;

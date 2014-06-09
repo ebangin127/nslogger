@@ -42,7 +42,7 @@ procedure TfSetting.bStartNewClick(Sender: TObject);
 var
   Value: Integer;
 begin
-  if TryStrToInt(eDestination.Text, Value) = false then
+  if TryStrToInt(cDestination.Text, Value) = false then
   begin
     ShowMessage('대상 위치를 올바르게 입력해주세요');
     exit;

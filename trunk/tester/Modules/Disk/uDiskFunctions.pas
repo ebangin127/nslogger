@@ -26,12 +26,16 @@ type
     bIDEError: UChar;
     bReserved: Array[0..1] of UCHAR;
     dwReserved: Array[0..1] of UCHAR;
+    class operator Equal(a: TDRIVERSTATUS; b: TDRIVERSTATUS) : Boolean;
+    class operator NotEqual(a: TDRIVERSTATUS; b: TDRIVERSTATUS) : Boolean;
   end;
 
-  SENDCMDOUTPARAMS  = Record
+  SENDCMDOUTPARAMS = Record
     cBufferSize: DWORD;
     DriverStatus: TDRIVERSTATUS;
     bBuffer: Array[0..1023] of UCHAR;
+    class operator Equal(a: SENDCMDOUTPARAMS; b: SENDCMDOUTPARAMS) : Boolean;
+    class operator NotEqual(a: SENDCMDOUTPARAMS; b: SENDCMDOUTPARAMS) : Boolean;
   end;
 
   IDEREGS  = packed Record
@@ -260,6 +264,59 @@ const
 implementation
 
 uses uSSDInfo;
+
+class operator TDRIVERSTATUS.Equal(a: TDRIVERSTATUS; b: TDRIVERSTATUS): Boolean;
+var
+  CurrElem: Integer;
+begin
+  result := true;
+
+  if a.bDriverError <> b.bDriverError then
+  begin
+    exit(false);
+  end;
+
+  if a.bIDEError <> b.bIDEError then
+  begin
+    exit(false);
+  end;
+end;
+
+class operator TDRIVERSTATUS.NotEqual(a: TDRIVERSTATUS; b: TDRIVERSTATUS): Boolean;
+begin
+  result := not (a = b);
+end;
+
+
+class operator SENDCMDOUTPARAMS.Equal(a: SENDCMDOUTPARAMS; b: SENDCMDOUTPARAMS): Boolean;
+var
+  CurrElem: Integer;
+begin
+  result := true;
+
+  if a.cBufferSize <> b.cBufferSize then
+  begin
+    exit(false);
+  end;
+
+  if a.DriverStatus <> b.DriverStatus then
+  begin
+    exit(false);
+  end;
+
+  for CurrElem := 0 to a.cBufferSize - 1 do
+  begin
+    if a.bBuffer[CurrElem] <> b.bBuffer[CurrElem] then
+    begin
+      exit(false);
+    end;
+  end;
+end;
+
+class operator SENDCMDOUTPARAMS.NotEqual(a: SENDCMDOUTPARAMS; b: SENDCMDOUTPARAMS) : Boolean;
+begin
+  result := not (a = b);
+end;
 
 function GetVolumeLabelFixed(DriveName: String): string;
 var

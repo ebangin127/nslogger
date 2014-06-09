@@ -199,9 +199,9 @@ object fMain: TfMain
     object sRamUsage: TStaticText
       Left = 68
       Top = 242
-      Width = 36
+      Width = 24
       Height = 17
-      Caption = '456MB'
+      Caption = '0MB'
       TabOrder = 7
     end
     object pTestProgress: TProgressBar

@@ -8,8 +8,8 @@ uses SysUtils, Math, Generics.Collections,
 type
   PTSMARTResult = ^TSMARTResult;
   TSMARTResult = record
-    FID: SmallInt;
-    FCurrentPercent: SmallInt;
+    FID: Smallint;
+    FCurrentPercent: Smallint;
     FCurrentValue: UInt64;
   end;
 
