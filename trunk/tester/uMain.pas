@@ -29,7 +29,7 @@ type
     lFirstSetting: TListBox;
     GroupBox3: TGroupBox;
     lAlert: TListBox;
-    Button2: TButton;
+    bSave: TButton;
     pRamUsage: TProgressBar;
     sRamUsage: TStaticText;
     Label6: TLabel;
@@ -44,32 +44,32 @@ type
     Label12: TLabel;
     procedure FormShow(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure bSaveClick(Sender: TObject);
   private
     FDiskNum: Integer;
     FDestDriveModel: String;
     FDestDriveCapacity: INT64;
-    FDestFolder: String;
     FDestTBW: Integer;
     FRetensionTBW: Integer;
+    FSaveFilePath: String;
 
     procedure WmAfterShow(var Msg: TMessage); message WM_AFTER_SHOW;
   public
     { Public declarations }
   end;
 
-type
-  TmakeJEDECList  = function (TraceList: Pointer; path: PChar): PTGListHeader;
-  TmakeJEDECClass = function: Pointer;
-  TdeleteJEDECClass = procedure(delClass: Pointer);
-
 var
   fMain: TfMain;
   TestThread: TGSTestThread;
-  TestList: TGSList;
 
 implementation
 
 {$R *.dfm}
+
+procedure TfMain.bSaveClick(Sender: TObject);
+begin
+  Close;
+end;
 
 procedure TfMain.FormDestroy(Sender: TObject);
 begin
@@ -78,10 +78,10 @@ begin
     TestThread.Terminate;
     WaitForSingleObject(TestThread.Handle, INFINITE);
     FreeAndNil(TestThread);
-  end;
 
-  if TestList <> nil then
-    FreeAndNil(TestList);
+    lFirstSetting.Items.SaveToFile(FSaveFilePath + 'firstsetting.txt');
+    lAlert.Items.SaveToFile(FSaveFilePath + 'alert.txt');
+  end;
 end;
 
 procedure TfMain.FormShow(Sender: TObject);
@@ -92,48 +92,28 @@ end;
 procedure TfMain.WmAfterShow(var Msg: TMessage);
 var
   SSDInfo: TSSDInfo;
-  makeJEDECList: TmakeJEDECList;
-  makeJEDECClass: TmakeJEDECClass;
-  deleteJEDECClass: TdeleteJEDECClass;
-  Handle: THandle;
-  JClass: PTGSList;
-  Header: PTGListHeader;
 begin
   fSetting := TfSetting.Create(self);
   fSetting.ShowModal;
 
-  if fSetting.OptionsSet = false then
+  FDiskNum := fSetting.GetDriveNum;
+  if FDiskNum = -1 then
   begin
     Close;
     exit;
   end;
 
-  {
-  Handle := LoadLibrary('D:\내 작업들\GStorage\trunk\tester\Win32\Debug\MakeDLL.dll');
-  if Handle <> 0 then
-  begin
-    @makeJEDECList := GetProcAddress(Handle, 'makeJEDECList');
-    @makeJEDECClass := GetProcAddress(Handle, 'makeJedecClass');
-    @deleteJEDECClass := GetProcAddress(Handle, 'deleteJedecClass');
-    JClass := makeJEDECClass;
-    Header := makeJEDECList(JClass, PChar('D:\mtu.txt'));
-    deleteJEDECClass(JClass);
-  end;
-  }
+  FSaveFilePath := fSetting.SavePath;
 
   SSDInfo := TSSDInfo.Create;
   SSDInfo.SetDeviceName('PhysicalDrive' + IntToStr(FDiskNum));
-  {$IF FALSE}
-  FDiskNum := StrToInt(fSetting.eDestination);
-  {$ENDIF}
   FDestTBW := StrToInt(fSetting.eDestTBW.Text);
-  FRetensionTBW := StrToInt(fSetting.eRetensionTBW.Text);
+  FRetensionTBW := StrToInt(fSetting.eRetentionTBW.Text);
   FDestDriveModel := SSDInfo.Model;
   FDestDriveCapacity := floor(SSDInfo.UserSize
                               / 2 / 1024 / 1000 / 1000 * 1024 * 1.024); //In GB
-  FreeAndNil(SSDInfo);
 
-  sTestStage.Caption := '자료 불러오는 중';
+  sTestStage.Caption := '트레이스 불러오는 중';
 
   lFirstSetting.Items.Add('- 디스크 정보 -');
   lFirstSetting.Items.Add('디스크 위치: \\.\PhysicalDrive' + IntToStr(FDiskNum));
@@ -148,14 +128,27 @@ begin
 
   Application.ProcessMessages;
 
-
-  TestList := TGSList.Create;
-  TestList.Test(false);
-
-  TestThread := TGSTestThread.Create(true);
+  TestThread := TGSTestThread.Create(true, SSDInfo.UserSize shr 9);
+  if fSetting.LoadedFromFile then
+  begin
+    TestThread.Load(fSetting.SavePath + 'settings.ini');
+    lFirstSetting.Items.LoadFromFile(FSaveFilePath + 'firstsetting.txt');
+    lAlert.Items.LoadFromFile(FSaveFilePath + 'alert.txt');
+  end;
   TestThread.SetDisk(FDiskNum);
+
+  TestThread.MaxLBA := SSDInfo.UserSize;
+  TestThread.OrigLBA := 250000000;
+  TestThread.Align := SSDInfo.LBASize;
+
+  TestThread.MaxHostWrite := FDestTBW;
+  TestThread.RetentionTest := FRetensionTBW;
+
+  TestThread.AssignSavePath(FSaveFilePath);
   TestThread.AssignBufferSetting(128 shl 10, 100);
-  TestThread.AssignListHeader(TestList.GetListHeader);
+  TestThread.AssignDLLPath('D:\내 작업들\GStorage\trunk\dll\MAKEdll.dll');
   TestThread.StartThread;
+
+  FreeAndNil(SSDInfo);
 end;
 end.

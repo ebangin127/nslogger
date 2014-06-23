@@ -120,13 +120,13 @@ end;
 
 function TRandomBuffer.GetBufferPtr(NeededLength: UINT32): Pointer;
 begin
-  if NeededLength > Length(FBuffer) then
+  if NeededLength > UINT32(Length(FBuffer)) then
   begin
     result := nil;
     exit;
   end;
 
-  if NeededLength + FIterator > Length(FBuffer) then
+  if NeededLength + FIterator > UINT32(Length(FBuffer)) then
     SetIteratorToFirst;
 
   result := @FBuffer[FIterator];

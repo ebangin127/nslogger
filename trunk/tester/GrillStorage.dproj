@@ -92,7 +92,6 @@
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="Classes\TGSList\uGSList.pas"/>
-        <DCCReference Include="Classes\TGSMTAnalyzer\uGSMTAnalyzer.pas"/>
         <DCCReference Include="Classes\TGSTester\uGSTester.pas"/>
         <DCCReference Include="Modules\Disk\uDiskFunctions.pas"/>
         <DCCReference Include="Modules\Disk\uPartitionFunctions.pas"/>
@@ -114,6 +113,8 @@
             <Form>fSetting</Form>
             <FormType>dfm</FormType>
         </DCCReference>
+        <DCCReference Include="Classes\TSaveFile\uSaveFile.pas"/>
+        <DCCReference Include="Classes\TErrorList\uErrorList.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

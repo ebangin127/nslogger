@@ -6,6 +6,8 @@ uses Classes, SysUtils, uDiskFunctions, Dialogs, Windows;
 
 function SendTrimCommand(const DriveLetter: String; StartLBA, LBACount: Int64): Cardinal; overload;
 function SendTrimCommand(const hPhyDevice: THandle; StartLBA, LBACount: Int64): Cardinal; overload;
+function SendTrimCommand(const hPhyDevice: THandle; StartLBA, LBACount: Int64;
+                          pOverlapped: POVERLAPPED): Cardinal; overload;
 function IsZeroSector(const DriveLetter: String; StartLBA: Int64): Byte;
 
 const
@@ -34,6 +36,12 @@ begin
 end;
 
 function SendTrimCommand(const hPhyDevice: THandle; StartLBA, LBACount: Int64): Cardinal;
+begin
+  result := SendTrimCommand(hPhyDevice, StartLBA, LBACount, nil);
+end;
+
+function SendTrimCommand(const hPhyDevice: THandle; StartLBA, LBACount: Int64;
+                          pOverlapped: POVERLAPPED): Cardinal;
 var
   ICDBuffer: ATA_PTH_DIR_BUFFER;
   BytesRead: Cardinal;
@@ -68,7 +76,7 @@ begin
     ICDBuffer.Buffer[6] := LBACount and 255;
     ICDBuffer.Buffer[7] := LBACount shr 8;
 
-    DeviceIOControl(hPhyDevice, IOCTL_ATA_PASS_THROUGH_DIRECT, @ICDBuffer, SizeOf(ICDBuffer), @ICDBuffer, SizeOf(ICDBuffer), BytesRead, nil);
+    DeviceIOControl(hPhyDevice, IOCTL_ATA_PASS_THROUGH_DIRECT, @ICDBuffer, SizeOf(ICDBuffer), @ICDBuffer, SizeOf(ICDBuffer), BytesRead, pOverlapped);
     result := GetLastError;
   end;
 end;

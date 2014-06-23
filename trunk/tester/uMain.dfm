@@ -3,7 +3,7 @@ object fMain: TfMain
   Top = 0
   Caption = 'Grill Storage'
   ClientHeight = 364
-  ClientWidth = 700
+  ClientWidth = 800
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -19,56 +19,56 @@ object fMain: TfMain
   object GroupBox1: TGroupBox
     Left = 8
     Top = 8
-    Width = 225
+    Width = 313
     Height = 318
     Caption = #51652#54665' '#49345#54889
     TabOrder = 0
     object Label1: TLabel
       Left = 17
       Top = 139
-      Width = 51
+      Width = 55
       Height = 13
       Caption = #52572#49548' '#51648#50672':'
     end
     object Label2: TLabel
       Left = 15
       Top = 191
-      Width = 51
+      Width = 55
       Height = 13
       Caption = #52572#45824' '#51648#50672':'
     end
     object Label4: TLabel
       Left = 18
       Top = 48
-      Width = 87
+      Width = 94
       Height = 13
       Caption = #54788#51116' '#51652#54665' '#53580#49828#53944':'
     end
     object Label3: TLabel
       Left = 17
       Top = 21
-      Width = 76
+      Width = 82
       Height = 13
       Caption = #54788#51116' '#48152#48373' '#54924#52264':'
     end
     object Label6: TLabel
       Left = 15
       Top = 242
-      Width = 40
+      Width = 43
       Height = 13
       Caption = #45224#51008' '#47016':'
     end
     object Label7: TLabel
       Left = 17
       Top = 89
-      Width = 62
+      Width = 67
       Height = 13
       Caption = #53580#49828#53944' '#51652#54665':'
     end
     object Label5: TLabel
       Left = 17
       Top = 212
-      Width = 35
+      Width = 42
       Height = 13
       Caption = #8592' '#50577#54840
       Font.Charset = DEFAULT_CHARSET
@@ -81,7 +81,7 @@ object fMain: TfMain
     object Label8: TLabel
       Left = 17
       Top = 159
-      Width = 35
+      Width = 42
       Height = 13
       Caption = #8592' '#50577#54840
       Font.Charset = DEFAULT_CHARSET
@@ -92,9 +92,9 @@ object fMain: TfMain
       ParentFont = False
     end
     object Label9: TLabel
-      Left = 185
+      Left = 257
       Top = 212
-      Width = 35
+      Width = 42
       Height = 13
       Caption = #50948#54744' '#8594
       Font.Charset = DEFAULT_CHARSET
@@ -105,9 +105,9 @@ object fMain: TfMain
       ParentFont = False
     end
     object Label10: TLabel
-      Left = 185
+      Left = 257
       Top = 159
-      Width = 35
+      Width = 42
       Height = 13
       Caption = #50948#54744' '#8594
       Font.Charset = DEFAULT_CHARSET
@@ -118,9 +118,9 @@ object fMain: TfMain
       ParentFont = False
     end
     object Label11: TLabel
-      Left = 182
+      Left = 254
       Top = 268
-      Width = 35
+      Width = 42
       Height = 13
       Caption = #50668#50976' '#8594
       Font.Charset = DEFAULT_CHARSET
@@ -133,7 +133,7 @@ object fMain: TfMain
     object Label12: TLabel
       Left = 16
       Top = 268
-      Width = 35
+      Width = 42
       Height = 13
       Caption = #8592' '#48512#51313
       Font.Charset = DEFAULT_CHARSET
@@ -144,23 +144,23 @@ object fMain: TfMain
       ParentFont = False
     end
     object pMinLatency: TProgressBar
-      Left = 59
+      Left = 64
       Top = 158
-      Width = 120
+      Width = 189
       Height = 17
       TabOrder = 0
     end
     object pMaxLatency: TProgressBar
-      Left = 56
+      Left = 61
       Top = 210
-      Width = 120
+      Width = 189
       Height = 17
       TabOrder = 1
     end
     object sMinLatency: TStaticText
       Left = 78
       Top = 139
-      Width = 72
+      Width = 74
       Height = 17
       Caption = #50577#54840' (0.00ms)'
       TabOrder = 2
@@ -168,7 +168,7 @@ object fMain: TfMain
     object sMaxLatency: TStaticText
       Left = 78
       Top = 191
-      Width = 72
+      Width = 74
       Height = 17
       Caption = #50577#54840' (0.00ms)'
       TabOrder = 3
@@ -176,7 +176,7 @@ object fMain: TfMain
     object sTestStage: TStaticText
       Left = 118
       Top = 48
-      Width = 87
+      Width = 94
       Height = 17
       Caption = #51648#50672' '#49884#44036' '#53580#49828#53944
       TabOrder = 4
@@ -184,15 +184,15 @@ object fMain: TfMain
     object sCycleCount: TStaticText
       Left = 105
       Top = 21
-      Width = 21
+      Width = 22
       Height = 17
       Caption = '0'#54924
       TabOrder = 5
     end
     object pRamUsage: TProgressBar
-      Left = 56
+      Left = 61
       Top = 265
-      Width = 120
+      Width = 189
       Height = 17
       TabOrder = 6
     end
@@ -205,23 +205,23 @@ object fMain: TfMain
       TabOrder = 7
     end
     object pTestProgress: TProgressBar
-      Left = 56
+      Left = 61
       Top = 108
-      Width = 120
+      Width = 189
       Height = 17
       TabOrder = 8
     end
     object sTestProgress: TStaticText
       Left = 90
       Top = 89
-      Width = 104
+      Width = 63
       Height = 17
-      Caption = '0% (0 TBW / 0 TBW)'
+      Caption = '0% (0 TBW)'
       TabOrder = 9
     end
   end
   object GroupBox2: TGroupBox
-    Left = 239
+    Left = 335
     Top = 8
     Width = 225
     Height = 318
@@ -237,7 +237,7 @@ object fMain: TfMain
     end
   end
   object GroupBox3: TGroupBox
-    Left = 470
+    Left = 566
     Top = 8
     Width = 225
     Height = 318
@@ -252,12 +252,14 @@ object fMain: TfMain
       TabOrder = 0
     end
   end
-  object Button2: TButton
-    Left = 556
+  object bSave: TButton
+    Left = 652
     Top = 332
     Width = 131
     Height = 25
     Caption = #51200#51109' '#48143' '#51333#47308
+    Enabled = False
     TabOrder = 3
+    OnClick = bSaveClick
   end
 end

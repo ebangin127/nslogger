@@ -266,8 +266,6 @@ implementation
 uses uSSDInfo;
 
 class operator TDRIVERSTATUS.Equal(a: TDRIVERSTATUS; b: TDRIVERSTATUS): Boolean;
-var
-  CurrElem: Integer;
 begin
   result := true;
 

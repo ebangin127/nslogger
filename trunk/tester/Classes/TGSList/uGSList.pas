@@ -46,6 +46,7 @@ type
     function DestroyAllList: Boolean;
     function GetLastNode: PTGSNode; inline;
     function Add(IOType: Word; Length: Word; LBA: UINT64): Boolean; inline;
+
   public
     constructor Create; overload;
     constructor Create(ReceivedHeader: PTGListHeader); overload;
@@ -62,7 +63,11 @@ type
     function GetListHeader: PTGListHeader;
 
     function GetLength: Integer; inline;
-    function GoToFirst: Integer; inline;
+    procedure GoToFirst; inline;
+
+    function GoToNum(IterNum: Integer): Boolean;
+
+    procedure CheckAlign(Align: Integer; MaxLBA: UInt64; OrigLBA: UInt64 = 250000000);
 
     function Test(NeedBackup: Boolean): Boolean;
   end;
@@ -74,8 +79,6 @@ implementation
 
 function TGSList.AddMoreList: Boolean;
 var
-  CurrList: Integer;
-  CurrListPtr: PTGListLL;
   NewListPtr: PTGListLL;
 begin
   result := true;
@@ -120,11 +123,14 @@ begin
     FListHeader.FCapacity := 0;
     FListHeader.FLength := 0;
 
-    for CurrList := 0 to BackupCapacity - 1 do
+    if FCreatedHeaderByMyself then
     begin
-      ToDeletedPtr := CurrListPtr;
-      CurrListPtr := CurrListPtr.FNext;
-      FreeMem(ToDeletedPtr);
+      for CurrList := 0 to BackupCapacity - 1 do
+      begin
+        ToDeletedPtr := CurrListPtr;
+        CurrListPtr := CurrListPtr.FNext;
+        FreeMem(ToDeletedPtr);
+      end;
     end;
   except
     result := false;
@@ -134,10 +140,8 @@ end;
 function TGSList.GetLastNode: PTGSNode;
 var
   CurrLength: Integer;
-  CurrList: PTGListLL;
 begin
   CurrLength := FListHeader.FLength;
-  CurrList := FListHeader.FHeadNode;
 
   if (((CurrLength + 1) shr UnitListShlValue) >= FListHeader.FCapacity) then
   begin
@@ -183,6 +187,29 @@ begin
   GoToFirst;
 end;
 
+procedure TGSList.CheckAlign(Align: Integer; MaxLBA: UInt64; OrigLBA: UInt64);
+var
+  Contents: PTGSNode;
+  MultiConst: Double;
+begin
+  MultiConst := (MaxLBA / OrigLBA);
+  repeat
+    Contents := GetNextItem;
+    Contents.FLBA := ceil(Contents.FLBA / Align) shl 9;
+
+    if Contents.FLBA = 0 then
+      Contents.FLBA := Align;
+
+    if Contents.FLBA shr 23 > 0 then
+      Contents.FLBA := Contents.FLBA and ((1 shl 23) - 1);
+
+    Contents.FLBA := floor(Contents.FLBA * MultiConst);
+
+    Contents.FLength := ceil(Contents.FLength / Align) shl 9;
+  until FIteratorNum = FListHeader.FLength + 1;
+  GoToFirst;
+end;
+
 constructor TGSList.Create(ReceivedHeader: PTGListHeader);
 begin
   if AssignHeader(ReceivedHeader) = false then
@@ -206,14 +233,20 @@ begin
   if (NewHeader <> nil) and (NewHeader.FHeadNode <> nil) then
   begin
     FListHeader := NewHeader;
+
     //Get Last List Ptr
     CurrListPtr := FListHeader.FHeadNode;
     for CurrList := 1 to FListHeader.FCapacity - 1 do
     begin
       CurrListPtr := CurrListPtr.FNext;
     end;
+
     FLastList := CurrListPtr;
     FCreatedHeaderByMyself := false;
+
+    FIteratorPage := FListHeader.FHeadNode;
+    FIteratorNum := 0;
+
     result := true;
   end
   else
@@ -285,10 +318,24 @@ begin
   result := FListHeader;
 end;
 
-function TGSList.GoToFirst: Integer;
+procedure TGSList.GoToFirst;
 begin
   FIteratorPage := FListHeader.FHeadNode;
   FIteratorNum := 0;
+end;
+
+function TGSList.GoToNum(IterNum: Integer): Boolean;
+var
+  CurrIterNum: Integer;
+begin
+  result := true;
+  if FListHeader.FLength <= IterNum then
+    exit(false);
+
+  for CurrIterNum := 0 to IterNum - 1 do
+  begin
+    GetNextItem;
+  end;
 end;
 
 function TGSList.Test(NeedBackup: Boolean): Boolean;
@@ -297,6 +344,7 @@ var
   OriginalList: PTGListHeader;
 begin
   result := false;
+  OriginalList := nil;
 
   if NeedBackup then
   begin

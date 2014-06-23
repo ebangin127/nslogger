@@ -4,40 +4,59 @@ unit uGSTester;
 
 interface
 
-uses Windows, SysUtils, Generics.Collections, MMSystem, Math,
-     uGSList, uGSMTAnalyzer, uRandomBuffer, uTrimCommand;
+uses Windows, SysUtils, Generics.Collections, MMSystem, Math, Dialogs,
+     Classes,
+     uGSList, uRandomBuffer, uTrimCommand, uErrorList;
 
 const
   MaxIOSize = 65536;
   MainLatencyRatio = 5;
+  TimeoutInMilliSec = 60000;
 
 type
   TTestStage = (stReady, stLatencyTest, stMainTest, stCount);
   TGSTester = class
   private
     FMasterTrace: TGSList;
-    FTraceAnalyzer: TGSMTAnalyzer;
+
+    FOverlapped: OVERLAPPED;
 
     FStage: TTestStage;
     FDriveHandle: THandle;
-    FOverlapped: OVERLAPPED;
     FIterator: Integer;
     FFrequency: Double;
     FMainTestCount: Integer;
     FOverallTestCount: Integer;
 
+    FStartLatency, FEndLatency: Int64; //Unit: us(10^-6);
     FMinLatency, FMaxLatency: Int64; //Unit: us(10^-6)
     FHostWrite: Int64;
 
     FRandomBuffer: PTRandomBuffer;
     FReadBuffer: Array[0..MaxIOSize - 1] of Byte;
 
+    FErrorBuf: TErrorList;
+
     function DiskWrite(Contents: PTGSNode): Boolean;
     function DiskRead(Contents: PTGSNode): Boolean;
     function DiskTrim(Contents: PTGSNode): Boolean;
     function DiskFlush: Boolean;
+    procedure SetIterator(const Value: Integer);
+
+    function WaitForOverlapped(Handle: THandle;
+                                pOverlapped: POVERLAPPED): Cardinal;
   public
-    constructor Create;
+    property StartLatency: Int64 read FStartLatency write FStartLatency;
+    property EndLatency: Int64 read FEndLatency write FEndLatency;
+    property MinLatency: Int64 read FMinLatency write FMinLatency;
+    property MaxLatency: Int64 read FMaxLatency write FMaxLatency;
+    property MainTestCount: Integer read FMainTestCount write FMainTestCount;
+    property OverallTestCount: Integer read FOverallTestCount write FOverallTestCount;
+    property Iterator: Integer read FIterator write SetIterator;
+    property HostWrite: Int64 read FHostWrite write FHostWrite;
+    property ErrorBuf: TErrorList read FErrorBuf write FErrorBuf;
+
+    constructor Create(Capacity: UINT64);
     destructor Destroy; override;
 
     function SetDisk(DriveNumber: Integer): Boolean;
@@ -50,6 +69,8 @@ type
     function GetHostWrite: Integer;
 
     function ProcessNextOperation: Boolean;
+
+    procedure CheckAlign(Align: Integer; MaxLBA: Int64; OrigLBA: Int64 = 250000000);
 
     function AssignBuffer(RandBuf: PTRandomBuffer): Boolean;
     function AssignListHeader(NewHeader: PTGListHeader): Boolean;
@@ -66,28 +87,32 @@ var
   BufferPoint: Pointer;
   LowOrder: UINT;
   HighOrder: UINT;
+  APIResult: Cardinal;
 begin
   BufferPoint := FRandomBuffer.GetBufferPtr(Contents.FLength);
-
-  if Contents.FLBA = 0 then
-    Contents.FLBA := 512;
-
-  if Contents.FLBA shr 23 > 0 then
-    Contents.FLBA := Contents.FLBA and ((1 shl 23) - 1);
 
   LowOrder := Contents.FLBA shl 9 and $FFFFFFFF;
   HighOrder := Contents.FLBA shr 23 and $FFFFFFFF;
   //Because the Unit is in bytes, MAX LBA size is 55 bits > 48bit LBA
   //So now it is okay to use this unit
 
-  result := (SetFilePointer(FDriveHandle, LowOrder, @HighOrder, FILE_BEGIN) = LowOrder);
-  result := WriteFile(FDriveHandle, BufferPoint^, Contents.FLength,
-                      BytesWritten, nil);
+  FillMemory(@FOverlapped, sizeof(OVERLAPPED), 0);
+  FOverlapped.hEvent := CreateEvent(nil, false, false, nil);
+  FOverlapped.Offset := LowOrder;
+  FOverlapped.OffsetHigh := HighOrder;
+
+  WriteFile(FDriveHandle, BufferPoint^, Contents.FLength, BytesWritten, @FOverlapped);
+
+  APIResult := GetLastError;
+  result := ((APIResult = 0) or (APIResult = ERROR_IO_PENDING));
+
+  if APIResult = ERROR_IO_PENDING then
+  begin
+    result := WaitForOverlapped(FDriveHandle, @FOverlapped) = ERROR_SUCCESS;
+  end;
 
   if result then
     Inc(FHostWrite, Contents.FLength);
-
-  Assert(result, IntToStr(GetLastError) + ' LBA: ' + IntToStr(Contents.FLBA) + ' Length: ' + IntToStr(Contents.FLength));
 end;
 
 function TGSTester.DiskRead(Contents: PTGSNode): Boolean;
@@ -96,6 +121,7 @@ var
   BufferPoint: Pointer;
   LowOrder: UINT;
   HighOrder: UINT;
+  APIResult: Cardinal;
 begin
   BufferPoint := @FReadBuffer;
 
@@ -104,15 +130,41 @@ begin
   //Because the Unit is in bytes, MAX LBA size is 55 bits > 48bit LBA
   //So now it is okay to use this unit
 
-  SetFilePointer(FDriveHandle, LowOrder, @HighOrder, FILE_BEGIN);
-  result := ReadFile(FDriveHandle, BufferPoint, Contents.FLength,
-                     BytesRead, nil);
+  FillMemory(@FOverlapped, sizeof(OVERLAPPED), 0);
+  FOverlapped.hEvent := CreateEvent(nil, false, false, nil);
+  FOverlapped.Offset := LowOrder;
+  FOverlapped.OffsetHigh := HighOrder;
+
+  ReadFile(FDriveHandle, BufferPoint, Contents.FLength,
+           BytesRead, @FOverlapped);
+
+  APIResult := GetLastError;
+  result := (APIResult = 0) or (APIResult = ERROR_IO_PENDING);
+
+  if APIResult = ERROR_IO_PENDING then
+  begin
+    result := WaitForOverlapped(FDriveHandle, @FOverlapped) = ERROR_SUCCESS;
+  end;
 end;
 
 function TGSTester.DiskTrim(Contents: PTGSNode): Boolean;
+var
+  TrimResult: Cardinal;
 begin
-  result := (SendTrimCommand(FDriveHandle, Contents.FLBA, Contents.FLength)
-             = ERROR_SUCCESS);
+  FillMemory(@FOverlapped, sizeof(OVERLAPPED), 0);
+  FOverlapped.hEvent := CreateEvent(nil, false, false, nil);
+  FOverlapped.Offset := 0;
+  FOverlapped.OffsetHigh := 0;
+
+  TrimResult := SendTrimCommand(FDriveHandle, Contents.FLBA, Contents.FLength,
+                                @FOverlapped);
+
+  result := (TrimResult = 0) or (TrimResult = ERROR_IO_PENDING);
+
+  if TrimResult = ERROR_IO_PENDING then
+  begin
+    result := WaitForOverlapped(FDriveHandle, @FOverlapped) = ERROR_SUCCESS;
+  end;
 end;
 
 function TGSTester.DiskFlush: Boolean;
@@ -120,7 +172,15 @@ begin
   result := FlushFileBuffers(FDriveHandle);
 end;
 
-constructor TGSTester.Create;
+procedure TGSTester.CheckAlign(Align: Integer; MaxLBA, OrigLBA: Int64);
+begin
+  if OrigLBA <= 0 then
+    FMasterTrace.CheckAlign(Align, MaxLBA)
+  else
+    FMasterTrace.CheckAlign(Align, MaxLBA, OrigLBA);
+end;
+
+constructor TGSTester.Create(Capacity: UINT64);
 var
   Frequency: Int64;
 begin
@@ -128,8 +188,6 @@ begin
   FIterator := 0;
 
   FMasterTrace := TGSList.Create;
-  FTraceAnalyzer := TGSMTAnalyzer.Create;
-  FTraceAnalyzer.AssignList(@FMasterTrace);
 
   QueryPerformanceFrequency(Frequency);
   FFrequency := Frequency / 1000000; //us(10^-6)
@@ -138,6 +196,8 @@ begin
   FMaxLatency := -1;
 
   FOverallTestCount := 0;
+
+  FErrorBuf := TErrorList.Create(Capacity);
 end;
 
 destructor TGSTester.Destroy;
@@ -149,7 +209,7 @@ begin
   end;
 
   FreeAndNil(FMasterTrace);
-  FreeAndNil(FTraceAnalyzer);
+  FreeAndNil(FErrorBuf);
 end;
 
 function TGSTester.SetDisk(DriveNumber: Integer): Boolean;
@@ -165,10 +225,29 @@ begin
                               FILE_SHARE_READ or FILE_SHARE_WRITE,
                               nil,
                               OPEN_EXISTING,
-                              FILE_FLAG_NO_BUFFERING,
+                              FILE_FLAG_NO_BUFFERING or
+                              FILE_FLAG_OVERLAPPED,
                               0);
-
   result := (GetLastError = 0);
+end;
+
+procedure TGSTester.SetIterator(const Value: Integer);
+begin
+  FMasterTrace.GoToNum(Value);
+  FIterator := Value;
+end;
+
+function TGSTester.WaitForOverlapped(Handle: THandle;
+                                      pOverlapped: POVERLAPPED): Cardinal;
+var
+  BytesReturned: DWORD;
+begin
+  WaitForSingleObject(pOverlapped.hEvent, TimeoutInMilliSec);
+  result := 0;
+
+  if GetOverlappedResult(Handle, pOverlapped^, BytesReturned, false) = false
+  then
+    result := GetLastError;
 end;
 
 function TGSTester.GetCurrentStage: TTestStage;
@@ -207,10 +286,11 @@ var
   StartTime, EndTime: Int64;
   OverallTime: Int64;
 begin
+  result := false;
+  NextOperation := nil;
   case FStage of
     stReady:
     begin
-      FTraceAnalyzer.GoToFirst;
       FMasterTrace.GoToFirst;
 
       FStage := stLatencyTest;
@@ -218,23 +298,7 @@ begin
       exit;
     end;
 
-    stLatencyTest:
-    begin
-      if FIterator = FTraceAnalyzer.GetLength then
-      begin
-        FStage := stMainTest;
-        FIterator := 0;
-        FMainTestCount := 0;
-
-        Inc(FOverallTestCount, 1);
-        result := ProcessNextOperation;
-        exit;
-      end;
-
-      NextOperation := FTraceAnalyzer.GetNextAction;
-    end;
-
-    stMainTest:
+    stLatencyTest..stMainTest:
     begin
       if FIterator = FMasterTrace.GetLength then
       begin
@@ -242,6 +306,10 @@ begin
         begin
           FStage := stReady;
           FIterator := 0;
+
+          if StartLatency = 0 then
+            StartLatency := MaxLatency;
+          EndLatency := MaxLatency;
 
           result := ProcessNextOperation;
           exit;
@@ -291,6 +359,11 @@ begin
         FMaxLatency := OverallTime;
       end;
     end;
+
+    if result = false then
+    begin
+      FErrorBuf.AddTGSNode(NextOperation^);
+    end;
   end;
 end;
 
@@ -302,7 +375,6 @@ end;
 
 function TGSTester.AssignListHeader(NewHeader: PTGListHeader): Boolean;
 begin
-  result := FMasterTrace.AssignHeader(NewHeader) and
-            FTraceAnalyzer.AssignList(@FMasterTrace);
+  result := FMasterTrace.AssignHeader(NewHeader);
 end;
 end.

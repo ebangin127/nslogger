@@ -2,8 +2,16 @@ unit uGSTestThread;
 
 interface
 
-uses Classes, SysUtils, ComCtrls, Math, Windows,
-     uGSTester, uGSList, uRandomBuffer, uSMARTManager;
+uses Classes, SysUtils, ComCtrls, Math, Windows, DateUtils,
+     uGSTester, uGSList, uRandomBuffer, uSMARTManager, uSaveFile;
+
+type
+  TmakeJEDECList  = function (TraceList: Pointer; path: PChar): PTGListHeader; cdecl;
+  TmakeJEDECClass = function: Pointer; cdecl;
+  TdeleteJEDECClass = procedure(delClass: Pointer); cdecl;
+
+const
+  ByteToTB = 40;
 
 type
   TGSTestThread = class(TThread)
@@ -11,6 +19,9 @@ type
     FTester: TGSTester;
     FSMARTManager: TSMARTManager;
     FRandomBuffer: TRandomBuffer;
+    FSaveFile: TSaveFile;
+
+    FSavePath: String;
 
     FLoadedState: Integer; //Bit 0: BufferLoaded, Bit 1: ListLoaded
     FFullyLoaded: Boolean;
@@ -18,28 +29,72 @@ type
 
     FBufSize: Integer;
 
-    FLastSync: Cardinal;
+    FLastSync: Cardinal;    
+    FSecCounter: Integer;
     FLastSyncCount: Integer;
+
+    FDLLHandle: THandle;
+    ClassPTR: Pointer;
+
+    FMaxLBA: UInt64;
+    FOrigLBA: UInt64;
+    FAlign: Integer;
+
+    FMaxHostWrite: UInt64;
+    FRetentionTest: UInt64;
+
+    makeJEDECList: TmakeJEDECList;
+    makeJEDECClass: TmakeJEDECClass;
+    deleteJEDECClass: TdeleteJEDECClass;
+
+    function LBAto48Bit(NewLBA: UInt64): UInt64;
+
+    procedure SetMaxLBA(NewLBA: UInt64);
+    procedure SetOrigLBA(NewLBA: UInt64);
+    function ReadMaxTBW: UInt64;
+    function ReadRetTest: UInt64;
+    procedure WriteMaxTBW(const Value: UInt64);
+    procedure WriteRetTest(const Value: UInt64);
   public
-    constructor Create; overload;
-    constructor Create(CreateSuspended: Boolean); overload;
+    property MaxLBA: UInt64 read FMaxLBA write SetMaxLBA;
+    property OrigLBA: UInt64 read FOrigLBA write SetOrigLBA;
+    property Align: Integer read FAlign write FAlign;
+
+    property MaxHostWrite: UInt64 read ReadMaxTBW write WriteMaxTBW;
+    property RetentionTest: UInt64 read ReadRetTest write WriteRetTest;
+
+    constructor Create(Capacity: UINT64); overload;
+    constructor Create(RandomSeed: Int64; Capacity: UINT64); overload;
+    constructor Create(CreateSuspended: Boolean; Capacity: UINT64); overload;
+    constructor Create(CreateSuspended: Boolean; Capacity: UINT64; RandomSeed: Int64); overload;
+
     destructor Destroy; override;
 
     procedure ApplyState;
+    procedure ApplyAlignTest;
+    procedure ApplyStart;
     procedure Execute; override;
 
     procedure StartThread;
-    function AssignBufferSetting(BufSize: Integer; RandomnessInInteger: Integer): Boolean; overload;
-    function AssignBufferSetting(BufSize: Integer; RandomnessInString: String): Boolean; overload;
-    function AssignListHeader(NewHeader: PTGListHeader): Boolean;
+
+    procedure AssignSavePath(const Path: String);
+    function AssignBufferSetting(BufSize: Integer; RandomnessInInteger: Integer):
+              Boolean; overload;
+    function AssignBufferSetting(BufSize: Integer; RandomnessInString: String):
+              Boolean; overload;
+    function AssignDLLPath(DLLPath: String): Boolean;
     function SetDisk(DriveNumber: Integer): Boolean;
+
+    function Save(SaveFilePath: String): Boolean;
+    function SaveTodaySpeed(SaveFilePath: String): Boolean;
+    function Load(SaveFilePath: String): Boolean;
   end;
 
 implementation
 
 uses uMain;
 
-constructor TGSTestThread.Create;
+constructor TGSTestThread.Create(Capacity: UINT64);
 var
   RandomSeed: Int64;
 begin
@@ -48,15 +103,32 @@ begin
   if QueryPerformanceCounter(RandomSeed) = false then
     RandomSeed := GetTickCount;
 
-  FTester := TGSTester.Create;
+  Create(RandomSeed, Capacity);
+end;
+
+constructor TGSTestThread.Create(RandomSeed: Int64; Capacity: UINT64);
+begin
+  inherited Create;
+
+  FSaveFile := TSaveFile.Create;
+  FSaveFile.RandomSeed := RandomSeed;
+
+  FTester := TGSTester.Create(Capacity);
   FSMARTManager := TSMARTManager.Create;
   FRandomBuffer := TRandomBuffer.Create(RandomSeed);
 end;
 
-constructor TGSTestThread.Create(CreateSuspended: Boolean);
+constructor TGSTestThread.Create(CreateSuspended: Boolean; Capacity: UINT64);
 begin
-  inherited Create(CreateSuspended);
-  Create;
+  inherited Create;
+  Create(Capacity);
+end;
+
+constructor TGSTestThread.Create(CreateSuspended: Boolean; Capacity: UINT64;
+                                 RandomSeed: Int64);
+begin
+  inherited Create;
+  Create(Capacity, RandomSeed);
 end;
 
 destructor TGSTestThread.Destroy;
@@ -64,15 +136,38 @@ begin
   FreeAndNil(FTester);
   FreeAndNil(FSMARTManager);
   FreeAndNil(FRandomBuffer);
+  FreeAndNil(FSaveFile);
+  if FDLLHandle <> 0 then
+  begin
+    if ClassPTR <> nil then
+    begin
+      deleteJEDECClass(ClassPTR);
+    end;
+
+    FDLLHandle := 0;
+    CloseHandle(FDLLHandle);
+  end;
+end;
+
+procedure TGSTestThread.ApplyAlignTest;
+begin
+  fMain.sTestStage.Caption :=
+    '테스트 SSD에 트레이스 맞추는 중';
+end;
+
+
+procedure TGSTestThread.ApplyStart;
+begin
+  fMain.bSave.Enabled := true;
 end;
 
 procedure TGSTestThread.ApplyState;
 var
   MinLatency, MaxLatency: Double;
-  TraceSize: Double;
-  BufferSize: Double;
   HostWrite: Double;
+  TestProgress: Integer;
   RamStats: TMemoryStatusEx;
+  ErrorString: String;
 begin
   with fMain do
   begin
@@ -82,6 +177,33 @@ begin
       lAlert.Items.Add(IntToStr(FLastSyncCount) + '회 시작: '
                         + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
       sCycleCount.Caption := IntToStr(FLastSyncCount) + '회';
+    end;
+
+    while FTester.ErrorBuf.Count > 0 do
+    begin
+      ErrorString := FormatDateTime('[yyyy/mm/dd hh:nn:ss]', Now);
+      case FTester.ErrorBuf.Items[0].FIOType of
+      0{ioRead}:
+        ErrorString := ErrorString + '읽기 오류: ';
+      1{ioWrite}:
+        ErrorString := ErrorString + '쓰기 오류: ';
+      2{ioTrim}:
+        ErrorString := ErrorString + '트림 오류: ';
+      3{ioFlush}:
+        ErrorString := ErrorString + '플러시 오류';
+      end;
+
+      case FTester.ErrorBuf.Items[0].FIOType of
+      0..2:
+      begin
+        ErrorString := ErrorString + '위치 ' + IntToStr(FTester.ErrorBuf.Items[0].FLBA)
+                        + ', ';
+        ErrorString := ErrorString + '길이 ' + IntToStr(FTester.ErrorBuf.Items[0].FLength);
+      end;
+      end;
+
+      lAlert.Items.Add(ErrorString);
+      FTester.ErrorBuf.Delete(0);
     end;
 
     with sTestStage do
@@ -152,22 +274,34 @@ begin
       pMaxLatency.Position := round(Log10((MaxLatency / 500) * 100) / 2 * 100);
     end;
 
+    TestProgress := round(FTester.GetHostWrite / FMaxHostWrite * 100);
+    pTestProgress.Position := TestProgress;
+    sTestProgress.Caption := IntToStr(TestProgress) + '% (';
+
     HostWrite := FTester.GetHostWrite / 1024 / 1024; //Unit: MB
     if HostWrite > (1024 * 1024 * 1024 / 4 * 3) then //Above 0.75PB
     begin
-      sTestProgress.Caption := Format('%.2fPBW', [HostWrite / 1024 / 1024 / 1024]);
+      sTestProgress.Caption :=
+        sTestProgress.Caption +
+          Format('%.2fPBW)', [HostWrite / 1024 / 1024 / 1024]);
     end
     else if HostWrite > (1024 * 1024 / 4 * 3) then //Above 0.75TB
     begin
-      sTestProgress.Caption := Format('%.2fTBW', [HostWrite / 1024 / 1024]);
+      sTestProgress.Caption :=
+        sTestProgress.Caption +
+          Format('%.2fTBW)', [HostWrite / 1024 / 1024]);
     end
     else if HostWrite > (1024 / 4 * 3) then //Above 0.75GB
     begin
-      sTestProgress.Caption := Format('%.2fGBW', [HostWrite / 1024]);
+      sTestProgress.Caption :=
+        sTestProgress.Caption +
+          Format('%.2fGBW)', [HostWrite / 1024]);
     end
     else
     begin
-      sTestProgress.Caption := Format('%.2fMBW', [HostWrite]);
+      sTestProgress.Caption :=
+        sTestProgress.Caption +
+          Format('%.2fMBW)', [HostWrite]);
     end;
 
 
@@ -191,8 +325,6 @@ begin
       pRamUsage.State := pbsNormal;
     end;
 
-    TraceSize := FTester.GetLength * SizeOf(TGSNode) / 1024 / 1024; //Byte to MB
-    BufferSize := FBufSize shr 10; //Byte to MB
     sRamUsage.Caption := sRamUsage.Caption + Format('%dMB)',
                                                     [RamStats.ullAvailPhys shr 20]);
     pRamUsage.Position := round(((RamStats.ullAvailPhys shr 20) /
@@ -210,15 +342,39 @@ begin
   if FFullyLoaded = false then
     exit;
 
+  FLastSync := 0;
+  FSecCounter := 0;
+
+  ClassPTR := makeJEDECClass;
+  FTester.AssignListHeader(makeJEDECList(ClassPTR, PChar('D:\mtu.txt')));
+
+  Synchronize(ApplyAlignTest);
+  FTester.CheckAlign(Align, MaxLBA, OrigLBA);
+
+  Synchronize(ApplyStart);
   Synchronize(ApplyState);
   while not Terminated do
   begin
+    if (((FTester.GetHostWrite mod FRetentionTest) = 0) and
+        ((FTester.GetHostWrite <> 0) or (FTester.StartLatency = 0))) or
+       (FTester.GetHostWrite = FMaxHostWrite) then
+      exit;
+
     if FTester.ProcessNextOperation then
     begin
       CurrTime := GetTickCount;
       if (CurrTime - FLastSync) > 1000 then
       begin
         Synchronize(ApplyState);
+
+        FSecCounter := FSecCounter + 1;
+        if FSecCounter >= 600 then // 10 minutes
+        begin
+          SaveTodaySpeed(FSavePath);
+          Save(FSavePath);
+          FSecCounter := 0;
+        end;
+
         FLastSync := CurrTime;
       end;
     end
@@ -227,16 +383,160 @@ begin
       break;
     end;
   end;
+
+  SaveTodaySpeed(FSavePath);
+  Save(FSavePath);
+end;
+
+function TGSTestThread.SaveTodaySpeed(SaveFilePath: String): Boolean;
+var
+  SaveFile: TStringList;
+  LastTime, CurrTime: TDateTime;
+begin
+  SaveFile := TStringList.Create;
+
+  SaveFile.LoadFromFile(SaveFilePath + 'speedlog.txt');
+
+  //오늘 저장한 적이 있으면 처리
+  if SaveFile.Count > 0 then
+  begin
+    LastTime := UnixToDateTime(StrToInt64(SaveFile[0]));
+    CurrTime := Time;
+    if (LastTime >= floor(CurrTime)) and (LastTime < ceil(CurrTime)) then
+    begin
+      SaveFile.Delete(SaveFile.Count - 1);
+    end;
+  end;
+
+  //저장하기 위해서 내용 적기
+  SaveFile[0] := IntToStr(DateTimeToUnix(CurrTime));
+  SaveFile.Add(IntToStr(FTester.StartLatency) + ' ' +
+               IntToStr(FTester.EndLatency) + ' ' +
+               IntToStr(FTester.MaxLatency) + ' ' +
+               IntToStr(FTester.MinLatency));
+
+  SaveFile.SaveToFile(SaveFilePath + 'speedlog.txt');
+
+  FTester.StartLatency := 0;
+  FTester.EndLatency := 0;
+  FTester.MaxLatency := 0;
+  FTester.MinLatency := 0;
+
+  FreeAndNil(SaveFile);
+end;
+
+function TGSTestThread.Save(SaveFilePath: String): Boolean;
+begin
+  FSaveFile.MaxTBW := FMaxHostWrite;
+  FSaveFile.RetTBW := FRetentionTest;
+  FSaveFile.CurrTBW := FTester.GetHostWrite;
+
+  FSaveFile.StartLatency := FTester.StartLatency;
+  FSaveFile.EndLatency := FTester.EndLatency;
+
+  FSaveFile.MinLatency := FTester.GetMinimumLatency;
+  FSaveFile.MaxLatency := FTester.GetMaximumLatency;
+
+  FSaveFile.MainTestCount := FTester.MainTestCount;
+  FSaveFile.OverallTestCount := FTester.OverallTestCount;
+  FSaveFile.Iterator := FTester.Iterator;
+
+  FTester.ErrorBuf.Save(SaveFilePath + 'error.txt');
+  result := FSaveFile.SaveToFile(SaveFilePath + 'settings.ini');
+end;
+
+function TGSTestThread.Load(SaveFilePath: String): Boolean;
+begin
+  result := FSaveFile.LoadFromFile(SaveFilePath);
+
+  FMaxHostWrite := FSaveFile.MaxTBW;
+  FRetentionTest := FSaveFile.RetTBW;
+  FTester.HostWrite := FSaveFile.CurrTBW;
+
+  FTester.StartLatency := FSaveFile.StartLatency;
+  FTester.EndLatency := FSaveFile.EndLatency;
+
+  FTester.MinLatency := FSaveFile.MinLatency;
+  FTester.MaxLatency := FSaveFile.MaxLatency;
+
+  FTester.MainTestCount := FSaveFile.MainTestCount;
+  FTester.OverallTestCount := FSaveFile.OverallTestCount;
+  FTester.Iterator := FSaveFile.Iterator;
 end;
 
 function TGSTestThread.SetDisk(DriveNumber: Integer): Boolean;
 begin
   result := FTester.SetDisk(DriveNumber);
+  if result then
+    FSaveFile.Disknum := DriveNumber;
+end;
+
+function TGSTestThread.LBAto48Bit(NewLBA: UInt64): UInt64;
+begin
+  result := NewLBA and $FFFFFFFFFFFF; //Limit LBA to 48Bit
+end;
+
+procedure TGSTestThread.SetMaxLBA(NewLBA: UInt64);
+begin
+  FMaxLBA := LBAto48Bit(NewLBA);
+end;
+
+procedure TGSTestThread.SetOrigLBA(NewLBA: UInt64);
+begin
+  FOrigLBA := LBAto48Bit(NewLBA);
 end;
 
 procedure TGSTestThread.StartThread;
 begin
   FStarted := true;
+end;
+
+function TGSTestThread.ReadMaxTBW: UInt64;
+begin
+  result := FMaxHostWrite shr ByteToTB;
+end;
+
+function TGSTestThread.ReadRetTest: UInt64;
+begin
+  result := FRetentionTest shr ByteToTB;
+end;
+
+procedure TGSTestThread.WriteMaxTBW(const Value: UInt64);
+begin
+  FMaxHostWrite := Value shl ByteToTB;
+end;
+
+procedure TGSTestThread.WriteRetTest(const Value: UInt64);
+begin
+  FRetentionTest := Value shl ByteToTB;
+end;
+
+procedure TGSTestThread.AssignSavePath(const Path: String);
+begin
+  FSavePath := Path;
+end;
+
+function TGSTestThread.AssignDLLPath(DLLPath: String): Boolean;
+begin
+  if FileExists(DLLPath) then
+
+  FDLLHandle := LoadLibrary(PChar(DLLPath));
+
+  @makeJEDECList := GetProcAddress(FDLLHandle, 'makeJEDECList');
+  @makeJEDECClass := GetProcAddress(FDLLHandle, 'makeJedecClass');
+  @deleteJEDECClass := GetProcAddress(FDLLHandle, 'deleteJedecClass');
+
+  if (@makeJEDECList = nil) or (@makeJEDECClass = nil)
+  or (@deleteJEDECClass = nil) then
+  begin
+    CloseHandle(FDLLHandle);
+    FDLLHandle := 0;
+    exit(false);
+  end;
+
+  result := true;
+  FLoadedState := FLoadedState or ((1 and Integer(result)) shl 1);
+  FFullyLoaded := (FLoadedState = (1 or (1 shl 1)));
 end;
 
 function TGSTestThread.AssignBufferSetting(BufSize: Integer;
@@ -257,12 +557,5 @@ function TGSTestThread.AssignBufferSetting(BufSize: Integer;
   RandomnessInString: String): Boolean;
 begin
   result := AssignBufferSetting(BufSize, StrToInt(RandomnessInString));
-end;
-
-function TGSTestThread.AssignListHeader(NewHeader: PTGListHeader): Boolean;
-begin
-  result := FTester.AssignListHeader(NewHeader);
-  FLoadedState := FLoadedState or ((1 and Integer(result)) shl 1);
-  FFullyLoaded := (FLoadedState = (1 or (1 shl 1)));
 end;
 end.

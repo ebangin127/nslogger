@@ -2,9 +2,10 @@ unit uFileFunctions;
 
 interface
 
-uses SysUtils, ShellAPI;
+uses Dialogs, SysUtils, ShellAPI, FileCtrl;
 
 function DeleteDirectory(Const DirPath: String): Boolean;
+function SelectDirectory(DefaultDir: String): String;
 
 implementation
 
@@ -40,6 +41,31 @@ begin
     iFindResult := FindNext(srSchRec);
   end;
   FindClose(srSchRec);
+end;
+
+function SelectDirectory(DefaultDir: String): String;
+begin
+   if Win32MajorVersion >= 6 then
+    with TFileOpenDialog.Create(nil) do
+      try
+        Title := 'Select Directory';
+        Options := [fdoPickFolders, fdoPathMustExist, fdoForceFileSystem]; // YMMV
+        OkButtonLabel := 'Select';
+        DefaultFolder := DefaultDir;
+        FileName := DefaultDir;
+        if Execute then
+          result := FileName;
+      finally
+        Free;
+      end
+  else
+    if FileCtrl.SelectDirectory('Select Directory',
+                              ExtractFileDrive(DefaultDir), DefaultDir,
+                              [sdNewUI, sdNewFolder], nil) = true then
+      result := DefaultDir;
+
+  if result <> '' then
+    result := result + '\';
 end;
 
 end.

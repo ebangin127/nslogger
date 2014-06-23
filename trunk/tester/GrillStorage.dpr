@@ -4,7 +4,6 @@ uses
   Vcl.Forms,
   uMain in 'uMain.pas' {fMain},
   uGSList in 'Classes\TGSList\uGSList.pas',
-  uGSMTAnalyzer in 'Classes\TGSMTAnalyzer\uGSMTAnalyzer.pas',
   uGSTester in 'Classes\TGSTester\uGSTester.pas',
   uDiskFunctions in 'Modules\Disk\uDiskFunctions.pas',
   uPartitionFunctions in 'Modules\Disk\uPartitionFunctions.pas',
@@ -22,7 +21,9 @@ uses
   uSSDVersion in 'Classes\SSDInfo\uSSDVersion.pas',
   uGSTestThread in 'Classes\TGSTestThread\uGSTestThread.pas',
   uSMARTManager in 'Classes\TSMARTManager\uSMARTManager.pas',
-  uSetting in 'uSetting.pas' {fSetting};
+  uSetting in 'uSetting.pas' {fSetting},
+  uSaveFile in 'Classes\TSaveFile\uSaveFile.pas',
+  uErrorList in 'Classes\TErrorList\uErrorList.pas';
 
 {$R *.res}
 
