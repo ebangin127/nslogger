@@ -195,6 +195,7 @@ begin
   MultiConst := (MaxLBA / OrigLBA);
   repeat
     Contents := GetNextItem;
+
     Contents.FLBA := ceil(Contents.FLBA / Align) shl 9;
 
     if Contents.FLBA = 0 then

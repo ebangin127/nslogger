@@ -12,6 +12,7 @@ object fMain: TfMain
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
+  OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
   PixelsPerInch = 96
@@ -26,49 +27,49 @@ object fMain: TfMain
     object Label1: TLabel
       Left = 17
       Top = 139
-      Width = 55
+      Width = 51
       Height = 13
       Caption = #52572#49548' '#51648#50672':'
     end
     object Label2: TLabel
       Left = 15
       Top = 191
-      Width = 55
+      Width = 51
       Height = 13
       Caption = #52572#45824' '#51648#50672':'
     end
     object Label4: TLabel
       Left = 18
       Top = 48
-      Width = 94
+      Width = 87
       Height = 13
       Caption = #54788#51116' '#51652#54665' '#53580#49828#53944':'
     end
     object Label3: TLabel
       Left = 17
       Top = 21
-      Width = 82
+      Width = 76
       Height = 13
       Caption = #54788#51116' '#48152#48373' '#54924#52264':'
     end
     object Label6: TLabel
       Left = 15
       Top = 242
-      Width = 43
+      Width = 40
       Height = 13
       Caption = #45224#51008' '#47016':'
     end
     object Label7: TLabel
       Left = 17
       Top = 89
-      Width = 67
+      Width = 62
       Height = 13
       Caption = #53580#49828#53944' '#51652#54665':'
     end
     object Label5: TLabel
       Left = 17
       Top = 212
-      Width = 42
+      Width = 35
       Height = 13
       Caption = #8592' '#50577#54840
       Font.Charset = DEFAULT_CHARSET
@@ -81,7 +82,7 @@ object fMain: TfMain
     object Label8: TLabel
       Left = 17
       Top = 159
-      Width = 42
+      Width = 35
       Height = 13
       Caption = #8592' '#50577#54840
       Font.Charset = DEFAULT_CHARSET
@@ -94,7 +95,7 @@ object fMain: TfMain
     object Label9: TLabel
       Left = 257
       Top = 212
-      Width = 42
+      Width = 35
       Height = 13
       Caption = #50948#54744' '#8594
       Font.Charset = DEFAULT_CHARSET
@@ -107,7 +108,7 @@ object fMain: TfMain
     object Label10: TLabel
       Left = 257
       Top = 159
-      Width = 42
+      Width = 35
       Height = 13
       Caption = #50948#54744' '#8594
       Font.Charset = DEFAULT_CHARSET
@@ -120,7 +121,7 @@ object fMain: TfMain
     object Label11: TLabel
       Left = 254
       Top = 268
-      Width = 42
+      Width = 35
       Height = 13
       Caption = #50668#50976' '#8594
       Font.Charset = DEFAULT_CHARSET
@@ -133,7 +134,7 @@ object fMain: TfMain
     object Label12: TLabel
       Left = 16
       Top = 268
-      Width = 42
+      Width = 35
       Height = 13
       Caption = #8592' '#48512#51313
       Font.Charset = DEFAULT_CHARSET
@@ -160,7 +161,7 @@ object fMain: TfMain
     object sMinLatency: TStaticText
       Left = 78
       Top = 139
-      Width = 74
+      Width = 72
       Height = 17
       Caption = #50577#54840' (0.00ms)'
       TabOrder = 2
@@ -168,7 +169,7 @@ object fMain: TfMain
     object sMaxLatency: TStaticText
       Left = 78
       Top = 191
-      Width = 74
+      Width = 72
       Height = 17
       Caption = #50577#54840' (0.00ms)'
       TabOrder = 3
@@ -176,7 +177,7 @@ object fMain: TfMain
     object sTestStage: TStaticText
       Left = 118
       Top = 48
-      Width = 94
+      Width = 87
       Height = 17
       Caption = #51648#50672' '#49884#44036' '#53580#49828#53944
       TabOrder = 4
@@ -184,7 +185,7 @@ object fMain: TfMain
     object sCycleCount: TStaticText
       Left = 105
       Top = 21
-      Width = 22
+      Width = 21
       Height = 17
       Caption = '0'#54924
       TabOrder = 5

@@ -25,7 +25,7 @@ object fSetting: TfSetting
     Caption = #51060#50612#54616#44592
     TabOrder = 0
     object bOpenExist: TButton
-      Left = 10
+      Left = 11
       Top = 15
       Width = 134
       Height = 162
@@ -44,21 +44,21 @@ object fSetting: TfSetting
     object Label1: TLabel
       Left = 17
       Top = 51
-      Width = 53
+      Width = 51
       Height = 13
       Caption = #47785#54364' TBW:'
     end
     object Label2: TLabel
       Left = 17
       Top = 83
-      Width = 109
+      Width = 101
       Height = 13
       Caption = #47532#53584#49496' '#53580#49828#53944' '#51452#44592': '
     end
     object Label5: TLabel
       Left = 15
       Top = 19
-      Width = 58
+      Width = 54
       Height = 13
       Caption = #45824#49345' '#50948#52824': '
     end
@@ -79,7 +79,7 @@ object fSetting: TfSetting
     object Label6: TLabel
       Left = 17
       Top = 111
-      Width = 67
+      Width = 62
       Height = 13
       Caption = #51116#54788#54624' '#54028#51068':'
     end

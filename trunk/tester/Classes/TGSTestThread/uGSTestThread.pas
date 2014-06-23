@@ -12,6 +12,9 @@ type
 
 const
   ByteToTB = 40;
+  EXIT_NORMAL = 0;
+  EXIT_RETENTION = 1;
+  EXIT_HOSTWRITE = 2;
 
 type
   TGSTestThread = class(TThread)
@@ -22,6 +25,7 @@ type
     FSaveFile: TSaveFile;
 
     FSavePath: String;
+    FTracePath: String;
 
     FLoadedState: Integer; //Bit 0: BufferLoaded, Bit 1: ListLoaded
     FFullyLoaded: Boolean;
@@ -42,6 +46,7 @@ type
 
     FMaxHostWrite: UInt64;
     FRetentionTest: UInt64;
+    FExitCode: Byte;
 
     makeJEDECList: TmakeJEDECList;
     makeJEDECClass: TmakeJEDECClass;
@@ -56,6 +61,8 @@ type
     procedure WriteMaxTBW(const Value: UInt64);
     procedure WriteRetTest(const Value: UInt64);
   public
+    property ExitCode: Byte read FExitCode;
+
     property MaxLBA: UInt64 read FMaxLBA write SetMaxLBA;
     property OrigLBA: UInt64 read FOrigLBA write SetOrigLBA;
     property Align: Integer read FAlign write FAlign;
@@ -63,10 +70,10 @@ type
     property MaxHostWrite: UInt64 read ReadMaxTBW write WriteMaxTBW;
     property RetentionTest: UInt64 read ReadRetTest write WriteRetTest;
 
-    constructor Create(Capacity: UINT64); overload;
-    constructor Create(RandomSeed: Int64; Capacity: UINT64); overload;
-    constructor Create(CreateSuspended: Boolean; Capacity: UINT64); overload;
-    constructor Create(CreateSuspended: Boolean; Capacity: UINT64; RandomSeed: Int64); overload;
+    constructor Create(TracePath: String; Capacity: UINT64); overload;
+    constructor Create(TracePath: String; RandomSeed: Int64; Capacity: UINT64); overload;
+    constructor Create(TracePath: String; CreateSuspended: Boolean; Capacity: UINT64); overload;
+    constructor Create(TracePath: String; CreateSuspended: Boolean; Capacity: UINT64; RandomSeed: Int64); overload;
 
     destructor Destroy; override;
 
@@ -94,19 +101,8 @@ implementation
 
 uses uMain;
 
-constructor TGSTestThread.Create(Capacity: UINT64);
-var
-  RandomSeed: Int64;
-begin
-  inherited Create;
-
-  if QueryPerformanceCounter(RandomSeed) = false then
-    RandomSeed := GetTickCount;
-
-  Create(RandomSeed, Capacity);
-end;
-
-constructor TGSTestThread.Create(RandomSeed: Int64; Capacity: UINT64);
+constructor TGSTestThread.Create(TracePath: String; RandomSeed: Int64;
+                                 Capacity: UINT64);
 begin
   inherited Create;
 
@@ -116,19 +112,34 @@ begin
   FTester := TGSTester.Create(Capacity);
   FSMARTManager := TSMARTManager.Create;
   FRandomBuffer := TRandomBuffer.Create(RandomSeed);
+
+  FTracePath := TracePath;
 end;
 
-constructor TGSTestThread.Create(CreateSuspended: Boolean; Capacity: UINT64);
+constructor TGSTestThread.Create(TracePath: String; Capacity: UINT64);
+var
+  RandomSeed: Int64;
 begin
   inherited Create;
-  Create(Capacity);
+
+  if QueryPerformanceCounter(RandomSeed) = false then
+    RandomSeed := GetTickCount;
+
+  Create(TracePath, RandomSeed, Capacity);
 end;
 
-constructor TGSTestThread.Create(CreateSuspended: Boolean; Capacity: UINT64;
-                                 RandomSeed: Int64);
+constructor TGSTestThread.Create(TracePath: String; CreateSuspended: Boolean;
+                                 Capacity: UINT64);
 begin
-  inherited Create;
-  Create(Capacity, RandomSeed);
+  inherited Create(CreateSuspended);
+  Create(TracePath, Capacity);
+end;
+
+constructor TGSTestThread.Create(TracePath: String; CreateSuspended: Boolean;
+                                 Capacity: UINT64; RandomSeed: Int64);
+begin
+  inherited Create(CreateSuspended);
+  Create(TracePath, Capacity, RandomSeed);
 end;
 
 destructor TGSTestThread.Destroy;
@@ -346,7 +357,7 @@ begin
   FSecCounter := 0;
 
   ClassPTR := makeJEDECClass;
-  FTester.AssignListHeader(makeJEDECList(ClassPTR, PChar('D:\mtu.txt')));
+  FTester.AssignListHeader(makeJEDECList(ClassPTR, PChar(FTracePath)));
 
   Synchronize(ApplyAlignTest);
   FTester.CheckAlign(Align, MaxLBA, OrigLBA);
@@ -356,9 +367,17 @@ begin
   while not Terminated do
   begin
     if (((FTester.GetHostWrite mod FRetentionTest) = 0) and
-        ((FTester.GetHostWrite <> 0) or (FTester.StartLatency = 0))) or
+        ((FTester.GetHostWrite <> 0) and (FTester.StartLatency <> 0))) or
        (FTester.GetHostWrite = FMaxHostWrite) then
+    begin
+      if ((FTester.GetHostWrite mod FRetentionTest) = 0) and
+         ((FTester.GetHostWrite <> 0) and (FTester.StartLatency <> 0)) then
+         FExitCode := EXIT_RETENTION
+      else
+         FExitCode := EXIT_HOSTWRITE;
+
       exit;
+    end;
 
     if FTester.ProcessNextOperation then
     begin
@@ -395,7 +414,8 @@ var
 begin
   SaveFile := TStringList.Create;
 
-  SaveFile.LoadFromFile(SaveFilePath + 'speedlog.txt');
+  if FileExists(SaveFilePath + 'speedlog.txt') then
+    SaveFile.LoadFromFile(SaveFilePath + 'speedlog.txt');
 
   //오늘 저장한 적이 있으면 처리
   if SaveFile.Count > 0 then
@@ -429,8 +449,9 @@ function TGSTestThread.Save(SaveFilePath: String): Boolean;
 begin
   FSaveFile.MaxTBW := FMaxHostWrite;
   FSaveFile.RetTBW := FRetentionTest;
-  FSaveFile.CurrTBW := FTester.GetHostWrite;
+  FSaveFile.TracePath := FTracePath;
 
+  FSaveFile.CurrTBW := FTester.GetHostWrite;
   FSaveFile.StartLatency := FTester.StartLatency;
   FSaveFile.EndLatency := FTester.EndLatency;
 
@@ -451,8 +472,9 @@ begin
 
   FMaxHostWrite := FSaveFile.MaxTBW;
   FRetentionTest := FSaveFile.RetTBW;
-  FTester.HostWrite := FSaveFile.CurrTBW;
+  FTracePath := FSaveFile.TracePath;
 
+  FTester.HostWrite := FSaveFile.CurrTBW;
   FTester.StartLatency := FSaveFile.StartLatency;
   FTester.EndLatency := FSaveFile.EndLatency;
 

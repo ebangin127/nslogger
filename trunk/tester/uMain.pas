@@ -45,6 +45,7 @@ type
     procedure FormShow(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure bSaveClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     FDiskNum: Integer;
     FDestDriveModel: String;
@@ -61,6 +62,7 @@ type
 var
   fMain: TfMain;
   TestThread: TGSTestThread;
+  AppPath: String;
 
 implementation
 
@@ -71,12 +73,36 @@ begin
   Close;
 end;
 
+procedure TfMain.FormCreate(Sender: TObject);
+begin
+  AppPath := ExtractFilePath(Application.ExeName);
+end;
+
 procedure TfMain.FormDestroy(Sender: TObject);
 begin
   if TestThread <> nil then
   begin
     TestThread.Terminate;
     WaitForSingleObject(TestThread.Handle, INFINITE);
+
+    case TestThread.ExitCode of
+      EXIT_HOSTWRITE:
+      begin
+        lAlert.Items.Add('쓰기 종료: '
+                          + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
+      end;
+      EXIT_RETENTION:
+      begin
+        lAlert.Items.Add('리텐션 테스트: '
+                          + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
+      end;
+      EXIT_NORMAL:
+      begin
+        lAlert.Items.Add('사용자 종료: '
+                          + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
+      end;
+    end;
+
     FreeAndNil(TestThread);
 
     lFirstSetting.Items.SaveToFile(FSaveFilePath + 'firstsetting.txt');
@@ -128,7 +154,8 @@ begin
 
   Application.ProcessMessages;
 
-  TestThread := TGSTestThread.Create(true, SSDInfo.UserSize shr 9);
+  TestThread := TGSTestThread.Create(fSetting.eTrace.Text,
+                                     true, SSDInfo.UserSize shr 9);
   if fSetting.LoadedFromFile then
   begin
     TestThread.Load(fSetting.SavePath + 'settings.ini');
@@ -146,7 +173,7 @@ begin
 
   TestThread.AssignSavePath(FSaveFilePath);
   TestThread.AssignBufferSetting(128 shl 10, 100);
-  TestThread.AssignDLLPath('D:\내 작업들\GStorage\trunk\dll\MAKEdll.dll');
+  TestThread.AssignDLLPath(AppPath + 'MAKEdll.dll');
   TestThread.StartThread;
 
   FreeAndNil(SSDInfo);

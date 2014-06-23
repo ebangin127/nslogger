@@ -121,7 +121,7 @@ begin
     begin
       ShowMessage('이미 테스트 용으로 사용된 폴더는 선택할 수 없습니다.');
     end;
-  until (FSavePath = '') or (FileExists(FSavePath + 'settings.ini'));
+  until (FSavePath <> '') and (not(FileExists(FSavePath + 'settings.ini')));
 
   FOptionsSet := true;
   Close;
@@ -145,6 +145,8 @@ begin
 
   FDriveList := TList<Integer>.Create;
   RefreshDrives;
+
+  oTrace.InitialDir := ExtractFilePath(Application.ExeName);
 end;
 
 procedure TfSetting.FormDestroy(Sender: TObject);
