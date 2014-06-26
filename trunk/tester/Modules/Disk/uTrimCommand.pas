@@ -4,10 +4,18 @@ interface
 
 uses Classes, SysUtils, uDiskFunctions, Dialogs, Windows;
 
-function SendTrimCommand(const DriveLetter: String; StartLBA, LBACount: Int64): Cardinal; overload;
-function SendTrimCommand(const hPhyDevice: THandle; StartLBA, LBACount: Int64): Cardinal; overload;
+function SendTrimCommand(const DriveLetter: String; StartLBA, LBACount: Int64):
+                          Cardinal; overload;
+function SendTrimCommand(const hPhyDevice: THandle; StartLBA, LBACount: Int64):
+                          Cardinal; overload;
 function SendTrimCommand(const hPhyDevice: THandle; StartLBA, LBACount: Int64;
                           pOverlapped: POVERLAPPED): Cardinal; overload;
+
+function SendFlushCommand(const DriveLetter: String): Cardinal; overload;
+function SendFlushCommand(const hPhyDevice: THandle): Cardinal; overload;
+function SendFlushCommand(const hPhyDevice: THandle; pOverlapped: POVERLAPPED):
+                         Cardinal; overload;
+
 function IsZeroSector(const DriveLetter: String; StartLBA: Int64): Byte;
 
 const
@@ -77,6 +85,56 @@ begin
     ICDBuffer.Buffer[7] := LBACount shr 8;
 
     DeviceIOControl(hPhyDevice, IOCTL_ATA_PASS_THROUGH_DIRECT, @ICDBuffer, SizeOf(ICDBuffer), @ICDBuffer, SizeOf(ICDBuffer), BytesRead, pOverlapped);
+    result := GetLastError;
+  end;
+end;
+
+function SendFlushCommand(const DriveLetter: String): Cardinal;
+var
+  hPhyDevice: THandle;
+begin
+  hPhyDevice := CreateFile(
+                PChar(DriveLetter),
+                GENERIC_READ or GENERIC_WRITE,
+                FILE_SHARE_READ or FILE_SHARE_WRITE,
+                nil,
+                OPEN_EXISTING,
+                0,
+                0);
+
+  result := SendFlushCommand(hPhyDevice);
+
+  CloseHandle(hPhyDevice);
+end;
+
+function SendFlushCommand(const hPhyDevice: THandle): Cardinal;
+begin
+  result := SendFlushCommand(hPhyDevice, nil);
+end;
+
+function SendFlushCommand(const hPhyDevice: THandle; pOverlapped: POVERLAPPED):
+                         Cardinal;
+var
+  ICBuffer: ATA_PTH_BUFFER;
+  bResult: Boolean;
+  BytesRead: Cardinal;
+  CurrBuf: Integer;
+begin
+  FillChar(ICBuffer, SizeOf(ICBuffer), #0);
+
+  If hPhyDevice <> 0 Then
+  begin
+    ICBuffer.PTH.Length := SizeOf(ICBuffer.PTH);
+    ICBuffer.PTH.AtaFlags := ATA_FLAGS_DATA_IN;
+    ICBuffer.PTH.DataTransferLength := 512;
+    ICBuffer.PTH.TimeOutValue := 2;
+    ICBuffer.PTH.DataBufferOffset := PChar(@ICBuffer.Buffer) - PChar(@ICBuffer.PTH) + 20;
+
+    ICBuffer.PTH.CurrentTaskFile[6] := $E7;
+
+    bResult := DeviceIOControl(hPhyDevice, IOCTL_ATA_PASS_THROUGH, @ICBuffer,
+                              SizeOf(ICBuffer), @ICBuffer, SizeOf(ICBuffer),
+                              BytesRead, nil);
     result := GetLastError;
   end;
 end;

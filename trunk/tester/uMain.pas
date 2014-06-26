@@ -5,8 +5,8 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics,  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
-  Vcl.ComCtrls, Vcl.StdCtrls, Vcl.ExtCtrls, Math,
-  uRandomBuffer, uGSTestThread, uGSList, uSSDInfo,
+  Vcl.ComCtrls, Vcl.StdCtrls, Vcl.ExtCtrls, Math, DateUtils,
+  uRandomBuffer, uGSTestThread, uGSList, uSSDInfo, uTrimCommand,
   uSetting;
 
 const
@@ -76,10 +76,17 @@ end;
 procedure TfMain.FormCreate(Sender: TObject);
 begin
   AppPath := ExtractFilePath(Application.ExeName);
+  ShowMessage(IntToStr(DateTimeToUnix(Now)));
 end;
 
 procedure TfMain.FormDestroy(Sender: TObject);
 begin
+  if DirectoryExists(FSaveFilePath) then
+  begin
+    lFirstSetting.Items.SaveToFile(FSaveFilePath + 'firstsetting.txt');
+    lAlert.Items.SaveToFile(FSaveFilePath + 'alert.txt');
+  end;
+
   if TestThread <> nil then
   begin
     TestThread.Terminate;
@@ -104,9 +111,6 @@ begin
     end;
 
     FreeAndNil(TestThread);
-
-    lFirstSetting.Items.SaveToFile(FSaveFilePath + 'firstsetting.txt');
-    lAlert.Items.SaveToFile(FSaveFilePath + 'alert.txt');
   end;
 end;
 
@@ -165,7 +169,7 @@ begin
   TestThread.SetDisk(FDiskNum);
 
   TestThread.MaxLBA := SSDInfo.UserSize;
-  TestThread.OrigLBA := 250000000;
+  TestThread.OrigLBA := 251000000;
   TestThread.Align := SSDInfo.LBASize;
 
   TestThread.MaxHostWrite := FDestTBW;

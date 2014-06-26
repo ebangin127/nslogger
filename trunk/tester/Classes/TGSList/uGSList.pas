@@ -2,7 +2,7 @@ unit uGSList;
 
 interface
 
-uses Windows, Math;
+uses Windows, Math, SysUtils;
 
 const
   UnitListShlValue = 24;
@@ -196,17 +196,12 @@ begin
   repeat
     Contents := GetNextItem;
 
-    Contents.FLBA := ceil(Contents.FLBA / Align) shl 9;
-
     if Contents.FLBA = 0 then
       Contents.FLBA := Align;
 
-    if Contents.FLBA shr 23 > 0 then
-      Contents.FLBA := Contents.FLBA and ((1 shl 23) - 1);
-
     Contents.FLBA := floor(Contents.FLBA * MultiConst);
-
-    Contents.FLength := ceil(Contents.FLength / Align) shl 9;
+    Assert(Contents.FLBA < MaxLBA, 'Contents.FLBA: ' + IntToStr(Contents.FLBA) +
+                                    ' MaxLBA: ' + IntToStr(MaxLBA));
   until FIteratorNum = FListHeader.FLength + 1;
   GoToFirst;
 end;

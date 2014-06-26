@@ -2,7 +2,7 @@ unit uGSTestThread;
 
 interface
 
-uses Classes, SysUtils, ComCtrls, Math, Windows, DateUtils,
+uses Classes, SysUtils, ComCtrls, Math, Windows, DateUtils, Dialogs,
      uGSTester, uGSList, uRandomBuffer, uSMARTManager, uSaveFile;
 
 type
@@ -179,6 +179,7 @@ var
   TestProgress: Integer;
   RamStats: TMemoryStatusEx;
   ErrorString: String;
+  pMinLatencyPos, pMaxLatencyPos: Integer;
 begin
   with fMain do
   begin
@@ -280,10 +281,12 @@ begin
 
 
     if MinLatency > 0 then
-    begin
-      pMinLatency.Position := round(Log10((MinLatency / 500) * 100) / 2 * 100);
-      pMaxLatency.Position := round(Log10((MaxLatency / 500) * 100) / 2 * 100);
-    end;
+      pMinLatencyPos := round(Log10((MinLatency / 500) * 100) / 2 * 100);
+    if MaxLatency > 0 then
+      pMaxLatencyPos := round(Log10((MaxLatency / 500) * 100) / 2 * 100);
+
+    pMinLatency.Position := Min(pMinLatencyPos, 100);
+    pMaxLatency.Position := Min(pMaxLatencyPos, 100);
 
     TestProgress := round(FTester.GetHostWrite / FMaxHostWrite * 100);
     pTestProgress.Position := TestProgress;
@@ -362,8 +365,13 @@ begin
   Synchronize(ApplyAlignTest);
   FTester.CheckAlign(Align, MaxLBA, OrigLBA);
 
-  Synchronize(ApplyStart);
-  Synchronize(ApplyState);
+  try
+    Synchronize(ApplyStart);
+    Synchronize(ApplyState);
+  except
+
+  end;
+
   while not Terminated do
   begin
     if (((FTester.GetHostWrite mod FRetentionTest) = 0) and
@@ -379,27 +387,29 @@ begin
       exit;
     end;
 
-    if FTester.ProcessNextOperation then
+    if FTester.ProcessNextOperation = false then
     begin
-      CurrTime := GetTickCount;
-      if (CurrTime - FLastSync) > 1000 then
-      begin
+      FLastSync := CurrTime - 5001;
+    end;
+
+    CurrTime := GetTickCount;
+    if (CurrTime - FLastSync) > 5000 then
+    begin
+      try
         Synchronize(ApplyState);
-
-        FSecCounter := FSecCounter + 1;
-        if FSecCounter >= 600 then // 10 minutes
-        begin
-          SaveTodaySpeed(FSavePath);
-          Save(FSavePath);
-          FSecCounter := 0;
-        end;
-
-        FLastSync := CurrTime;
+      except
+        ShowMessage('ApplyState 에러');
       end;
-    end
-    else
-    begin
-      break;
+
+      FSecCounter := FSecCounter + 1;
+      if FSecCounter >= 120 then // 10 minutes
+      begin
+        SaveTodaySpeed(FSavePath);
+        Save(FSavePath);
+        FSecCounter := 0;
+      end;
+
+      FLastSync := CurrTime;
     end;
   end;
 
@@ -411,8 +421,10 @@ function TGSTestThread.SaveTodaySpeed(SaveFilePath: String): Boolean;
 var
   SaveFile: TStringList;
   LastTime, CurrTime: TDateTime;
+  SavedToday: Boolean;
 begin
   SaveFile := TStringList.Create;
+  SavedToday := false;
 
   if FileExists(SaveFilePath + 'speedlog.txt') then
     SaveFile.LoadFromFile(SaveFilePath + 'speedlog.txt');
@@ -421,26 +433,35 @@ begin
   if SaveFile.Count > 0 then
   begin
     LastTime := UnixToDateTime(StrToInt64(SaveFile[0]));
-    CurrTime := Time;
+    CurrTime := Now;
     if (LastTime >= floor(CurrTime)) and (LastTime < ceil(CurrTime)) then
     begin
       SaveFile.Delete(SaveFile.Count - 1);
+      SavedToday := true;
     end;
+  end
+  else
+  begin
+    SaveFile.Add('');
   end;
 
   //저장하기 위해서 내용 적기
   SaveFile[0] := IntToStr(DateTimeToUnix(CurrTime));
-  SaveFile.Add(IntToStr(FTester.StartLatency) + ' ' +
+  SaveFile.Add(SaveFile[0] + ' ' +
+               IntToStr(FTester.StartLatency) + ' ' +
                IntToStr(FTester.EndLatency) + ' ' +
                IntToStr(FTester.MaxLatency) + ' ' +
                IntToStr(FTester.MinLatency));
 
   SaveFile.SaveToFile(SaveFilePath + 'speedlog.txt');
 
-  FTester.StartLatency := 0;
-  FTester.EndLatency := 0;
-  FTester.MaxLatency := 0;
-  FTester.MinLatency := 0;
+  if SavedToday = false then
+  begin
+    FTester.StartLatency := 0;
+    FTester.EndLatency := 0;
+    FTester.MaxLatency := 0;
+    FTester.MinLatency := 0;
+  end;
 
   FreeAndNil(SaveFile);
 end;
@@ -458,7 +479,6 @@ begin
   FSaveFile.MinLatency := FTester.GetMinimumLatency;
   FSaveFile.MaxLatency := FTester.GetMaximumLatency;
 
-  FSaveFile.MainTestCount := FTester.MainTestCount;
   FSaveFile.OverallTestCount := FTester.OverallTestCount;
   FSaveFile.Iterator := FTester.Iterator;
 
@@ -481,7 +501,6 @@ begin
   FTester.MinLatency := FSaveFile.MinLatency;
   FTester.MaxLatency := FSaveFile.MaxLatency;
 
-  FTester.MainTestCount := FSaveFile.MainTestCount;
   FTester.OverallTestCount := FSaveFile.OverallTestCount;
   FTester.Iterator := FSaveFile.Iterator;
 end;

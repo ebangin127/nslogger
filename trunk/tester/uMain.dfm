@@ -255,7 +255,7 @@ object fMain: TfMain
   end
   object bSave: TButton
     Left = 652
-    Top = 332
+    Top = 331
     Width = 131
     Height = 25
     Caption = #51200#51109' '#48143' '#51333#47308
