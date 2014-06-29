@@ -5,7 +5,7 @@
         <FrameworkType>VCL</FrameworkType>
         <MainSource>GrillStorage.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Release</Config>
+        <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Application</AppType>
@@ -84,6 +84,7 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
+        <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
         <DCC_ExeOutput>..\exe\</DCC_ExeOutput>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
@@ -111,27 +112,24 @@
         <DCCReference Include="Classes\TGSList\uGSList.pas"/>
         <DCCReference Include="Classes\TGSTester\uGSTester.pas"/>
         <DCCReference Include="Modules\Disk\uDiskFunctions.pas"/>
-        <DCCReference Include="Modules\Disk\uPartitionFunctions.pas"/>
-        <DCCReference Include="Modules\Disk\uSMARTFunctions.pas"/>
         <DCCReference Include="Modules\Disk\uTrimCommand.pas"/>
         <DCCReference Include="Modules\Etc\uIntFunctions.pas"/>
         <DCCReference Include="Modules\Etc\uStrFunctions.pas"/>
-        <DCCReference Include="Modules\Language\uLanguageSettings.pas"/>
         <DCCReference Include="Modules\Windows\uFileFunctions.pas"/>
-        <DCCReference Include="Modules\Windows\uPlugAndPlay.pas"/>
-        <DCCReference Include="Modules\Windows\uRegFunctions.pas"/>
-        <DCCReference Include="Classes\SSDInfo\uSSDInfo.pas"/>
         <DCCReference Include="Classes\TRandomBuffer\uRandomBuffer.pas"/>
         <DCCReference Include="Classes\TRandomBuffer\uMTforDel.pas"/>
-        <DCCReference Include="Classes\SSDInfo\uSSDVersion.pas"/>
         <DCCReference Include="Classes\TGSTestThread\uGSTestThread.pas"/>
-        <DCCReference Include="Classes\TSMARTManager\uSMARTManager.pas"/>
         <DCCReference Include="uSetting.pas">
             <Form>fSetting</Form>
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="Classes\TSaveFile\uSaveFile.pas"/>
         <DCCReference Include="Classes\TErrorList\uErrorList.pas"/>
+        <DCCReference Include="uRetSel.pas">
+            <Form>fRetSel</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="Classes\THDDInfo\uHDDInfo.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

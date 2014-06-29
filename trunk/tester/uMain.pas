@@ -6,8 +6,8 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics,  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.ComCtrls, Vcl.StdCtrls, Vcl.ExtCtrls, Math, DateUtils,
-  uRandomBuffer, uGSTestThread, uGSList, uSSDInfo, uTrimCommand,
-  uSetting;
+  uRandomBuffer, uGSTestThread, uGSList, uHDDInfo, uTrimCommand,
+  uSetting, uRetSel;
 
 const
   WM_AFTER_SHOW = WM_USER + 300;
@@ -75,11 +75,27 @@ end;
 
 procedure TfMain.FormCreate(Sender: TObject);
 begin
+  Constraints.MaxWidth := Width;
+  Constraints.MinWidth := Width;
+
+  Constraints.MaxHeight := Height;
+  Constraints.MinHeight := Height;
+
   AppPath := ExtractFilePath(Application.ExeName);
-  ShowMessage(IntToStr(DateTimeToUnix(Now)));
+
+    fRetSel := TfRetSel.Create(self, CreateFile(PChar('\\.\PhysicalDrive'
+                                      + IntToStr(1)),
+                                      GENERIC_READ or GENERIC_WRITE,
+                                      FILE_SHARE_READ or FILE_SHARE_WRITE,
+                                      nil,
+                                      OPEN_EXISTING,
+                                      0, 0));
+    fRetSel.ShowModal;
 end;
 
 procedure TfMain.FormDestroy(Sender: TObject);
+var
+  NeedRetension: Boolean;
 begin
   if DirectoryExists(FSaveFilePath) then
   begin
@@ -87,6 +103,7 @@ begin
     lAlert.Items.SaveToFile(FSaveFilePath + 'alert.txt');
   end;
 
+  NeedRetension := false;
   if TestThread <> nil then
   begin
     TestThread.Terminate;
@@ -102,6 +119,8 @@ begin
       begin
         lAlert.Items.Add('府刨记 抛胶飘: '
                           + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
+
+        NeedRetension := true;
       end;
       EXIT_NORMAL:
       begin
@@ -111,6 +130,18 @@ begin
     end;
 
     FreeAndNil(TestThread);
+
+    if NeedRetension then
+    begin
+      fRetSel := TfRetSel.Create(self, CreateFile(PChar('\\.\PhysicalDrive'
+                                        + IntToStr(FDiskNum)),
+                                        GENERIC_READ or GENERIC_WRITE,
+                                        FILE_SHARE_READ or FILE_SHARE_WRITE,
+                                        nil,
+                                        OPEN_EXISTING,
+                                        0, 0));
+      fRetSel.ShowModal;
+    end;
   end;
 end;
 
@@ -121,7 +152,7 @@ end;
 
 procedure TfMain.WmAfterShow(var Msg: TMessage);
 var
-  SSDInfo: TSSDInfo;
+  SSDInfo: THDDInfo;
 begin
   fSetting := TfSetting.Create(self);
   fSetting.ShowModal;
@@ -135,7 +166,7 @@ begin
 
   FSaveFilePath := fSetting.SavePath;
 
-  SSDInfo := TSSDInfo.Create;
+  SSDInfo := THDDInfo.Create;
   SSDInfo.SetDeviceName('PhysicalDrive' + IntToStr(FDiskNum));
   FDestTBW := StrToInt(fSetting.eDestTBW.Text);
   FRetensionTBW := StrToInt(fSetting.eRetentionTBW.Text);
@@ -165,12 +196,17 @@ begin
     TestThread.Load(fSetting.SavePath + 'settings.ini');
     lFirstSetting.Items.LoadFromFile(FSaveFilePath + 'firstsetting.txt');
     lAlert.Items.LoadFromFile(FSaveFilePath + 'alert.txt');
+
+    if Pos('府刨记', lAlert.Items[lAlert.Count - 1]) > 0 then
+    begin
+      //府刨记 备泅
+    end;
   end;
   TestThread.SetDisk(FDiskNum);
 
   TestThread.MaxLBA := SSDInfo.UserSize;
   TestThread.OrigLBA := 251000000;
-  TestThread.Align := SSDInfo.LBASize;
+  TestThread.Align := 512;
 
   TestThread.MaxHostWrite := FDestTBW;
   TestThread.RetentionTest := FRetensionTBW;

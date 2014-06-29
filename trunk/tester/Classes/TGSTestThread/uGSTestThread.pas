@@ -3,7 +3,7 @@ unit uGSTestThread;
 interface
 
 uses Classes, SysUtils, ComCtrls, Math, Windows, DateUtils, Dialogs,
-     uGSTester, uGSList, uRandomBuffer, uSMARTManager, uSaveFile;
+     uGSTester, uGSList, uRandomBuffer, uSaveFile;
 
 type
   TmakeJEDECList  = function (TraceList: Pointer; path: PChar): PTGListHeader; cdecl;
@@ -20,7 +20,6 @@ type
   TGSTestThread = class(TThread)
   private
     FTester: TGSTester;
-    FSMARTManager: TSMARTManager;
     FRandomBuffer: TRandomBuffer;
     FSaveFile: TSaveFile;
 
@@ -110,7 +109,6 @@ begin
   FSaveFile.RandomSeed := RandomSeed;
 
   FTester := TGSTester.Create(Capacity);
-  FSMARTManager := TSMARTManager.Create;
   FRandomBuffer := TRandomBuffer.Create(RandomSeed);
 
   FTracePath := TracePath;
@@ -145,7 +143,6 @@ end;
 destructor TGSTestThread.Destroy;
 begin
   FreeAndNil(FTester);
-  FreeAndNil(FSMARTManager);
   FreeAndNil(FRandomBuffer);
   FreeAndNil(FSaveFile);
   if FDLLHandle <> 0 then
@@ -570,7 +567,7 @@ begin
   if (@makeJEDECList = nil) or (@makeJEDECClass = nil)
   or (@deleteJEDECClass = nil) then
   begin
-    CloseHandle(FDLLHandle);
+    FreeLibrary(FDLLHandle);
     FDLLHandle := 0;
     exit(false);
   end;

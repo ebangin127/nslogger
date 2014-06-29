@@ -4,7 +4,7 @@ interface
 
 uses Windows, SysUtils, Dialogs, Math, Classes,
      ComObj, ShellAPI, Variants, ActiveX,
-     uLanguageSettings, uRegFunctions, uPartitionFunctions, uStrFunctions;
+     uStrFunctions;
 
 type
   //--GetMotherDrive--//
@@ -112,31 +112,6 @@ type
   //---ATA + DeviceIOCtl---//
 
 
-  //---SAT + DeviceIOCtl---//
-  SCSI_PASS_THROUGH = record
-    Length: Word;
-    ScsiStatus: Byte;
-    PathId: Byte;
-    TargetId: Byte;
-    Lun: Byte;
-    CdbLength: Byte;
-    SenseInfoLength: Byte;
-    DataIn: Byte;
-    DataTransferLength: ULong;
-    TimeOutValue: ULong;
-    DataBufferOffset: ULong;
-    SenseInfoOffset: ULong;
-    Cdb: array[0..12] of UCHAR;
-  end;
-
-  SCSI_PTH_BUFFER = record
-    spt: SCSI_PASS_THROUGH;
-    SenseBuf: array[0..31] of UCHAR;
-    Buffer: array[0..511] of UCHAR;
-  end;
-  //---SAT + DeviceIOCtl---//
-
-
   //---GetPartitionList---//
   TDriveLetters = Record
     LetterCount: Byte;
@@ -174,54 +149,6 @@ type
     WMIEnabled: Boolean;
   end;
 
-  //---NCQ---//
-  STORAGE_QUERY_TYPE = (PropertyStandardQuery = 0, PropertyExistsQuery, PropertyMaskQuery, PropertyQueryMaxDefined);
-  TStorageQueryType = STORAGE_QUERY_TYPE;
-
-  STORAGE_PROPERTY_ID = (StorageDeviceProperty = 0, StorageAdapterProperty);
-  TStoragePropertyID = STORAGE_PROPERTY_ID;
-
-  STORAGE_PROPERTY_QUERY = packed record
-    PropertyId: DWORD;
-    QueryType: DWORD;
-    AdditionalParameters: array[0..3] of Byte;
-  end;
-
-  STORAGE_BUS_TYPE = (BusTypeUnknown = 0, BusTypeScsi, BusTypeAtapi, BusTypeAta, BusType1394, BusTypeSsa, BusTypeFibre,
-    BusTypeUsb, BusTypeRAID, BusTypeiScsi, BusTypeSas, BusTypeSata, BusTypeMaxReserved = $7F);
-
-  STORAGE_DEVICE_DESCRIPTOR = packed record
-    Version: DWORD;
-    Size: DWORD;
-    DeviceType: Byte;
-    DeviceTypeModifier: Byte;
-    RemovableMedia: Boolean;
-    CommandQueueing: Boolean;
-    VendorIdOffset: DWORD;
-    ProductIdOffset: DWORD;
-    ProductRevisionOffset: DWORD;
-    SerialNumberOffset: DWORD;
-    BusType: STORAGE_BUS_TYPE;
-    RawPropertiesLength: DWORD;
-    RawDeviceProperties: PChar;
-  end;
-
-  STORAGE_ADAPTOR_DESCRIPTOR = packed record
-    Version: DWORD;
-    Size: DWORD;
-    MaximumTransferLength: DWORD;
-    MaximumPhysicalPages: DWORD;
-    AlignmentMask: DWORD;
-    AdaptorUsesPio: Boolean;
-    AdaptorScansDown: Boolean;
-    CommandQueueing: Boolean;
-    AccelatedTransfer: Boolean;
-    BusType: STORAGE_BUS_TYPE;
-    BusMajorVersion: WORD;
-    BusMinorVersion: WORD;
-  end;
-  //---NCQ---//
-
 //디스크 - 파티션 간 관계 얻어오기
 function GetPartitionList(DiskNumber: String): TDriveLetters;
 function GetMotherDrive(const VolumeToGet: String): VOLUME_DISK_EXTENTS;
@@ -229,26 +156,13 @@ procedure GetChildDrives(DiskNumber: String; ChildDrives: TStrings);
 
 //용량, 볼륨 이름 및 각종 정보 얻어오기
 function GetFixedDrivesFunction: TDriveLetters;
-function SetMaxAddress(DeviceName: String; MaxLBA: UInt64): Boolean;
-function ReadSector(DeviceName: String; MaxLBA: UInt64; KSize: Integer): Integer;
-function GetNCQStatus(DeviceName: String): Byte;
 function GetIsDriveAccessible(DeviceName: String; Handle: THandle = 0): Boolean;
-
-//Fixed HDD, USB Mass Storage 정보 얻어오기
-function GetSSDList: TSSDListResult;
-procedure GetUSBDrives(USBDrives: TStrings);
 
 const
   IOCTL_SCSI_BASE = FILE_DEVICE_CONTROLLER;
   IOCTL_ATA_PASS_THROUGH = (IOCTL_SCSI_BASE shl 16) or ((FILE_READ_ACCESS or FILE_WRITE_ACCESS) shl 14)
                             or ($040B shl 2) or (METHOD_BUFFERED);
   IOCTL_ATA_PASS_THROUGH_DIRECT = $4D030;
-  IOCTL_SCSI_PASS_THROUGH      =  $0004D004;
-
-  SMART_READ_ATTRIBUTE_VALUES = $D0;
-  SMART_CYL_LOW = $4F;
-  SMART_CYL_HI = $C2;
-  SMART_CMD = $B0;
 
   ATA_FLAGS_DRDY_REQUIRED = 1;
   ATA_FLAGS_DATA_IN = 1 shl 1;
@@ -256,14 +170,11 @@ const
   ATA_FLAGS_48BIT_COMMAND = 1 shl 3;
   ATA_FLAGS_USE_DMA = 1 shl 4;
 
-  ATAMode = false;
-  SCSIMode = true;
-
   VolumeNames = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 implementation
 
-uses uSSDInfo;
+uses uHDDInfo;
 
 class operator TDRIVERSTATUS.Equal(a: TDRIVERSTATUS; b: TDRIVERSTATUS): Boolean;
 begin
@@ -316,61 +227,6 @@ begin
   result := not (a = b);
 end;
 
-function GetVolumeLabelFixed(DriveName: String): string;
-var
-  NotUsed:     DWORD;
-  VolumeFlags: DWORD;
-  VolumeSerialNumber: DWORD;
-  Buf: array [0..MAX_PATH] of Char;
-begin
-  GetVolumeInformation(PChar(DriveName),
-                      Buf, SizeOf(Buf), @VolumeSerialNumber, NotUsed,
-                      VolumeFlags, nil, 0);
-
-  if Buf[0] <> #0 then
-  begin
-    if DiskSize(Pos(DriveName[1], VolumeNames)) div 1024 div 1024 < 1024 then
-      Result := DriveName + ' (' + Buf + ' - ' + IntToStr(round(DiskSize(Pos(DriveName[1], VolumeNames)) / 1024 / 1024)) + 'MB)'
-    else if DiskSize(Pos(DriveName[1], VolumeNames)) div 1024 div 1024 < 1048576 then
-      Result := DriveName + ' (' + Buf + ' - ' + IntToStr(round(DiskSize(Pos(DriveName[1], VolumeNames)) / 1024 / 1024 / 1024)) + 'GB)'
-    else if DiskSize(Pos(DriveName[1], VolumeNames)) div 1024 div 1024 < 1073741824 then
-      Result := DriveName + ' (' + Buf + ' - ' + IntToStr(round(DiskSize(Pos(DriveName[1], VolumeNames)) / 1024 / 1024 / 1024 / 1024)) + 'TB)';
-  end
-  else
-  begin
-    if DiskSize(Pos(DriveName[1], VolumeNames)) div 1024 div 1024 < 1024 then
-      Result := DriveName + ' (' + CapLocalDisk[CurrLang] + ' - ' + IntToStr(round(DiskSize(Pos(DriveName[1], VolumeNames)) / 1024 / 1024)) + 'MB)'
-    else if DiskSize(Pos(DriveName[1], VolumeNames)) div 1024 div 1024 < 1048576 then
-      Result := DriveName + ' (' + CapLocalDisk[CurrLang] + ' - ' + IntToStr(round(DiskSize(Pos(DriveName[1], VolumeNames)) / 1024 / 1024 / 1024)) + 'GB)'
-    else if DiskSize(Pos(DriveName[1], VolumeNames)) div 1024 div 1024 < 1073741824 then
-      Result := DriveName + ' (' + CapLocalDisk[CurrLang] + ' - ' + IntToStr(round(DiskSize(Pos(DriveName[1], VolumeNames)) / 1024 / 1024 / 1024 / 1024)) + 'TB)';
-  end;
-end;
-
-procedure GetUSBDrives(USBDrives: TStrings);
-var
-  CurrDrv, DriveCount: Integer;
-  Drives: Array[0..255] of char;
-  DrvName: String;
-begin
-  USBDrives.Clear;
-  FillChar(Drives, 256, #0 );
-  DriveCount := GetLogicalDriveStrings(256, Drives);
-  for CurrDrv := 0 to DriveCount - 1 do
-  begin
-    if Drives[CurrDrv] = #0  then
-    begin
-      if GetDriveType(PChar(DrvName)) = DRIVE_REMOVABLE then
-      begin
-        USBDrives.Add(GetVolumeLabel(DrvName));
-      end;
-      DrvName := '';
-    end
-    else
-      DrvName := DrvName + Drives[CurrDrv];
-  end;
-end;
-
 procedure GetChildDrives(DiskNumber: String; ChildDrives: TStrings);
 var
   CurrDrv, DriveCount: Integer;
@@ -380,7 +236,7 @@ begin
   DrvNames := GetPartitionList(DiskNumber);
   DriveCount := DrvNames.LetterCount;
   for CurrDrv := 0 to DriveCount - 1 do
-    ChildDrives.Add(GetVolumeLabelFixed(DrvNames.Letters[CurrDrv] + '\'));
+    ChildDrives.Add(DrvNames.Letters[CurrDrv] + '\');
 end;
 
 function GetFixedDrivesFunction: TDriveLetters;
@@ -411,89 +267,6 @@ begin
       DrvName := DrvName + Drives[CurrDrv];
   end;
   result.LetterCount := DriveCount;
-end;
-
-function SetMaxAddress(DeviceName: String; MaxLBA: UInt64): Boolean;
-var
-  ICBuffer: ATA_PTH_BUFFER;
-  hdrive: THandle;
-  BytesRead: Cardinal;
-begin
-  result := false;
-  FillChar(ICBuffer, SizeOf(ICBuffer), #0);
-
-  hdrive := CreateFile(PChar('\\.\' + DeviceName), GENERIC_READ or GENERIC_WRITE,
-                    FILE_SHARE_READ or FILE_SHARE_WRITE, nil, OPEN_EXISTING, 0, 0);
-
-  If GetLastError = 0 Then
-  begin
-    ICBuffer.PTH.Length := SizeOf(ICBuffer.PTH);
-    ICBuffer.PTH.AtaFlags := ATA_FLAGS_48BIT_COMMAND;
-    ICBuffer.PTH.DataTransferLength := 512;
-    ICBuffer.PTH.TimeOutValue := 2;
-    ICBuffer.PTH.DataBufferOffset := PChar(@ICBuffer.Buffer) - PChar(@ICBuffer.PTH) + 20;
-
-    ICBuffer.PTH.CurrentTaskFile[2] := MaxLBA and 255;
-    MaxLBA := MaxLBA shr 8;
-    ICBuffer.PTH.CurrentTaskFile[3] := MaxLBA and 255;
-    MaxLBA := MaxLBA shr 8;
-    ICBuffer.PTH.CurrentTaskFile[4] := MaxLBA and 255;
-    MaxLBA := MaxLBA shr 8;
-    ICBuffer.PTH.PreviousTaskFile[2] := MaxLBA and 255;
-    MaxLBA := MaxLBA shr 8;
-    ICBuffer.PTH.PreviousTaskFile[3] := MaxLBA and 255;
-    MaxLBA := MaxLBA shr 8;
-    ICBuffer.PTH.PreviousTaskFile[4] := MaxLBA and 255;
-
-    ICBuffer.PTH.CurrentTaskFile[5] := $50;
-    ICBuffer.PTH.CurrentTaskFile[6] := $37;
-
-    result := DeviceIOControl(hdrive, IOCTL_ATA_PASS_THROUGH, @ICBuffer, SizeOf(ICBuffer), @ICBuffer, SizeOf(ICBuffer), BytesRead, nil);
-    CloseHandle(hdrive);
-    if ICBuffer.PTH.CurrentTaskFile[0] <> 0 then
-      result := false;
-  end;
-end;
-
-function ReadSector(DeviceName: String; MaxLBA: UInt64; KSize: Integer): Integer;
-begin
-  result := 512;
-end;
-
-function GetNCQStatus(DeviceName: String): Byte;
-var
-  hdrive: THandle;
-  Query: STORAGE_PROPERTY_QUERY;
-  dwBytesReturned: DWORD;
-  Buffer: array [0..1023] of Byte;
-  InputBuf: STORAGE_ADAPTOR_DESCRIPTOR absolute Buffer;
-begin
-  Result := 0;
-
-  hdrive := CreateFile(PChar(DeviceName), 0, FILE_SHARE_READ or FILE_SHARE_WRITE, nil,
-    OPEN_EXISTING, 0, 0);
-  if hdrive <> INVALID_HANDLE_VALUE then
-  begin
-    try
-      dwBytesReturned := 0;
-      FillChar(Query, SizeOf(Query), 0);
-      FillChar(Buffer, SizeOf(Buffer), 0);
-      InputBuf.Size := SizeOf(Buffer);
-      Query.PropertyId := Cardinal(StorageAdapterProperty);
-      Query.QueryType := Cardinal(PropertyStandardQuery);
-      if DeviceIoControl(hdrive, IOCTL_STORAGE_QUERY_PROPERTY, @Query, SizeOf(Query), @Buffer, SizeOf(Buffer), dwBytesReturned, nil) = false then
-      begin
-        exit;
-      end
-      else
-      begin
-        if (InputBuf.BusType <> BusTypeSata) and (InputBuf.BusType <> BusTypeSCSI) and (InputBuf.BusType <> BusTypeAta) then Result := 0
-        else Result := Byte((InputBuf.CommandQueueing and (InputBuf.BusType = BusTypeSCSI)) or (InputBuf.BusType = BusTypeSata)) + 1;
-      end;
-    finally
-      CloseHandle(hdrive);
-    end;
-  end;
 end;
 
 
@@ -582,69 +355,6 @@ begin
   end;
 
   result.LetterCount := CurrPartition;
-end;
-
-function GetSSDList: TSSDListResult;
-var
-  i: Integer;
-  iValue: LongWord;
-  wsFileObj: WideString;
-  OleDrives: OleVariant;
-  Dispatch: IDispatch;
-  OleDrivesVar: OleVariant;
-  OleEnum: IEnumvariant;
-  OleCtx: IBindCtx;
-  OleMoniker: IMoniker;
-  ATAList, SCSIList: TStringList;
-begin
-  wsFileObj := 'winmgmts:\\localhost\root\cimv2';
-  ATAList := TStringList.Create;
-  SCSIList := TStringList.Create;
-  result.WMIEnabled := true;
-  try
-    OleCheck(CreateBindCtx(0, OleCtx));
-    OleCheck(MkParseDisplayName(OleCtx, PWideChar(wsFileObj), i, OleMoniker));
-    OleCheck(OleMoniker.BindToObject(OleCtx, nil, IUnknown, Dispatch));
-
-
-    OleDrivesVar := OleVariant(Dispatch).ExecQuery('Select * from Win32_DiskDrive');
-    OleEnum := IUnknown(OleDrivesVar._NewEnum) as IEnumVariant;
-
-
-    while OleEnum.Next(1, OleDrives, iValue) = 0 do
-    begin
-      if (not VarIsNull(OleDrives.DeviceID <> '')) and (OleDrives.MediaLoaded) and (not VarIsNull(OleDrives.MediaType))then
-      begin
-        if Pos('hard', Lowercase(OleDrives.MediaType)) >= 0 then
-          if OleDrives.InterfaceType = 'IDE' then
-            ATAList.Add(OleDrives.DeviceID)
-          else if OleDrives.InterfaceType = 'USB' then
-            SCSIList.Add(OleDrives.DeviceID + 'U')
-          else if OleDrives.InterfaceType = 'SCSI' then
-            SCSIList.Add(OleDrives.DeviceID + 'H');
-      end;
-      OleDrives := Unassigned;
-    end;
-    OleDrivesVar :=  Unassigned;
-  except
-    on e: Exception do
-    begin
-      ATAList.Add(e.Message);
-      ATAList.SaveToFile('C:\NSTwmierror.txt');
-      ATAList.Clear;
-      result.WMIEnabled := false;
-    end;
-  end;
-  for i := 0 to ATAList.Count - 1 do
-    ATAList[i] := ExtractDrvNum(ATAList[i]);
-  for i := 0 to SCSIList.Count - 1 do
-    SCSIList[i] := ExtractDrvNum(SCSIList[i]);
-  result.ResultList := TStringList.Create;
-  result.ResultList.AddStrings(ATAList);
-  result.ResultList.Add('/');
-  result.ResultList.AddStrings(SCSIList);
-  FreeAndNil(ATAList);
-  FreeAndNil(SCSIList);
 end;
 end.
 

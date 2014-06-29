@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Generics.Collections,
-  uDiskFunctions, uSSDInfo, uFileFunctions, uSaveFile, uGSTestThread;
+  uDiskFunctions, uHDDInfo, uFileFunctions, uSaveFile, uGSTestThread;
 
 type
   TfSetting = class(TForm)
@@ -164,12 +164,12 @@ end;
 
 procedure TfSetting.RefreshDrives;
 var
-  TempSSDInfo: TSSDInfo;
+  TempSSDInfo: THDDInfo;
   CurrDrv: Integer;
   hdrive: Integer;
   DRVLetters: TDriveLetters;
 begin
-  TempSSDInfo := TSSDInfo.Create;
+  TempSSDInfo := THDDInfo.Create;
   for CurrDrv := 0 to 99 do
   begin
     hdrive := CreateFile(PChar('\\.\PhysicalDrive' + IntToStr(CurrDrv)), GENERIC_READ or GENERIC_WRITE,
@@ -177,7 +177,6 @@ begin
 
     if (GetLastError = 0) and (GetIsDriveAccessible('', hdrive)) then
     begin
-      TempSSDInfo.ATAorSCSI := DetermineModel;
       TempSSDInfo.SetDeviceName('PhysicalDrive' + IntToStr(CurrDrv));
 
       DRVLetters := GetPartitionList(IntToStr(CurrDrv));

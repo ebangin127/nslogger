@@ -1,6 +1,7 @@
 object fMain: TfMain
   Left = 0
   Top = 0
+  BorderIcons = [biSystemMenu, biMinimize]
   Caption = 'Grill Storage'
   ClientHeight = 364
   ClientWidth = 800

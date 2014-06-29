@@ -1,5 +1,3 @@
-//TODO: Implement DiskFlush Accurately
-//      In ATA Command
 unit uGSTester;
 
 interface
