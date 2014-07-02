@@ -14,7 +14,7 @@ const
 
 type
   TfMain = class(TForm)
-    GroupBox1: TGroupBox;
+    gStatus: TGroupBox;
     Label1: TLabel;
     Label2: TLabel;
     Label4: TLabel;
@@ -25,9 +25,9 @@ type
     sTestStage: TStaticText;
     Label3: TLabel;
     sCycleCount: TStaticText;
-    GroupBox2: TGroupBox;
+    gFirstSet: TGroupBox;
     lFirstSetting: TListBox;
-    GroupBox3: TGroupBox;
+    gAlert: TGroupBox;
     lAlert: TListBox;
     bSave: TButton;
     pRamUsage: TProgressBar;
@@ -36,26 +36,34 @@ type
     pTestProgress: TProgressBar;
     sTestProgress: TStaticText;
     Label7: TLabel;
-    Label5: TLabel;
-    Label8: TLabel;
-    Label9: TLabel;
-    Label10: TLabel;
-    Label11: TLabel;
-    Label12: TLabel;
+    lMaxAlertL: TLabel;
+    lMinAlertL: TLabel;
+    lMaxAlertR: TLabel;
+    lMinAlertR: TLabel;
+    lFreeR: TLabel;
+    lFreeL: TLabel;
+    bForceReten: TButton;
     procedure FormShow(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure bSaveClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure bForceRetenClick(Sender: TObject);
+    procedure FormResize(Sender: TObject);
   private
     FDiskNum: Integer;
     FDestDriveModel: String;
+    FDestDriveSerial: String;
     FDestDriveCapacity: INT64;
     FDestTBW: Integer;
-    FRetensionTBW: Integer;
+    FRetentionTBW: Integer;
     FSaveFilePath: String;
+    FNeedRetention: Boolean;
 
     procedure WmAfterShow(var Msg: TMessage); message WM_AFTER_SHOW;
   public
+    property NeedRetention: Boolean read FNeedRetention;
+    property DriveModel: String read FDestDriveModel;
+    property DriveSerial: String read FDestDriveSerial;
     { Public declarations }
   end;
 
@@ -68,34 +76,51 @@ implementation
 
 {$R *.dfm}
 
+procedure TfMain.bForceRetenClick(Sender: TObject);
+begin
+  FNeedRetention := true;
+  lAlert.Items.Add('임의 리텐션 테스트: '
+                    + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
+
+  if TestThread <> nil then
+  begin
+    TestThread.Terminate;
+    WaitForSingleObject(TestThread.Handle, 60);
+
+    FreeAndNil(TestThread);
+
+    if NeedRetention then
+    begin
+      fRetSel := TfRetSel.Create(self, CreateFile(PChar('\\.\PhysicalDrive'
+                                                  + IntToStr(FDiskNum)),
+                                                  GENERIC_READ or
+                                                    GENERIC_WRITE,
+                                                  FILE_SHARE_READ or
+                                                    FILE_SHARE_WRITE,
+                                                  nil,
+                                                  OPEN_EXISTING,
+                                                  0, 0));
+      fRetSel.ShowModal;
+    end;
+  end;
+
+  Close;
+end;
+
 procedure TfMain.bSaveClick(Sender: TObject);
 begin
+  FNeedRetention := false;
   Close;
 end;
 
 procedure TfMain.FormCreate(Sender: TObject);
 begin
-  Constraints.MaxWidth := Width;
-  Constraints.MinWidth := Width;
-
-  Constraints.MaxHeight := Height;
-  Constraints.MinHeight := Height;
-
   AppPath := ExtractFilePath(Application.ExeName);
-
-    fRetSel := TfRetSel.Create(self, CreateFile(PChar('\\.\PhysicalDrive'
-                                      + IntToStr(1)),
-                                      GENERIC_READ or GENERIC_WRITE,
-                                      FILE_SHARE_READ or FILE_SHARE_WRITE,
-                                      nil,
-                                      OPEN_EXISTING,
-                                      0, 0));
-    fRetSel.ShowModal;
 end;
 
 procedure TfMain.FormDestroy(Sender: TObject);
 var
-  NeedRetension: Boolean;
+  NeedRetention: Boolean;
 begin
   if DirectoryExists(FSaveFilePath) then
   begin
@@ -103,11 +128,11 @@ begin
     lAlert.Items.SaveToFile(FSaveFilePath + 'alert.txt');
   end;
 
-  NeedRetension := false;
+  NeedRetention := false or FNeedRetention;
   if TestThread <> nil then
   begin
     TestThread.Terminate;
-    WaitForSingleObject(TestThread.Handle, INFINITE);
+    WaitForSingleObject(TestThread.Handle, 60);
 
     case TestThread.ExitCode of
       EXIT_HOSTWRITE:
@@ -117,10 +142,10 @@ begin
       end;
       EXIT_RETENTION:
       begin
-        lAlert.Items.Add('리텐션 테스트: '
+        lAlert.Items.Add('주기적 리텐션 테스트: '
                           + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
 
-        NeedRetension := true;
+        NeedRetention := true;
       end;
       EXIT_NORMAL:
       begin
@@ -131,18 +156,63 @@ begin
 
     FreeAndNil(TestThread);
 
-    if NeedRetension then
+    if NeedRetention then
     begin
       fRetSel := TfRetSel.Create(self, CreateFile(PChar('\\.\PhysicalDrive'
-                                        + IntToStr(FDiskNum)),
-                                        GENERIC_READ or GENERIC_WRITE,
-                                        FILE_SHARE_READ or FILE_SHARE_WRITE,
-                                        nil,
-                                        OPEN_EXISTING,
-                                        0, 0));
+                                                  + IntToStr(FDiskNum)),
+                                                  GENERIC_READ or
+                                                    GENERIC_WRITE,
+                                                  FILE_SHARE_READ or
+                                                    FILE_SHARE_WRITE,
+                                                  nil,
+                                                  OPEN_EXISTING,
+                                                  0, 0));
       fRetSel.ShowModal;
     end;
   end;
+end;
+
+procedure TfMain.FormResize(Sender: TObject);
+var
+  UnitSize: Double;
+begin
+  //가로
+  UnitSize := (ClientWidth - 40) / 16;
+  gStatus.Width := round(UnitSize * 5);
+  lMinAlertR.Left := gStatus.Width - lMinAlertL.Left - lMinAlertR.Width;
+  lMaxAlertR.Left := gStatus.Width - lMaxAlertL.Left - lMaxAlertR.Width;
+  lFreeR.Left := gStatus.Width - lFreeL.Left - lFreeR.Width;
+  pMinLatency.Width := lMinAlertR.Left - pMinLatency.Left - 8;
+  pMaxLatency.Width := lMaxAlertR.Left - pMaxLatency.Left - 8;
+  pRamUsage.Width := lFreeR.Left - pRamUsage.Left - 8;
+  pTestProgress.Width := pMinLatency.Width;
+
+  gFirstSet.Left := gStatus.Left + gStatus.Width + 10;
+  gFirstSet.Width := round(UnitSize * 5);
+  lFirstSetting.Width := gFirstSet.Width - 16;
+
+  gAlert.Left := gFirstSet.Left + gFirstSet.Width + 10;
+  gAlert.Width := round(UnitSize * 6);
+  lAlert.Width := gAlert.Width - 16;
+
+  bSave.Left := ClientWidth - 10 - bSave.Width;
+  bForceReten.Left := bSave.Left - 10 - bForceReten.Width;
+
+
+  //세로
+  UnitSize := (ClientHeight - 30) / 12;
+  gStatus.Height := round(UnitSize * 11);
+  gFirstSet.Height := gStatus.Height;
+  gAlert.Height := gStatus.Height;
+
+  lFirstSetting.Height := gFirstSet.Height - 30;
+  lAlert.Height := gAlert.Height - 30;
+
+  bForceReten.Height := Round(UnitSize);
+  bForceReten.Top := gAlert.Top + gAlert.Height + 10;
+
+  bSave.Height := Round(UnitSize);
+  bSave.Top := bForceReten.Top;
 end;
 
 procedure TfMain.FormShow(Sender: TObject);
@@ -169,8 +239,9 @@ begin
   SSDInfo := THDDInfo.Create;
   SSDInfo.SetDeviceName('PhysicalDrive' + IntToStr(FDiskNum));
   FDestTBW := StrToInt(fSetting.eDestTBW.Text);
-  FRetensionTBW := StrToInt(fSetting.eRetentionTBW.Text);
+  FRetentionTBW := StrToInt(fSetting.eRetentionTBW.Text);
   FDestDriveModel := SSDInfo.Model;
+  FDestDriveSerial := SSDInfo.Serial;
   FDestDriveCapacity := floor(SSDInfo.UserSize
                               / 2 / 1024 / 1000 / 1000 * 1024 * 1.024); //In GB
 
@@ -184,7 +255,7 @@ begin
 
   lFirstSetting.Items.Add('- 테스트 정보 -');
   lFirstSetting.Items.Add('목표 TBW: ' + IntToStr(FDestTBW) + 'TBW');
-  lFirstSetting.Items.Add('리텐션 테스트 주기: ' + IntToStr(FRetensionTBW)
+  lFirstSetting.Items.Add('리텐션 테스트 주기: ' + IntToStr(FRetentionTBW)
                                                  + 'TBW');
 
   Application.ProcessMessages;
@@ -199,7 +270,17 @@ begin
 
     if Pos('리텐션', lAlert.Items[lAlert.Count - 1]) > 0 then
     begin
-      //리텐션 구현
+      fRetSel := TfRetSel.Create(self, CreateFile(PChar('\\.\PhysicalDrive'
+                                                    + IntToStr(FDiskNum)),
+                                                  GENERIC_READ or
+                                                    GENERIC_WRITE,
+                                                  FILE_SHARE_READ or
+                                                    FILE_SHARE_WRITE,
+                                                  nil,
+                                                  OPEN_EXISTING,
+                                                  0, 0));
+      fRetSel.SetMode(true, fSetting.SavePath + 'compare_error_log.txt');
+      fRetSel.ShowModal;
     end;
   end;
   TestThread.SetDisk(FDiskNum);
@@ -209,11 +290,11 @@ begin
   TestThread.Align := 512;
 
   TestThread.MaxHostWrite := FDestTBW;
-  TestThread.RetentionTest := FRetensionTBW;
+  TestThread.RetentionTest := FRetentionTBW;
 
   TestThread.AssignSavePath(FSaveFilePath);
   TestThread.AssignBufferSetting(128 shl 10, 100);
-  TestThread.AssignDLLPath(AppPath + 'MAKEdll.dll');
+  TestThread.AssignDLLPath(AppPath + 'parser.dll');
   TestThread.StartThread;
 
   FreeAndNil(SSDInfo);

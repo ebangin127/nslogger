@@ -228,6 +228,7 @@ var
 begin
   if (NewHeader <> nil) and (NewHeader.FHeadNode <> nil) then
   begin
+    DestroyAllList;
     FListHeader := NewHeader;
 
     //Get Last List Ptr

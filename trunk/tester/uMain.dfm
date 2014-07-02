@@ -1,9 +1,8 @@
 object fMain: TfMain
   Left = 0
   Top = 0
-  BorderIcons = [biSystemMenu, biMinimize]
   Caption = 'Grill Storage'
-  ClientHeight = 364
+  ClientHeight = 363
   ClientWidth = 800
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -15,12 +14,13 @@ object fMain: TfMain
   Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnResize = FormResize
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
-  object GroupBox1: TGroupBox
-    Left = 8
-    Top = 8
+  object gStatus: TGroupBox
+    Left = 10
+    Top = 10
     Width = 313
     Height = 318
     Caption = #51652#54665' '#49345#54889
@@ -51,7 +51,7 @@ object fMain: TfMain
       Top = 21
       Width = 76
       Height = 13
-      Caption = #54788#51116' '#48152#48373' '#54924#52264':'
+      Caption = #54788#51116' '#51652#54665' '#54924#52264':'
     end
     object Label6: TLabel
       Left = 15
@@ -67,7 +67,7 @@ object fMain: TfMain
       Height = 13
       Caption = #53580#49828#53944' '#51652#54665':'
     end
-    object Label5: TLabel
+    object lMaxAlertL: TLabel
       Left = 17
       Top = 212
       Width = 35
@@ -80,7 +80,7 @@ object fMain: TfMain
       Font.Style = [fsBold]
       ParentFont = False
     end
-    object Label8: TLabel
+    object lMinAlertL: TLabel
       Left = 17
       Top = 159
       Width = 35
@@ -93,7 +93,7 @@ object fMain: TfMain
       Font.Style = [fsBold]
       ParentFont = False
     end
-    object Label9: TLabel
+    object lMaxAlertR: TLabel
       Left = 257
       Top = 212
       Width = 35
@@ -106,7 +106,7 @@ object fMain: TfMain
       Font.Style = [fsBold]
       ParentFont = False
     end
-    object Label10: TLabel
+    object lMinAlertR: TLabel
       Left = 257
       Top = 159
       Width = 35
@@ -119,7 +119,7 @@ object fMain: TfMain
       Font.Style = [fsBold]
       ParentFont = False
     end
-    object Label11: TLabel
+    object lFreeR: TLabel
       Left = 254
       Top = 268
       Width = 35
@@ -132,7 +132,7 @@ object fMain: TfMain
       Font.Style = [fsBold]
       ParentFont = False
     end
-    object Label12: TLabel
+    object lFreeL: TLabel
       Left = 16
       Top = 268
       Width = 35
@@ -222,15 +222,15 @@ object fMain: TfMain
       TabOrder = 9
     end
   end
-  object GroupBox2: TGroupBox
+  object gFirstSet: TGroupBox
     Left = 335
-    Top = 8
+    Top = 10
     Width = 225
     Height = 318
     Caption = #52572#52488' '#49444#51221
     TabOrder = 1
     object lFirstSetting: TListBox
-      Left = 10
+      Left = 8
       Top = 21
       Width = 207
       Height = 286
@@ -238,15 +238,15 @@ object fMain: TfMain
       TabOrder = 0
     end
   end
-  object GroupBox3: TGroupBox
+  object gAlert: TGroupBox
     Left = 566
-    Top = 8
+    Top = 10
     Width = 225
     Height = 318
     Caption = #50508#47548
     TabOrder = 2
     object lAlert: TListBox
-      Left = 10
+      Left = 8
       Top = 21
       Width = 207
       Height = 286
@@ -263,5 +263,15 @@ object fMain: TfMain
     Enabled = False
     TabOrder = 3
     OnClick = bSaveClick
+  end
+  object bForceReten: TButton
+    Left = 515
+    Top = 332
+    Width = 131
+    Height = 25
+    Caption = #47532#53584#49496' '#53580#49828#53944' '#49884#51089
+    Enabled = False
+    TabOrder = 4
+    OnClick = bForceRetenClick
   end
 end

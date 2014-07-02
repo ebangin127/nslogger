@@ -6,7 +6,11 @@ uses Classes, SysUtils, ComCtrls, Math, Windows, DateUtils, Dialogs,
      uGSTester, uGSList, uRandomBuffer, uSaveFile;
 
 type
-  TmakeJEDECList  = function (TraceList: Pointer; path: PChar): PTGListHeader; cdecl;
+  TmakeJEDECList  = function (TraceList: Pointer; path: PChar): PTGListHeader;
+                    cdecl;
+  TmakeJEDECListAndFix
+                  = function (TraceList: Pointer; path: PChar;
+                    MultiConst: Double): PTGListHeader; cdecl;
   TmakeJEDECClass = function: Pointer; cdecl;
   TdeleteJEDECClass = procedure(delClass: Pointer); cdecl;
 
@@ -48,8 +52,12 @@ type
     FExitCode: Byte;
 
     makeJEDECList: TmakeJEDECList;
+    makeJEDECListAndFix: TmakeJEDECListAndFix;
     makeJEDECClass: TmakeJEDECClass;
     deleteJEDECClass: TdeleteJEDECClass;
+
+    FMainNeedReten: Boolean;
+    FMainDriveModel, FMainDriveSerial: String;
 
     function LBAto48Bit(NewLBA: UInt64): UInt64;
 
@@ -93,7 +101,10 @@ type
 
     function Save(SaveFilePath: String): Boolean;
     function SaveTodaySpeed(SaveFilePath: String): Boolean;
+    function SaveTBW(SaveFilePath: String): Boolean;
     function Load(SaveFilePath: String): Boolean;
+
+    procedure GetMainInfo;
   end;
 
 implementation
@@ -142,6 +153,11 @@ end;
 
 destructor TGSTestThread.Destroy;
 begin
+  SaveTodaySpeed(FSavePath);
+  SaveTBW(FSavePath);
+  Synchronize(GetMainInfo);
+  Save(FSavePath);
+
   FreeAndNil(FTester);
   FreeAndNil(FRandomBuffer);
   FreeAndNil(FSaveFile);
@@ -152,8 +168,8 @@ begin
       deleteJEDECClass(ClassPTR);
     end;
 
+    FreeLibrary(FDLLHandle);
     FDLLHandle := 0;
-    CloseHandle(FDLLHandle);
   end;
 end;
 
@@ -167,16 +183,21 @@ end;
 procedure TGSTestThread.ApplyStart;
 begin
   fMain.bSave.Enabled := true;
+  fMain.bForceReten.Enabled := true;
 end;
 
 procedure TGSTestThread.ApplyState;
 var
   MinLatency, MaxLatency: Double;
   HostWrite: Double;
+  HWDay: Double;
   TestProgress: Integer;
   RamStats: TMemoryStatusEx;
   ErrorString: String;
   pMinLatencyPos, pMaxLatencyPos: Integer;
+  HWDayYear, HWDayMon, HWDayDay: Integer;
+  DayCaption: String;
+  TBWStr: String;
 begin
   with fMain do
   begin
@@ -186,33 +207,6 @@ begin
       lAlert.Items.Add(IntToStr(FLastSyncCount) + '회 시작: '
                         + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
       sCycleCount.Caption := IntToStr(FLastSyncCount) + '회';
-    end;
-
-    while FTester.ErrorBuf.Count > 0 do
-    begin
-      ErrorString := FormatDateTime('[yyyy/mm/dd hh:nn:ss]', Now);
-      case FTester.ErrorBuf.Items[0].FIOType of
-      0{ioRead}:
-        ErrorString := ErrorString + '읽기 오류: ';
-      1{ioWrite}:
-        ErrorString := ErrorString + '쓰기 오류: ';
-      2{ioTrim}:
-        ErrorString := ErrorString + '트림 오류: ';
-      3{ioFlush}:
-        ErrorString := ErrorString + '플러시 오류';
-      end;
-
-      case FTester.ErrorBuf.Items[0].FIOType of
-      0..2:
-      begin
-        ErrorString := ErrorString + '위치 ' + IntToStr(FTester.ErrorBuf.Items[0].FLBA)
-                        + ', ';
-        ErrorString := ErrorString + '길이 ' + IntToStr(FTester.ErrorBuf.Items[0].FLength);
-      end;
-      end;
-
-      lAlert.Items.Add(ErrorString);
-      FTester.ErrorBuf.Delete(0);
     end;
 
     with sTestStage do
@@ -292,29 +286,82 @@ begin
     HostWrite := FTester.GetHostWrite / 1024 / 1024; //Unit: MB
     if HostWrite > (1024 * 1024 * 1024 / 4 * 3) then //Above 0.75PB
     begin
-      sTestProgress.Caption :=
-        sTestProgress.Caption +
-          Format('%.2fPBW)', [HostWrite / 1024 / 1024 / 1024]);
+      TBWStr := Format('%.2fPBW', [HostWrite / 1024 / 1024 / 1024]);
     end
     else if HostWrite > (1024 * 1024 / 4 * 3) then //Above 0.75TB
     begin
-      sTestProgress.Caption :=
-        sTestProgress.Caption +
-          Format('%.2fTBW)', [HostWrite / 1024 / 1024]);
+      TBWStr := Format('%.2fTBW', [HostWrite / 1024 / 1024]);
     end
     else if HostWrite > (1024 / 4 * 3) then //Above 0.75GB
     begin
-      sTestProgress.Caption :=
-        sTestProgress.Caption +
-          Format('%.2fGBW)', [HostWrite / 1024]);
+      TBWStr := Format('%.2fGBW', [HostWrite / 1024]);
     end
     else
     begin
-      sTestProgress.Caption :=
-        sTestProgress.Caption +
-          Format('%.2fMBW)', [HostWrite]);
+      TBWStr := Format('%.2fMBW', [HostWrite]);
+    end;
+    sTestProgress.Caption := sTestProgress.Caption + TBWStr + ' / ';
+
+    HWDay := FTester.GetHostWrite / 1024 / 1024 / 1024 / 10; //Unit: 10GB
+    HWDayYear := floor(HWDay / 365);
+    HWDayMon := floor((HWDay - (HWDayYear * 365)) / 30);
+    HWDayDay := floor(HWDay - (HWDayYear * 365) - (HWDayMon * 30));
+
+    DayCaption := '';
+    if HWDayYear > 0 then //Above 1yr
+    begin
+      DayCaption := DayCaption + Format('%d년 ', [HWDayYear]);
     end;
 
+    if HWDay > 30 then //Above 1mon
+    begin
+      DayCaption := DayCaption + Format('%d개월 ', [HWDayMon]);
+    end;
+
+    if HWDayDay > 0 then
+    begin
+      DayCaption := DayCaption + Format('%d일 ', [HWDayDay]);
+    end;
+    sTestProgress.Caption := sTestProgress.Caption + DayCaption;
+
+    DayCaption := sTestProgress.Caption;
+    DayCaption[Length(DayCaption)] := ')';
+    sTestProgress.Caption := DayCaption;
+
+    if FTester.ErrorBuf.Count > 0 then
+    begin
+      lAlert.Items.Add('---' + TBWStr + '(' + DayCaption + ') 지점의 오류 ---');
+    end;
+    while FTester.ErrorBuf.Count > 0 do
+    begin
+      ErrorString := FormatDateTime('[yyyy/mm/dd hh:nn:ss]', Now);
+      case FTester.ErrorBuf.Items[0].FIOType of
+      0{ioRead}:
+        ErrorString := ErrorString + '읽기 오류: ';
+      1{ioWrite}:
+        ErrorString := ErrorString + '쓰기 오류: ';
+      2{ioTrim}:
+        ErrorString := ErrorString + '트림 오류: ';
+      3{ioFlush}:
+        ErrorString := ErrorString + '플러시 오류';
+      end;
+
+      case FTester.ErrorBuf.Items[0].FIOType of
+      0..2:
+      begin
+        ErrorString := ErrorString + '위치 ' + IntToStr(FTester.ErrorBuf.Items[0].FLBA)
+                        + ', ';
+        ErrorString := ErrorString + '길이 ' + IntToStr(FTester.ErrorBuf.Items[0].FLength);
+      end;
+      end;
+
+      lAlert.Items.Add(ErrorString);
+      FTester.ErrorBuf.Delete(0);
+      if FTester.ErrorBuf.Count = 0 then
+      begin
+        lAlert.Items.Add('---' + TBWStr + '(' + DayCaption + ') 지점의 오류 끝---');
+      end;
+    end;
 
     FillChar(RamStats, SizeOf(RamStats), 0);
     RamStats.dwLength := SizeOf(RamStats);
@@ -357,10 +404,19 @@ begin
   FSecCounter := 0;
 
   ClassPTR := makeJEDECClass;
-  FTester.AssignListHeader(makeJEDECList(ClassPTR, PChar(FTracePath)));
 
-  Synchronize(ApplyAlignTest);
-  FTester.CheckAlign(Align, MaxLBA, OrigLBA);
+  if @makeJEDECListAndFix = nil then
+  begin
+    FTester.AssignListHeader(makeJEDECList(ClassPTR, PChar(FTracePath)));
+
+    Synchronize(ApplyAlignTest);
+    FTester.CheckAlign(Align, MaxLBA, OrigLBA);
+  end
+  else
+  begin
+    FTester.AssignListHeader(makeJEDECListAndFix(ClassPTR, PChar(FTracePath),
+                                                 MaxLBA / OrigLBA));
+  end;
 
   try
     Synchronize(ApplyStart);
@@ -381,7 +437,7 @@ begin
       else
          FExitCode := EXIT_HOSTWRITE;
 
-      exit;
+      break;
     end;
 
     if FTester.ProcessNextOperation = false then
@@ -390,7 +446,7 @@ begin
     end;
 
     CurrTime := GetTickCount;
-    if (CurrTime - FLastSync) > 5000 then
+    if ((CurrTime - FLastSync) > 5000) and (not Terminated) then
     begin
       try
         Synchronize(ApplyState);
@@ -402,6 +458,7 @@ begin
       if FSecCounter >= 120 then // 10 minutes
       begin
         SaveTodaySpeed(FSavePath);
+        SaveTBW(FSavePath);
         Save(FSavePath);
         FSecCounter := 0;
       end;
@@ -409,9 +466,13 @@ begin
       FLastSync := CurrTime;
     end;
   end;
+end;
 
-  SaveTodaySpeed(FSavePath);
-  Save(FSavePath);
+procedure TGSTestThread.GetMainInfo;
+begin
+  FMainNeedReten := fMain.NeedRetention;
+  FMainDriveModel := fMain.DriveModel;
+  FMainDriveSerial := fMain.DriveSerial;
 end;
 
 function TGSTestThread.SaveTodaySpeed(SaveFilePath: String): Boolean;
@@ -463,11 +524,33 @@ begin
   FreeAndNil(SaveFile);
 end;
 
+function TGSTestThread.SaveTBW(SaveFilePath: String): Boolean;
+var
+  SaveFile: TStringList;
+  LastTime, CurrTime: TDateTime;
+  SavedToday: Boolean;
+begin
+  SaveFile := TStringList.Create;
+  SavedToday := false;
+
+  //저장하기 위해서 내용 적기
+  Synchronize(GetMainInfo);
+  SaveFile.Add(Trim(FMainDriveModel));
+  SaveFile.Add(IntToStr(floor(FTester.GetHostWrite / 1024 / 1024 / 1024 / 10)));
+
+  SaveFile.SaveToFile(SaveFilePath + 'tbwlog.txt');
+
+  FreeAndNil(SaveFile);
+end;
+
 function TGSTestThread.Save(SaveFilePath: String): Boolean;
 begin
+  FSaveFile.NeedVerify := FMainNeedReten;
   FSaveFile.MaxTBW := FMaxHostWrite;
   FSaveFile.RetTBW := FRetentionTest;
   FSaveFile.TracePath := FTracePath;
+  FSaveFile.Model := FMainDriveModel;
+  FSaveFile.Serial := FMainDriveSerial;
 
   FSaveFile.CurrTBW := FTester.GetHostWrite;
   FSaveFile.StartLatency := FTester.StartLatency;
@@ -487,9 +570,12 @@ function TGSTestThread.Load(SaveFilePath: String): Boolean;
 begin
   result := FSaveFile.LoadFromFile(SaveFilePath);
 
+  FMainNeedReten := FSaveFile.NeedVerify;
   FMaxHostWrite := FSaveFile.MaxTBW;
   FRetentionTest := FSaveFile.RetTBW;
   FTracePath := FSaveFile.TracePath;
+  FMainDriveModel := FSaveFile.Model;
+  FMainDriveSerial := FSaveFile.Serial;
 
   FTester.HostWrite := FSaveFile.CurrTBW;
   FTester.StartLatency := FSaveFile.StartLatency;
@@ -561,6 +647,7 @@ begin
   FDLLHandle := LoadLibrary(PChar(DLLPath));
 
   @makeJEDECList := GetProcAddress(FDLLHandle, 'makeJEDECList');
+  @makeJEDECListAndFix := GetProcAddress(FDLLHandle, 'makeJEDECListAndFix');
   @makeJEDECClass := GetProcAddress(FDLLHandle, 'makeJedecClass');
   @deleteJEDECClass := GetProcAddress(FDLLHandle, 'deleteJedecClass');
 

@@ -27,6 +27,7 @@ type
     oTrace: TOpenDialog;
     procedure FormCreate(Sender: TObject);
     procedure bStartNewClick(Sender: TObject);
+    function FindDrive(Model, Serial: String): Integer;
     procedure RefreshDrives;
     procedure FormDestroy(Sender: TObject);
     procedure bOpenExistClick(Sender: TObject);
@@ -70,9 +71,19 @@ begin
   SaveFile := TSaveFile.Create;
   SaveFile.LoadFromFile(FSavePath + 'settings.ini');
 
-  FDriveList.Insert(0, SaveFile.Disknum);
-  cDestination.Items.Insert(0, 'Open');
-  cDestination.ItemIndex := 0;
+  if FDriveList.IndexOf(SaveFile.Disknum) >= 0 then
+  begin
+    FDriveList.Insert(0, SaveFile.Disknum);
+    cDestination.Items.Insert(0, 'Open');
+    cDestination.ItemIndex := 0;
+  end
+  else
+  begin
+    FDriveList.Insert(0, FindDrive(SaveFile.Model,
+                                   SaveFile.Serial));
+    cDestination.Items.Insert(0, 'Open');
+    cDestination.ItemIndex := 0;
+  end;
 
   eDestTBW.Text := IntToStr(SaveFile.MaxTBW shr ByteToTB);
   eRetentionTBW.Text := IntToStr(SaveFile.RetTBW shr ByteToTB);
@@ -160,6 +171,39 @@ begin
     exit(-1);
 
   exit(FDriveList[cDestination.ItemIndex]);
+end;
+
+function TfSetting.FindDrive(Model, Serial: String): Integer;
+var
+  TempSSDInfo: THDDInfo;
+  CurrDrv: Integer;
+  hdrive: Integer;
+  DRVLetters: TDriveLetters;
+begin
+  TempSSDInfo := THDDInfo.Create;
+  for CurrDrv := 0 to 99 do
+  begin
+    hdrive := CreateFile(PChar('\\.\PhysicalDrive' + IntToStr(CurrDrv)), GENERIC_READ or GENERIC_WRITE,
+                                FILE_SHARE_READ or FILE_SHARE_WRITE, nil, OPEN_EXISTING, 0, 0);
+
+    if (GetLastError = 0) and (GetIsDriveAccessible('', hdrive)) then
+    begin
+      TempSSDInfo.SetDeviceName('PhysicalDrive' + IntToStr(CurrDrv));
+
+      DRVLetters := GetPartitionList(IntToStr(CurrDrv));
+      if DRVLetters.LetterCount = 0 then //드라이브가 있으면 OS 보호로
+      begin                              //인해 쓰기 테스트 불가.
+        if (Model = TempSSDInfo.Model) and
+           (Serial = TempSSDInfo.Serial) then
+          result := CurrDrv;
+          CloseHandle(hdrive);
+          break;
+      end;
+    end;
+
+    CloseHandle(hdrive);
+  end;
+  FreeAndNil(TempSSDInfo);
 end;
 
 procedure TfSetting.RefreshDrives;

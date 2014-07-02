@@ -1,3 +1,5 @@
 __history
 *.identcache
 *.local
+/trunk/tester/Win64/Debug/*.dcu
+*.dcu
