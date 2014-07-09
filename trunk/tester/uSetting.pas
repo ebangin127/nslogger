@@ -22,8 +22,8 @@ type
     bOpenExist: TButton;
     cDestination: TComboBox;
     Label6: TLabel;
-    eTrace: TEdit;
-    bTrace: TButton;
+    eFFR: TEdit;
+    Label7: TLabel;
     oTrace: TOpenDialog;
     procedure FormCreate(Sender: TObject);
     procedure bStartNewClick(Sender: TObject);
@@ -31,15 +31,17 @@ type
     procedure RefreshDrives;
     procedure FormDestroy(Sender: TObject);
     procedure bOpenExistClick(Sender: TObject);
-    procedure bTraceClick(Sender: TObject);
+    procedure cDestinationKeyPress(Sender: TObject; var Key: Char);
   private
     FOptionsSet: Boolean;
     FDriveList: TList<Integer>;
     FSavePath: String;
+    FTracePath: String;
     FLoadedFromFile: Boolean;
     { Private declarations }
   public
     property SavePath: String read FSavePath;
+    property TracePath: String read FTracePath;
     property LoadedFromFile: Boolean read FLoadedFromFile;
 
     function GetDriveNum: Integer;
@@ -48,6 +50,7 @@ type
 
 var
   fSetting: TfSetting;
+  AppPath: String;
 
 implementation
 
@@ -57,7 +60,7 @@ procedure TfSetting.bOpenExistClick(Sender: TObject);
 var
   SaveFile: TSaveFile;
 begin
-  FSavePath := SelectDirectory(ExtractFilePath(Application.ExeName));
+  FSavePath := SelectDirectory('로그가 저장된 폴더를 선택해주세요', AppPath);
 
   if FSavePath = '' then
     exit;
@@ -96,6 +99,7 @@ end;
 procedure TfSetting.bStartNewClick(Sender: TObject);
 var
   MaxTBW, MaxReten: Integer;
+  MaxFFR, MaxUBER: Integer;
 begin
   if cDestination.ItemIndex = -1 then
   begin
@@ -112,25 +116,40 @@ begin
     ShowMessage('리텐션 테스트 주기를 올바르게 입력해주세요');
     exit;
   end;
+  if TryStrToInt(eFFR.Text, MaxFFR) = false then
+  begin
+    ShowMessage('기능 실패율을 올바르게 입력해주세요');
+    exit;
+  end;
   if MaxTBW < MaxReten then
   begin
     ShowMessage('목표 TBW는 리텐션 테스트 주기보다 작을 수 없습니다');
     exit;
   end;
-  if FileExists(eTrace.Text) = false then
+
+  FTracePath := AppPath + 'mt.txt';
+  while (FTracePath = '') or (not(FileExists(FTracePath))) do
   begin
-    ShowMessage('존재하지 않는 트레이스 파일입니다');
-    exit;
+    if oTrace.Execute = false then
+      exit;
+
+    FTracePath := oTrace.FileName;
   end;
 
   repeat
-    FSavePath := SelectDirectory(ExtractFilePath(Application.ExeName));
+    FSavePath := SelectDirectory('로그가 저장될 폴더를 선택해주세요', AppPath);
     if FSavePath = '' then
       exit;
 
     if FileExists(FSavePath + 'settings.ini') then
     begin
-      ShowMessage('이미 테스트 용으로 사용된 폴더는 선택할 수 없습니다.');
+      if MessageDlg('해당 폴더에 이미 로그가 있습니다. 덮어씌우시겠습니까?',
+                    mtWarning, mbOKCancel, 0) = mrCancel then
+        Exit
+      else
+      begin
+        DeleteFile(FSavePath + 'settings.ini');
+      end;
     end;
   until (FSavePath <> '') and (not(FileExists(FSavePath + 'settings.ini')));
 
@@ -138,10 +157,9 @@ begin
   Close;
 end;
 
-procedure TfSetting.bTraceClick(Sender: TObject);
+procedure TfSetting.cDestinationKeyPress(Sender: TObject; var Key: Char);
 begin
-  if oTrace.Execute(Self.Handle) then
-    eTrace.Text := oTrace.FileName;
+  Key := #0;
 end;
 
 procedure TfSetting.FormCreate(Sender: TObject);
@@ -154,10 +172,10 @@ begin
   FOptionsSet := false;
   FLoadedFromFile := false;
 
+  AppPath := ExtractFilePath(Application.ExeName);
+
   FDriveList := TList<Integer>.Create;
   RefreshDrives;
-
-  oTrace.InitialDir := ExtractFilePath(Application.ExeName);
 end;
 
 procedure TfSetting.FormDestroy(Sender: TObject);

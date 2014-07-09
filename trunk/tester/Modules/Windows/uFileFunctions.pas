@@ -4,12 +4,13 @@ interface
 
 uses Dialogs, SysUtils, ShellAPI, FileCtrl;
 
-function DeleteDirectory(Const DirPath: String): Boolean;
-function SelectDirectory(DefaultDir: String): String;
+function DeleteDirectory(const DirPath: String): Boolean;
+function SelectDirectory(DialogTitle: String; DefaultDir: String):
+          String;
 
 implementation
 
-function DeleteDirectory(Const DirPath: String): Boolean;
+function DeleteDirectory(const DirPath: String): Boolean;
 var
   SHFileOpStruct: TSHFileOpStruct;
   DirBuf: array [0..255] of char;
@@ -43,14 +44,14 @@ begin
   FindClose(srSchRec);
 end;
 
-function SelectDirectory(DefaultDir: String): String;
+function SelectDirectory(DialogTitle: String; DefaultDir: String):
+          String;
 begin
    if Win32MajorVersion >= 6 then
     with TFileOpenDialog.Create(nil) do
       try
-        Title := 'Select Directory';
-        Options := [fdoPickFolders, fdoPathMustExist, fdoForceFileSystem]; // YMMV
-        OkButtonLabel := 'Select';
+        Title := DialogTitle;
+        Options := [fdoPickFolders, fdoPathMustExist, fdoForceFileSystem];
         DefaultFolder := DefaultDir;
         FileName := DefaultDir;
         if Execute then

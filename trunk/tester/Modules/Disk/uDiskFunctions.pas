@@ -158,6 +158,9 @@ procedure GetChildDrives(DiskNumber: String; ChildDrives: TStrings);
 function GetFixedDrivesFunction: TDriveLetters;
 function GetIsDriveAccessible(DeviceName: String; Handle: THandle = 0): Boolean;
 
+function GetTBWStr(MBW: Double): String;
+function GetDayStr(Day: Double): String;
+
 const
   IOCTL_SCSI_BASE = FILE_DEVICE_CONTROLLER;
   IOCTL_ATA_PASS_THROUGH = (IOCTL_SCSI_BASE shl 16) or ((FILE_READ_ACCESS or FILE_WRITE_ACCESS) shl 14)
@@ -355,6 +358,52 @@ begin
   end;
 
   result.LetterCount := CurrPartition;
+end;
+
+function GetTBWStr(MBW: Double): String;
+begin
+  if MBW > (1024 * 1024 * 1024 / 4 * 3) then //Above 0.75PB
+  begin
+    result := Format('%.2fPBW', [MBW / 1024 / 1024 / 1024]);
+  end
+  else if MBW > (1024 * 1024 / 4 * 3) then //Above 0.75TB
+  begin
+    result := Format('%.2fTBW', [MBW / 1024 / 1024]);
+  end
+  else if MBW > (1024 / 4 * 3) then //Above 0.75GB
+  begin
+    result := Format('%.2fGBW', [MBW / 1024]);
+  end
+  else
+  begin
+    result := Format('%.2fMBW', [MBW]);
+  end;
+end;
+
+function GetDayStr(Day: Double): String;
+var
+  HWDay: Double;
+  HWDayYear, HWDayMon, HWDayDay: Integer;
+begin
+  HWDay := Day;
+  HWDayYear := floor(HWDay / 365);
+  HWDayMon := floor((HWDay - (HWDayYear * 365)) / 30);
+  HWDayDay := floor(HWDay - (HWDayYear * 365) - (HWDayMon * 30));
+
+  if HWDayYear > 0 then //Above 1yr
+  begin
+    result := Format('%d년 ', [HWDayYear]);
+  end;
+
+  if HWDay > 30 then //Above 1mon
+  begin
+    result := result + Format('%d개월 ', [HWDayMon]);
+  end;
+
+  if HWDayDay > 0 then
+  begin
+    result := result + Format('%d일 ', [HWDayDay]);
+  end;
 end;
 end.
 

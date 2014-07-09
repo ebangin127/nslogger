@@ -3,7 +3,7 @@ unit uGSTestThread;
 interface
 
 uses Classes, SysUtils, ComCtrls, Math, Windows, DateUtils, Dialogs,
-     uGSTester, uGSList, uRandomBuffer, uSaveFile;
+     uGSTester, uGSList, uRandomBuffer, uSaveFile, uDiskFunctions;
 
 type
   TmakeJEDECList  = function (TraceList: Pointer; path: PChar): PTGListHeader;
@@ -19,6 +19,9 @@ const
   EXIT_NORMAL = 0;
   EXIT_RETENTION = 1;
   EXIT_HOSTWRITE = 2;
+  EXIT_ERROR = 3;
+  ABNORMAL_VALUE = 500;
+  ERROR_VALUE = 10000;
 
 type
   TGSTestThread = class(TThread)
@@ -36,7 +39,7 @@ type
 
     FBufSize: Integer;
 
-    FLastSync: Cardinal;    
+    FLastSync: Cardinal;
     FSecCounter: Integer;
     FLastSyncCount: Integer;
 
@@ -49,6 +52,7 @@ type
 
     FMaxHostWrite: UInt64;
     FRetentionTest: UInt64;
+    FMaxFFR: Integer;
     FExitCode: Byte;
 
     makeJEDECList: TmakeJEDECList;
@@ -67,25 +71,37 @@ type
     function ReadRetTest: UInt64;
     procedure WriteMaxTBW(const Value: UInt64);
     procedure WriteRetTest(const Value: UInt64);
+    function GetFFR: Double;
   public
     property ExitCode: Byte read FExitCode;
 
     property MaxLBA: UInt64 read FMaxLBA write SetMaxLBA;
     property OrigLBA: UInt64 read FOrigLBA write SetOrigLBA;
     property Align: Integer read FAlign write FAlign;
+    property MaxFFR: Integer read FMaxFFR write FMaxFFR;
 
     property MaxHostWrite: UInt64 read ReadMaxTBW write WriteMaxTBW;
     property RetentionTest: UInt64 read ReadRetTest write WriteRetTest;
 
+    property FFR: Double read GetFFR;
+
     constructor Create(TracePath: String; Capacity: UINT64); overload;
-    constructor Create(TracePath: String; RandomSeed: Int64; Capacity: UINT64); overload;
-    constructor Create(TracePath: String; CreateSuspended: Boolean; Capacity: UINT64); overload;
-    constructor Create(TracePath: String; CreateSuspended: Boolean; Capacity: UINT64; RandomSeed: Int64); overload;
+    constructor Create(TracePath: String; RandomSeed: Int64;
+                       Capacity: UINT64); overload;
+    constructor Create(TracePath: String; CreateSuspended: Boolean;
+                       Capacity: UINT64); overload;
+    constructor Create(TracePath: String; CreateSuspended: Boolean;
+                       Capacity: UINT64; RandomSeed: Int64); overload;
 
     destructor Destroy; override;
 
     procedure ApplyState;
-    procedure ApplyAlignTest;
+    procedure ApplyState_Progress(TBWStr, DayStr: String);
+    procedure ApplyState_WriteError(TBWStr, DayStr: String);
+    procedure ApplyState_Latency;
+    procedure ApplyState_FFR;
+
+
     procedure ApplyStart;
     procedure Execute; override;
 
@@ -173,31 +189,20 @@ begin
   end;
 end;
 
-procedure TGSTestThread.ApplyAlignTest;
-begin
-  fMain.sTestStage.Caption :=
-    '테스트 SSD에 트레이스 맞추는 중';
-end;
-
 
 procedure TGSTestThread.ApplyStart;
 begin
-  fMain.bSave.Enabled := true;
-  fMain.bForceReten.Enabled := true;
+  fMain.iSave.Enabled := true;
+  fMain.iForceReten.Enabled := true;
+
+  fMain.lSave.Enabled := true;
+  fMain.lForceReten.Enabled := true;
 end;
 
 procedure TGSTestThread.ApplyState;
 var
-  MinLatency, MaxLatency: Double;
-  HostWrite: Double;
-  HWDay: Double;
-  TestProgress: Integer;
-  RamStats: TMemoryStatusEx;
-  ErrorString: String;
-  pMinLatencyPos, pMaxLatencyPos: Integer;
-  HWDayYear, HWDayMon, HWDayDay: Integer;
-  DayCaption: String;
   TBWStr: String;
+  DayStr: String;
 begin
   with fMain do
   begin
@@ -206,131 +211,123 @@ begin
       FLastSyncCount := FTester.GetOverallTestCount + 1;
       lAlert.Items.Add(IntToStr(FLastSyncCount) + '회 시작: '
                         + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
-      sCycleCount.Caption := IntToStr(FLastSyncCount) + '회';
     end;
 
-    with sTestStage do
+    TBWStr := GetTBWStr(FTester.GetHostWrite / 1024 / 1024); //Unit: MB
+    DayStr := GetDayStr(FTester.GetHostWrite / 1024 / 1024 / 10); //Unit: 10GB/d
+
+    ApplyState_Latency;
+    ApplyState_Progress(TBWStr, DayStr);
+    ApplyState_WriteError(TBWStr, DayStr);
+  end;
+end;
+
+procedure TGSTestThread.ApplyState_FFR;
+var
+  CurrFFR: Double;
+begin
+  with fMain do
+  begin
+    CurrFFR := FFR;
+    sFFR.Caption := FormatFloat('0.####', CurrFFR) + '%';
+    pFFR.Position := round((CurrFFR / FMaxFFR) * 100);
+    if pFFR.Position > 10 then
+      pFFR.State := TProgressBarState.pbsPaused
+    else if pFFR.Position > 50 then 
+      pFFR.State := TProgressBarState.pbsError;
+  end;
+end;
+
+procedure TGSTestThread.ApplyState_Latency;
+var
+  AvgLatency, MaxLatency: Double;
+  pAvgLatencyPos, pMaxLatencyPos: Integer;
+begin
+  AvgLatency := FTester.GetAverageLatency / 1000;
+  MaxLatency := FTester.GetMaximumLatency / 1000;
+
+  with fMain do
+  begin
+    if AvgLatency < ABNORMAL_VALUE then
     begin
-      case FTester.GetCurrentStage of
-        stReady:
-        begin
-          Caption := '테스트 준비중';
-        end;
-
-        stLatencyTest:
-        begin
-          Caption := '지연 시간 테스트';
-        end;
-
-        stMainTest:
-        begin
-          Caption := '쓰기 테스트';
-        end;
-      end;
-    end;
-
-    MinLatency := FTester.GetMinimumLatency / 1000;
-    MaxLatency := FTester.GetMaximumLatency / 1000;
-
-    if MinLatency < 100 then
-    begin
-      sMinLatency.Caption := '양호(';
-      pMinLatency.State := pbsNormal;
+      sAvgLatency.Caption := '양호(';
+      pAvgLatency.State := pbsNormal;
     end
-    else if MinLatency < 500 then
+    else if AvgLatency < ERROR_VALUE then
     begin
-      sMinLatency.Caption := '위험(';
-      pMinLatency.State := pbsPaused;
+      sAvgLatency.Caption := '위험(';
+      pAvgLatency.State := pbsPaused;
     end
-    else if MinLatency >= 500 then
+    else if AvgLatency >= ERROR_VALUE then
     begin
-      sMinLatency.Caption := '불량(';
-      pMinLatency.State := pbsError;
+      sAvgLatency.Caption := '불량(';
+      pAvgLatency.State := pbsError;
     end;
 
-    if MaxLatency < 100 then
+    if MaxLatency < ABNORMAL_VALUE then
     begin
       sMaxLatency.Caption := '양호(';
       pMaxLatency.State := pbsNormal;
     end
-    else if MaxLatency < 500 then
+    else if MaxLatency < ERROR_VALUE then
     begin
       sMaxLatency.Caption := '보통(';
       pMaxLatency.State := pbsPaused;
     end
-    else if MaxLatency >= 500 then
+    else if MaxLatency >= ERROR_VALUE then
     begin
       sMaxLatency.Caption := '위험(';
       pMaxLatency.State := pbsError;
     end;
 
-    sMinLatency.Caption := sMinLatency.Caption +
-                            Format('%.2f%s)', [MinLatency, 'ms']);
+    sAvgLatency.Caption := sAvgLatency.Caption +
+                            Format('%.2f%s)', [AvgLatency, 'ms']);
 
     sMaxLatency.Caption := sMaxLatency.Caption +
                             Format('%.2f%s)', [MaxLatency, 'ms']);
 
 
-    if MinLatency > 0 then
-      pMinLatencyPos := round(Log10((MinLatency / 500) * 100) / 2 * 100);
+    if AvgLatency > 0 then
+      pAvgLatencyPos := round(Log10((AvgLatency / ERROR_VALUE) * 100)
+                               / 2 * 100);
     if MaxLatency > 0 then
-      pMaxLatencyPos := round(Log10((MaxLatency / 500) * 100) / 2 * 100);
+      pMaxLatencyPos := round(Log10((MaxLatency / ERROR_VALUE) * 100)
+                               / 2 * 100);
 
-    pMinLatency.Position := Min(pMinLatencyPos, 100);
+    pAvgLatency.Position := Min(pAvgLatencyPos, 100);
     pMaxLatency.Position := Min(pMaxLatencyPos, 100);
+  end;
+end;
 
+procedure TGSTestThread.ApplyState_Progress(TBWStr, DayStr: String);
+var
+  HostWrite: Double;
+  TestProgress: Integer;
+begin
+  with fMain do
+  begin
     TestProgress := round(FTester.GetHostWrite / FMaxHostWrite * 100);
     pTestProgress.Position := TestProgress;
     sTestProgress.Caption := IntToStr(TestProgress) + '% (';
 
-    HostWrite := FTester.GetHostWrite / 1024 / 1024; //Unit: MB
-    if HostWrite > (1024 * 1024 * 1024 / 4 * 3) then //Above 0.75PB
-    begin
-      TBWStr := Format('%.2fPBW', [HostWrite / 1024 / 1024 / 1024]);
-    end
-    else if HostWrite > (1024 * 1024 / 4 * 3) then //Above 0.75TB
-    begin
-      TBWStr := Format('%.2fTBW', [HostWrite / 1024 / 1024]);
-    end
-    else if HostWrite > (1024 / 4 * 3) then //Above 0.75GB
-    begin
-      TBWStr := Format('%.2fGBW', [HostWrite / 1024]);
-    end
-    else
-    begin
-      TBWStr := Format('%.2fMBW', [HostWrite]);
-    end;
     sTestProgress.Caption := sTestProgress.Caption + TBWStr + ' / ';
+    sTestProgress.Caption := sTestProgress.Caption + DayStr;
 
-    HWDay := FTester.GetHostWrite / 1024 / 1024 / 1024 / 10; //Unit: 10GB
-    HWDayYear := floor(HWDay / 365);
-    HWDayMon := floor((HWDay - (HWDayYear * 365)) / 30);
-    HWDayDay := floor(HWDay - (HWDayYear * 365) - (HWDayMon * 30));
+    DayStr := sTestProgress.Caption;
+    DayStr[Length(DayStr)] := ')';
+    sTestProgress.Caption := DayStr;
+  end;
+end;
 
-    DayCaption := '';
-    if HWDayYear > 0 then //Above 1yr
-    begin
-      DayCaption := DayCaption + Format('%d년 ', [HWDayYear]);
-    end;
-
-    if HWDay > 30 then //Above 1mon
-    begin
-      DayCaption := DayCaption + Format('%d개월 ', [HWDayMon]);
-    end;
-
-    if HWDayDay > 0 then
-    begin
-      DayCaption := DayCaption + Format('%d일 ', [HWDayDay]);
-    end;
-    sTestProgress.Caption := sTestProgress.Caption + DayCaption;
-
-    DayCaption := sTestProgress.Caption;
-    DayCaption[Length(DayCaption)] := ')';
-    sTestProgress.Caption := DayCaption;
-
+procedure TGSTestThread.ApplyState_WriteError(TBWStr, DayStr: String);
+var
+  ErrorString: String;
+begin
+  with fMain do
+  begin
     if FTester.ErrorBuf.Count > 0 then
     begin
-      lAlert.Items.Add('---' + TBWStr + '(' + DayCaption + ') 지점의 오류 ---');
+      lAlert.Items.Add('---' + TBWStr + '(' + DayStr + ') 지점의 오류 ---');
     end;
     while FTester.ErrorBuf.Count > 0 do
     begin
@@ -359,34 +356,9 @@ begin
       FTester.ErrorBuf.Delete(0);
       if FTester.ErrorBuf.Count = 0 then
       begin
-        lAlert.Items.Add('---' + TBWStr + '(' + DayCaption + ') 지점의 오류 끝---');
+        lAlert.Items.Add('---' + TBWStr + '(' + DayStr + ') 지점의 오류 끝---');
       end;
     end;
-
-    FillChar(RamStats, SizeOf(RamStats), 0);
-    RamStats.dwLength := SizeOf(RamStats);
-    GlobalMemoryStatusEx(RamStats);
-
-    if RamStats.ullAvailPhys < (50 shl 20) then
-    begin
-      sRamUsage.Caption := '램 부족(';
-      pRamUsage.State := pbsError;
-    end
-    else if RamStats.ullAvailPhys < (100 shl 20) then
-    begin
-      sRamUsage.Caption := '보통(';
-      pRamUsage.State := pbsPaused;
-    end
-    else
-    begin
-      sRamUsage.Caption := '여유로움(';
-      pRamUsage.State := pbsNormal;
-    end;
-
-    sRamUsage.Caption := sRamUsage.Caption + Format('%dMB)',
-                                                    [RamStats.ullAvailPhys shr 20]);
-    pRamUsage.Position := round(((RamStats.ullAvailPhys shr 20) /
-                                 (RamStats.ullTotalPhys shr 20)) * 100);
   end;
 end;
 
@@ -408,8 +380,6 @@ begin
   if @makeJEDECListAndFix = nil then
   begin
     FTester.AssignListHeader(makeJEDECList(ClassPTR, PChar(FTracePath)));
-
-    Synchronize(ApplyAlignTest);
     FTester.CheckAlign(Align, MaxLBA, OrigLBA);
   end
   else
@@ -429,11 +399,14 @@ begin
   begin
     if (((FTester.GetHostWrite mod FRetentionTest) = 0) and
         ((FTester.GetHostWrite <> 0) and (FTester.StartLatency <> 0))) or
-       (FTester.GetHostWrite = FMaxHostWrite) then
+       (FTester.GetHostWrite = FMaxHostWrite) or
+       (GetFFR > FMaxFFR) then
     begin
       if ((FTester.GetHostWrite mod FRetentionTest) = 0) and
          ((FTester.GetHostWrite <> 0) and (FTester.StartLatency <> 0)) then
          FExitCode := EXIT_RETENTION
+      else if GetFFR > FMaxFFR then
+         FExitCode := EXIT_ERROR
       else
          FExitCode := EXIT_HOSTWRITE;
 
@@ -466,6 +439,11 @@ begin
       FLastSync := CurrTime;
     end;
   end;
+end;
+
+function TGSTestThread.GetFFR: Double;
+begin
+  result := (FTester.ErrorCount / FTester.GetLength) * 100;
 end;
 
 procedure TGSTestThread.GetMainInfo;
@@ -509,7 +487,7 @@ begin
                IntToStr(FTester.StartLatency) + ' ' +
                IntToStr(FTester.EndLatency) + ' ' +
                IntToStr(FTester.MaxLatency) + ' ' +
-               IntToStr(FTester.MinLatency));
+               IntToStr(FTester.AvgLatency));
 
   SaveFile.SaveToFile(SaveFilePath + 'speedlog.txt');
 
@@ -518,7 +496,7 @@ begin
     FTester.StartLatency := 0;
     FTester.EndLatency := 0;
     FTester.MaxLatency := 0;
-    FTester.MinLatency := 0;
+    FTester.AvgLatency := 0;
   end;
 
   FreeAndNil(SaveFile);
@@ -548,6 +526,7 @@ begin
   FSaveFile.NeedVerify := FMainNeedReten;
   FSaveFile.MaxTBW := FMaxHostWrite;
   FSaveFile.RetTBW := FRetentionTest;
+  FSaveFile.MaxFFR := FMaxFFR;
   FSaveFile.TracePath := FTracePath;
   FSaveFile.Model := FMainDriveModel;
   FSaveFile.Serial := FMainDriveSerial;
@@ -556,8 +535,9 @@ begin
   FSaveFile.StartLatency := FTester.StartLatency;
   FSaveFile.EndLatency := FTester.EndLatency;
 
-  FSaveFile.MinLatency := FTester.GetMinimumLatency;
+  FSaveFile.SumLatency := FTester.SumLatency;
   FSaveFile.MaxLatency := FTester.GetMaximumLatency;
+  FSaveFile.ErrorCount := FTester.ErrorCount;
 
   FSaveFile.OverallTestCount := FTester.OverallTestCount;
   FSaveFile.Iterator := FTester.Iterator;
@@ -576,13 +556,15 @@ begin
   FTracePath := FSaveFile.TracePath;
   FMainDriveModel := FSaveFile.Model;
   FMainDriveSerial := FSaveFile.Serial;
+  FMaxFFR := FSaveFile.MaxFFR;
 
   FTester.HostWrite := FSaveFile.CurrTBW;
   FTester.StartLatency := FSaveFile.StartLatency;
   FTester.EndLatency := FSaveFile.EndLatency;
 
-  FTester.MinLatency := FSaveFile.MinLatency;
+  FTester.SumLatency := FSaveFile.SumLatency;
   FTester.MaxLatency := FSaveFile.MaxLatency;
+  FTester.ErrorCount := FSaveFile.ErrorCount;
 
   FTester.OverallTestCount := FSaveFile.OverallTestCount;
   FTester.Iterator := FSaveFile.Iterator;

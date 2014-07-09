@@ -26,45 +26,50 @@ type
     FFrequency: Double;
     FOverallTestCount: Integer;
 
-    FStartLatency, FEndLatency: Int64; //Unit: us(10^-6);
-    FMinLatency, FMaxLatency: Int64; //Unit: us(10^-6)
+    FStartLatency, FEndLatency: Int64; //Unit: us(10^-6)
+    FSumLatency: UInt64;
+    FAvgLatency, FMaxLatency: Int64; //Unit: us(10^-6)
     FHostWrite: Int64;
 
     FRandomBuffer: PTRandomBuffer;
     FReadBuffer: Array[0..MaxIOSize - 1] of Byte;
 
     FErrorBuf: TErrorList;
+    FErrorCount: Integer;
 
     function DiskWrite(Contents: PTGSNode): Boolean;
     function DiskRead(Contents: PTGSNode): Boolean;
     function DiskTrim(Contents: PTGSNode): Boolean;
     function DiskFlush: Boolean;
     procedure SetIterator(const Value: Integer);
+    procedure ClearAvgLatency;
 
     function WaitForOverlapped(Handle: THandle;
                                 pOverlapped: POVERLAPPED): Cardinal;
   public
+    function GetCurrentStage: TTestStage;
+    function GetMaximumLatency: Int64;
+    function GetAverageLatency: Int64;
+    function GetOverallTestCount: Integer;
+    function GetLength: Integer;
+    function GetHostWrite: Int64;
+
     property StartLatency: Int64 read FStartLatency write FStartLatency;
     property EndLatency: Int64 read FEndLatency write FEndLatency;
-    property MinLatency: Int64 read FMinLatency write FMinLatency;
+    property SumLatency: UInt64 read FSumLatency write FSumLatency;
+    property AvgLatency: Int64 read GetAverageLatency write FAvgLatency;
     property MaxLatency: Int64 read FMaxLatency write FMaxLatency;
     property OverallTestCount: Integer read FOverallTestCount write FOverallTestCount;
     property Iterator: Integer read FIterator write SetIterator;
     property HostWrite: Int64 read FHostWrite write FHostWrite;
     property ErrorBuf: TErrorList read FErrorBuf write FErrorBuf;
+    property ErrorCount: Integer read FErrorCount write FErrorCount;
 
     constructor Create(Capacity: UINT64);
     destructor Destroy; override;
 
     function SetDisk(DriveNumber: Integer): Boolean;
     function ClearList: Boolean;
-
-    function GetCurrentStage: TTestStage;
-    function GetMaximumLatency: Int64;
-    function GetMinimumLatency: Int64;
-    function GetOverallTestCount: Integer;
-    function GetLength: Integer;
-    function GetHostWrite: Int64;
 
     function ProcessNextOperation: Boolean;
 
@@ -115,7 +120,7 @@ begin
   if APIResult = ERROR_IO_PENDING then
   begin
     FOverlapped.Add(CurrOvlp);
-    if FOverlapped.Count > 32 then
+    if FOverlapped.Count > MaxParallelIO then
       result := ClearList;
   end
   else if result = true then
@@ -239,6 +244,11 @@ begin
     FMasterTrace.CheckAlign(Align, MaxLBA, OrigLBA);
 end;
 
+procedure TGSTester.ClearAvgLatency;
+begin
+  FSumLatency := 0;
+end;
+
 function TGSTester.ClearList: Boolean;
 var
   CurrOvlp: POVERLAPPED;
@@ -273,8 +283,10 @@ begin
   QueryPerformanceFrequency(Frequency);
   FFrequency := Frequency / 1000000; //us(10^-6)
 
-  FMinLatency := -1;
+  FSumLatency := 0;
+  FAvgLatency := 0;
   FMaxLatency := -1;
+  FErrorCount := 0;
 
   FOverallTestCount := 0;
 
@@ -356,9 +368,9 @@ begin
   result := FMaxLatency;
 end;
 
-function TGSTester.GetMinimumLatency: Int64;
+function TGSTester.GetAverageLatency: Int64;
 begin
-  result := FMinLatency;
+  result := round(FMaxLatency / FIterator);
 end;
 
 function TGSTester.GetOverallTestCount: Integer;
@@ -374,6 +386,9 @@ var
 begin
   result := false;
   NextOperation := nil;
+  if FIterator = 0 then
+    ClearAvgLatency;
+
   case FStage of
     stReady:
     begin
@@ -436,10 +451,7 @@ begin
       QueryPerformanceCounter(EndTime);
 
       OverallTime := round((EndTime - StartTime) / FFrequency);
-      if (FMinLatency < 0) or (FMinLatency > OverallTime) then
-      begin
-        FMinLatency := OverallTime;
-      end;
+      Inc(FSumLatency, OverallTime);
       if (FMaxLatency < 0) or (FMaxLatency < OverallTime) then
       begin
         FMaxLatency := OverallTime;
@@ -449,6 +461,7 @@ begin
     if result = false then
     begin
       FErrorBuf.AddTGSNode(NextOperation^);
+      Inc(FErrorCount);
     end;
   end;
 end;
