@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics,  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.ComCtrls, Vcl.StdCtrls, Vcl.ExtCtrls, Math, DateUtils,
-  uRandomBuffer, uGSTestThread, uGSList, uHDDInfo, uTrimCommand,
+  uRandomBuffer, uGSTestThread, uGSList, uSSDInfo, uTrimCommand,
   uDiskFunctions, uSetting, uRetSel, Vcl.Imaging.pngimage;
 
 const
@@ -397,7 +397,7 @@ end;
 
 procedure TfMain.WmAfterShow(var Msg: TMessage);
 var
-  SSDInfo: THDDInfo;
+  SSDInfo: TSSDInfo;
 begin
   fSetting := TfSetting.Create(self);
   fSetting.ShowModal;
@@ -411,8 +411,8 @@ begin
 
   FSaveFilePath := fSetting.SavePath;
 
-  SSDInfo := THDDInfo.Create;
-  SSDInfo.SetDeviceName('PhysicalDrive' + IntToStr(FDiskNum));
+  SSDInfo := TSSDInfo.Create;
+  SSDInfo.SetDeviceName(FDiskNum);
   FDestTBW := StrToInt(fSetting.eDestTBW.Text);
   FRetentionTBW := StrToInt(fSetting.eRetentionTBW.Text);
   FDestDriveModel := SSDInfo.Model;

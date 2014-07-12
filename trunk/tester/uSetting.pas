@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Generics.Collections,
-  uDiskFunctions, uHDDInfo, uFileFunctions, uSaveFile, uGSTestThread;
+  uDiskFunctions, uSSDInfo, uFileFunctions, uSaveFile, uGSTestThread;
 
 type
   TfSetting = class(TForm)
@@ -193,12 +193,12 @@ end;
 
 function TfSetting.FindDrive(Model, Serial: String): Integer;
 var
-  TempSSDInfo: THDDInfo;
+  TempSSDInfo: TSSDInfo;
   CurrDrv: Integer;
   hdrive: Integer;
   DRVLetters: TDriveLetters;
 begin
-  TempSSDInfo := THDDInfo.Create;
+  TempSSDInfo := TSSDInfo.Create;
   for CurrDrv := 0 to 99 do
   begin
     hdrive := CreateFile(PChar('\\.\PhysicalDrive' + IntToStr(CurrDrv)), GENERIC_READ or GENERIC_WRITE,
@@ -206,7 +206,7 @@ begin
 
     if (GetLastError = 0) and (GetIsDriveAccessible('', hdrive)) then
     begin
-      TempSSDInfo.SetDeviceName('PhysicalDrive' + IntToStr(CurrDrv));
+      TempSSDInfo.SetDeviceName(CurrDrv);
 
       DRVLetters := GetPartitionList(IntToStr(CurrDrv));
       if DRVLetters.LetterCount = 0 then //드라이브가 있으면 OS 보호로
@@ -226,12 +226,12 @@ end;
 
 procedure TfSetting.RefreshDrives;
 var
-  TempSSDInfo: THDDInfo;
+  TempSSDInfo: TSSDInfo;
   CurrDrv: Integer;
   hdrive: Integer;
   DRVLetters: TDriveLetters;
 begin
-  TempSSDInfo := THDDInfo.Create;
+  TempSSDInfo := TSSDInfo.Create;
   for CurrDrv := 0 to 99 do
   begin
     hdrive := CreateFile(PChar('\\.\PhysicalDrive' + IntToStr(CurrDrv)), GENERIC_READ or GENERIC_WRITE,
@@ -239,7 +239,7 @@ begin
 
     if (GetLastError = 0) and (GetIsDriveAccessible('', hdrive)) then
     begin
-      TempSSDInfo.SetDeviceName('PhysicalDrive' + IntToStr(CurrDrv));
+      TempSSDInfo.SetDeviceName(CurrDrv);
 
       DRVLetters := GetPartitionList(IntToStr(CurrDrv));
       if DRVLetters.LetterCount = 0 then //드라이브가 있으면 OS 보호로

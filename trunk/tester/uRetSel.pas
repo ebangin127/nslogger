@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Generics.Collections,
-  uHDDInfo, uDiskFunctions;
+  uSSDInfo, uDiskFunctions;
 
 type
   TssdCopy  = function (readDrive, writeDrive: THandle;
@@ -37,24 +37,6 @@ type
     procedure SetMode(VerifyMode: Boolean); overload;
   end;
 
-  TCopyThread = class(TThread)
-  private
-    FOrigHandle, FDestHandle: THandle;
-    FDLLHandle: THandle;
-    FWriteHandle: THandle;
-
-    FVerifyMode: Boolean;
-    SSDCopy: TssdCopy;
-    SSDDriveCompare: TssdDriveCompare;
-    procedure SetCmpHandles(WriteHandle: THandle);
-  public
-    procedure SetHandles(OrigHandle, DestHandle, DLLHandle: THandle); overload;
-    procedure SetHandles(OrigHandle, DestHandle, DLLHandle,
-                         WriteHandle: THandle); overload;
-    procedure Execute; override;
-    procedure EndCopy;
-  end;
-
 var
   fRetSel: TfRetSel;
 
@@ -67,7 +49,7 @@ uses uMain;
 procedure TfRetSel.bStartClick(Sender: TObject);
 var
   Path: String;
-  CopyThrd: TCopyThread;
+  //CopyThrd: TCopyThread;
   WriteHandle: THandle;
 begin
   if cDestination.ItemIndex <> cDestination.Items.Count - 1 then
@@ -108,7 +90,7 @@ begin
 
   bStart.Enabled := false;
 
-  CopyThrd := TCopyThread.Create(true);
+  {CopyThrd := TCopyThread.Create(true);
   if FVerifyMode then
   begin
     bStart.Caption := '검증중';
@@ -120,7 +102,7 @@ begin
     CopyThrd.SetHandles(FOrignalHandle, FDriveHandle, FDLLHandle);
   end;
 
-  CopyThrd.Start;
+  CopyThrd.Start; }
 end;
 
 constructor TfRetSel.Create(AOwner: TComponent; OriginalHandle: THandle);
@@ -160,12 +142,12 @@ end;
 
 procedure TfRetSel.RefreshDrives;
 var
-  TempSSDInfo: THDDInfo;
+  TempSSDInfo: TSSDInfo;
   CurrDrv: Integer;
   hdrive: Integer;
   DRVLetters: TDriveLetters;
 begin
-  TempSSDInfo := THDDInfo.Create;
+  TempSSDInfo := TSSDInfo.Create;
   for CurrDrv := 0 to 99 do
   begin
     hdrive := CreateFile(PChar('\\.\PhysicalDrive' + IntToStr(CurrDrv)),
@@ -175,7 +157,7 @@ begin
 
     if (GetLastError = 0) and (GetIsDriveAccessible('', hdrive)) then
     begin
-      TempSSDInfo.SetDeviceName('PhysicalDrive' + IntToStr(CurrDrv));
+      TempSSDInfo.SetDeviceName(CurrDrv);
 
       DRVLetters := GetPartitionList(IntToStr(CurrDrv));
       if DRVLetters.LetterCount = 0 then //드라이브가 있으면 OS 보호로
@@ -209,56 +191,6 @@ begin
     cDestination.Items[cDestination.Items.Count - 1] := '파일에서 불러오기';
     bStart.Caption := '검증 시작';
   end;
-end;
-
-{ TCopyThrd }
-
-procedure TCopyThread.EndCopy;
-begin
-  fRetSel.Close;
-end;
-
-procedure TCopyThread.Execute;
-var
-  dwRead: Integer;
-  dwWrite: Integer;
-begin
-  inherited;
-
-  dwRead := 0;
-  dwWrite := 0;
-
-  if not FVerifyMode then SSDCopy(FOrigHandle, FDestHandle, @dwRead, @dwWrite)
-  else SSDDriveCompare(FOrigHandle, FDestHandle, FWriteHandle,
-                       @dwRead, @dwWrite);
-  Synchronize(EndCopy);
-end;
-
-procedure TCopyThread.SetHandles(OrigHandle, DestHandle, DLLHandle: THandle);
-begin
-  FOrigHandle := OrigHandle;
-  FDestHandle := DestHandle;
-  FDLLHandle := DLLHandle;
-
-  @SSDCopy := GetProcAddress(FDLLHandle, 'ssdCopy');
-
-  FVerifyMode := false;
-end;
-
-procedure TCopyThread.SetCmpHandles(WriteHandle: THandle);
-begin
-  FWriteHandle := WriteHandle;
-end;
-
-procedure TCopyThread.SetHandles(OrigHandle, DestHandle, DLLHandle,
-                                  WriteHandle: THandle);
-begin
-  SetHandles(OrigHandle, DestHandle, DLLHandle);
-  SetCmpHandles(WriteHandle);
-
-  @SSDDriveCompare := GetProcAddress(FDLLHandle, 'ssdDriveCompare');
-
-  FVerifyMode := true;
 end;
 
 end.

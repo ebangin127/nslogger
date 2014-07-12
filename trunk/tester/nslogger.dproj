@@ -135,27 +135,30 @@
             <Form>fMain</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="Classes\TGSList\uGSList.pas"/>
-        <DCCReference Include="Classes\TGSTester\uGSTester.pas"/>
         <DCCReference Include="Modules\Disk\uDiskFunctions.pas"/>
         <DCCReference Include="Modules\Disk\uTrimCommand.pas"/>
         <DCCReference Include="Modules\Etc\uIntFunctions.pas"/>
         <DCCReference Include="Modules\Etc\uStrFunctions.pas"/>
         <DCCReference Include="Modules\Windows\uFileFunctions.pas"/>
-        <DCCReference Include="Classes\TRandomBuffer\uRandomBuffer.pas"/>
-        <DCCReference Include="Classes\TRandomBuffer\uMTforDel.pas"/>
-        <DCCReference Include="Classes\TGSTestThread\uGSTestThread.pas"/>
         <DCCReference Include="uSetting.pas">
             <Form>fSetting</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="Classes\TSaveFile\uSaveFile.pas"/>
-        <DCCReference Include="Classes\TErrorList\uErrorList.pas"/>
         <DCCReference Include="uRetSel.pas">
             <Form>fRetSel</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="Classes\THDDInfo\uHDDInfo.pas"/>
+        <DCCReference Include="Classes\ATALowOps\uATALowOps.pas"/>
+        <DCCReference Include="Modules\Disk\uSMARTFunctions.pas"/>
+        <DCCReference Include="Classes\Tester\uGSList.pas"/>
+        <DCCReference Include="Classes\Tester\uGSTester.pas"/>
+        <DCCReference Include="Classes\Tester\uGSTestThread.pas"/>
+        <DCCReference Include="Classes\SaveFile\uErrorList.pas"/>
+        <DCCReference Include="Classes\SaveFile\uSaveFile.pas"/>
+        <DCCReference Include="Classes\RandomBuffer\uMTforDel.pas"/>
+        <DCCReference Include="Classes\RandomBuffer\uRandomBuffer.pas"/>
+        <DCCReference Include="Classes\SSDInfo\uSSDInfo.pas"/>
+        <DCCReference Include="Classes\SSDInfo\uSSDVersion.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
