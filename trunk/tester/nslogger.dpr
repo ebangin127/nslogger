@@ -20,7 +20,9 @@ uses
   uMTforDel in 'Classes\RandomBuffer\uMTforDel.pas',
   uRandomBuffer in 'Classes\RandomBuffer\uRandomBuffer.pas',
   uSSDInfo in 'Classes\SSDInfo\uSSDInfo.pas',
-  uSSDVersion in 'Classes\SSDInfo\uSSDVersion.pas';
+  uSSDVersion in 'Classes\SSDInfo\uSSDVersion.pas',
+  uCopyThread in 'Classes\Verifier\uCopyThread.pas',
+  uVerifyThread in 'Classes\Verifier\uVerifyThread.pas';
 
 {$R *.res}
 
