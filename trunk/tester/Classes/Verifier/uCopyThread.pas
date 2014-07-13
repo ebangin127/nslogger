@@ -2,12 +2,30 @@ unit uCopyThread;
 
 interface
 
-uses Classes, SysUtils, Windows;
+uses
+  Vcl.ComCtrls, Vcl.StdCtrls, Classes, SysUtils, Windows;
 
 const
   LinearRead = 32768;
 
-{$R *.res}
+type
+  TCopyThread = class(TThread)
+  private
+    FSrcPath, FDestPath: String;
+    FVerifyMode: Boolean;
+    FMaxLength: Int64;
+
+    FProgressBar: TProgressBar;
+    FStaticText: TStaticText;
+  public
+    constructor Create(SrcPath, DestPath: String);
+    procedure Execute; override;
+    procedure EndCopy;
+  end;
+
+implementation
+
+uses uRetSel;
 
 type
   TBuffer = Array of Byte;
@@ -28,25 +46,7 @@ type
     procedure PutBuf(InBuffer: TBuffer);
   end;
 
-  TCopyThread = class(TThread)
-  private
-    FOrigHandle, FDestHandle: THandle;
-    FDLLHandle: THandle;
-    FWriteHandle: THandle;
-
-    FVerifyMode: Boolean;
-    SSDCopy: TssdCopy;
-    SSDDriveCompare: TssdDriveCompare;
-    procedure SetCmpHandles(WriteHandle: THandle);
-  public
-    procedure SetHandles(OrigHandle, DestHandle, DLLHandle: THandle); overload;
-    procedure SetHandles(OrigHandle, DestHandle, DLLHandle,
-                         WriteHandle: THandle); overload;
-    procedure Execute; override;
-    procedure EndCopy;
-  end;
-
-  TProducer = class(TThread)
+  TCopyProducer = class(TThread)
   private
     FBufStor: TBufferStorage;
     FFileStream: TFileStream;
@@ -57,35 +57,76 @@ type
     procedure Execute; override;
   end;
 
-  TConsumer = class(TThread)
+  TCopyConsumer = class(TThread)
   private
     FBufStor: TBufferStorage;
     FFileStream: TFileStream;
+    FMaxLength, FCurrWritten: Int64;
+    FProgressBar: TProgressBar;
+    FStaticText: TStaticText;
   public
-    constructor Create(BufStor: TBufferStorage; Path: String);
+    constructor Create(BufStor: TBufferStorage; Path: String;
+                       MaxLength: Integer; ProgressBar: TProgressBar;
+                       StaticText: TStaticText);
     destructor Destroy; override;
 
     procedure Execute; override;
+    procedure ApplyProgress;
   end;
 
-implementation
+{ TCopyThrd }
 
-procedure makeJEDECListAndFix(SrcPath: PChar; DestPath: PChar);
-var
-  BufStor: TBufferStorage;
-  Producer: TProducer;
-  Consumer: TConsumer;
+constructor TCopyThread.Create(SrcPath, DestPath: String);
 begin
+  inherited Create(false);
+  FSrcPath := SrcPath;
+  FDestPath := DestPath;
+
+  FProgressBar := fRetSel.pProgress;
+  FStaticText := fRetSel.sProgress;
+end;
+
+procedure TCopyThread.EndCopy;
+begin
+  fRetSel.Close;
+end;
+
+procedure TCopyThread.Execute;
+var
+  dwRead: Integer;
+  dwWrite: Integer;
+
+  BufStor: TBufferStorage;
+  CopyProducer: TCopyProducer;
+  CopyConsumer: TCopyConsumer;
+
+  FileStream: TFileStream;
+begin
+  inherited;
+
   BufStor := TBufferStorage.Create;
-  Producer := TProducer.Create(BufStor, SrcPath);
-  Consumer := TConsumer.Create(BufStor, DestPath);
+  dwRead := 0;
+  dwWrite := 0;
 
-  WaitForSingleObject(Consumer.Handle, INFINITE);
-  WaitForSingleObject(Producer.Handle, INFINITE);
+  if not FVerifyMode then
+  begin
+    FileStream := TFileStream.Create(FSrcPath, fmOpenRead);
+    FMaxLength := FileStream.Seek(0, TSeekOrigin.soEnd);
+    FreeAndNil(FileStream);
 
-  FreeAndNil(Consumer);
-  FreeAndNil(Producer);
+    CopyProducer := TCopyProducer.Create(BufStor, FSrcPath);
+    CopyConsumer := TCopyConsumer.Create(BufStor, FDestPath, FMaxLength,
+                                         FProgressBar, FStaticText);
+
+    WaitForSingleObject(CopyConsumer.Handle, INFINITE);
+    WaitForSingleObject(CopyProducer.Handle, INFINITE);
+
+    FreeAndNil(CopyProducer);
+    FreeAndNil(CopyConsumer);
+  end;
+
   FreeAndNil(BufStor);
+  Synchronize(EndCopy);
 end;
 
 { BufferStorage }
@@ -150,7 +191,6 @@ begin
     begin
       SetLength(FOutputBuffer, Length(FBuffer));
       CopyMemory(@FOutputBuffer[0], @FBuffer[0], Length(FBuffer));
-      FOutputBuffer[Length(FOutputBuffer) - 1] := #0;
     end
     else
     begin
@@ -166,72 +206,22 @@ begin
   end;
 end;
 
-{ TCopyThrd }
+{ TCopyProducer }
 
-procedure TCopyThread.EndCopy;
-begin
-  fRetSel.Close;
-end;
-
-procedure TCopyThread.Execute;
-var
-  dwRead: Integer;
-  dwWrite: Integer;
-begin
-  inherited;
-
-  dwRead := 0;
-  dwWrite := 0;
-
-  if not FVerifyMode then SSDCopy(FOrigHandle, FDestHandle, @dwRead, @dwWrite)
-  else SSDDriveCompare(FOrigHandle, FDestHandle, FWriteHandle,
-                       @dwRead, @dwWrite);
-  Synchronize(EndCopy);
-end;
-
-procedure TCopyThread.SetHandles(OrigHandle, DestHandle, DLLHandle: THandle);
-begin
-  FOrigHandle := OrigHandle;
-  FDestHandle := DestHandle;
-  FDLLHandle := DLLHandle;
-
-  @SSDCopy := GetProcAddress(FDLLHandle, 'ssdCopy');
-
-  FVerifyMode := false;
-end;
-
-procedure TCopyThread.SetCmpHandles(WriteHandle: THandle);
-begin
-  FWriteHandle := WriteHandle;
-end;
-
-procedure TCopyThread.SetHandles(OrigHandle, DestHandle, DLLHandle,
-                                  WriteHandle: THandle);
-begin
-  SetHandles(OrigHandle, DestHandle, DLLHandle);
-  SetCmpHandles(WriteHandle);
-
-  @SSDDriveCompare := GetProcAddress(FDLLHandle, 'ssdDriveCompare');
-
-  FVerifyMode := true;
-end;
-
-{ TProducer }
-
-constructor TProducer.Create(BufStor: TBufferStorage; Path: String);
+constructor TCopyProducer.Create(BufStor: TBufferStorage; Path: String);
 begin
   inherited Create(false);
   FBufStor := BufStor;
   FFileStream := TFileStream.Create(Path, fmOpenRead);
 end;
 
-destructor TProducer.Destroy;
+destructor TCopyProducer.Destroy;
 begin
   FreeAndNil(FFileStream);
   inherited;
 end;
 
-procedure TProducer.Execute;
+procedure TCopyProducer.Execute;
 var
   Buffer: TBuffer;
   ReadLength: Integer;
@@ -252,30 +242,55 @@ begin
 end;
 
 
-{ TConsumer }
+{ TCopyConsumer }
 
-constructor TConsumer.Create(BufStor: TBufferStorage; Path: String);
+procedure TCopyConsumer.ApplyProgress;
+var
+  MaxMega, CurrMega: Int64;
+begin
+  MaxMega := FMaxLength shr 10;
+  CurrMega := FCurrWritten shr 10;
+
+  FStaticText.Caption := IntToStr(MaxMega) + 'MB / ' +
+                         IntToStr(CurrMega) + 'MB';
+  FProgressBar.Position := (CurrMega * 100) div MaxMega;
+end;
+
+constructor TCopyConsumer.Create(BufStor: TBufferStorage; Path: String;
+                                 MaxLength: Integer; ProgressBar: TProgressBar;
+                                 StaticText: TStaticText);
 begin
   inherited Create(false);
   FBufStor := BufStor;
+  FCurrWritten := 0;
+  FMaxLength := MaxLength;
+
+  FProgressBar := ProgressBar;
+  FStaticText := StaticText;
+
   FFileStream := TFileStream.Create(Path, fmOpenRead);
 end;
 
-destructor TConsumer.Destroy;
+destructor TCopyConsumer.Destroy;
 begin
   FreeAndNil(FFileStream);
   inherited;
 end;
 
-procedure TConsumer.Execute;
+procedure TCopyConsumer.Execute;
+const
+  FiftyMB = 50 shl 10;
+  Period = FiftyMB div LinearRead;
 var
   Buffer: TBuffer;
   ReadLength: Integer;
   GotLength: Integer;
   WrittenLength: Integer;
+  CurrNum: Integer;
 begin
   inherited;
 
+  CurrNum := Period;
   repeat
     Buffer := FBufStor.TakeBuf;
     GotLength := Length(Buffer);
@@ -283,6 +298,15 @@ begin
     begin
       WrittenLength := FFileStream.Write(Buffer[0], GotLength);
     end;
+    Inc(FCurrWritten, WrittenLength);
+
+    if CurrNum = 0 then
+    begin
+      Synchronize(ApplyProgress);
+      CurrNum := Period;
+    end
+    else
+      Dec(CurrNum);
   until (GotLength <= 0) or (WrittenLength = 0);
 end;
 end.

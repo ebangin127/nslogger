@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Generics.Collections,
-  uSSDInfo, uDiskFunctions;
+  uSSDInfo, uDiskFunctions, Vcl.ComCtrls;
 
 type
   TssdCopy  = function (readDrive, writeDrive: THandle;
@@ -20,6 +20,8 @@ type
     cDestination: TComboBox;
     bStart: TButton;
     FileSave: TSaveDialog;
+    pProgress: TProgressBar;
+    sProgress: TStaticText;
     constructor Create(AOwner: TComponent; OriginalHandle: THandle);
     procedure FormCreate(Sender: TObject);
     procedure RefreshDrives;
@@ -88,7 +90,7 @@ begin
   end;
 
 
-  bStart.Enabled := false;
+  bStart.Visible := false;
 
   {CopyThrd := TCopyThread.Create(true);
   if FVerifyMode then

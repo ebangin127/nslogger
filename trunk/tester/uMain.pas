@@ -84,10 +84,10 @@ type
                                  pProgress: TProgressBar;
                                  lProgressL, lProgressR: TLabel); inline;
 
-    procedure gStatusResize();
-    procedure gFirstSetResize();
-    procedure gChangeStateResize();
-    procedure gAlertResize();
+    procedure gStatusResize;
+    procedure gFirstSetResize;
+    procedure gChangeStateResize;
+    procedure gAlertResize;
   public
     property NeedRetention: Boolean read FNeedRetention;
     property DriveModel: String read FDestDriveModel;
