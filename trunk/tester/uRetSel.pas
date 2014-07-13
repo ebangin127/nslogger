@@ -5,8 +5,8 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
-  Vcl.StdCtrls, Generics.Collections,
-  uSSDInfo, uDiskFunctions, Vcl.ComCtrls;
+  Vcl.StdCtrls, Vcl.ComCtrls, Generics.Collections,
+  uSSDInfo, uDiskFunctions, uCopyThread, uVerifyThread;
 
 type
   TssdCopy  = function (readDrive, writeDrive: THandle;
@@ -22,19 +22,26 @@ type
     FileSave: TSaveDialog;
     pProgress: TProgressBar;
     sProgress: TStaticText;
-    constructor Create(AOwner: TComponent; OriginalHandle: THandle);
+    constructor Create(AOwner: TComponent; OrigPath: String);
     procedure FormCreate(Sender: TObject);
     procedure RefreshDrives;
     procedure FormDestroy(Sender: TObject);
     procedure bStartClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
-    FOrignalHandle: THandle;
-    FDriveHandle: THandle;
-    FDLLHandle: THandle;
+    FOrigPath: String;
     FDriveList: TList<Integer>;
     FWritePath: String;
     FVerifyMode: Boolean;
+    FEndTask: Boolean;
+    FUBER: Double;
+
+    FCopyThrd: TCopyThread;
+    FVerifyThrd: TVerifyThread;
   public
+    property EndTask: Boolean read FEndTask write FEndTask;
+    property UBER: Double read FUBER write FUBER;
+
     procedure SetMode(VerifyMode: Boolean; WritePath: String); overload;
     procedure SetMode(VerifyMode: Boolean); overload;
   end;
@@ -50,13 +57,12 @@ uses uMain;
 
 procedure TfRetSel.bStartClick(Sender: TObject);
 var
-  Path: String;
-  //CopyThrd: TCopyThread;
+  DestPath: String;
   WriteHandle: THandle;
 begin
   if cDestination.ItemIndex <> cDestination.Items.Count - 1 then
   begin
-    Path := '\\.\PhysicalDrive' +
+    DestPath := '\\.\PhysicalDrive' +
             IntToStr(FDriveList[cDestination.ItemIndex]);
   end
   else
@@ -64,53 +70,36 @@ begin
     if FileSave.Execute(Self.Handle) = false then
       exit;
 
-    Path := FileSave.FileName;
-    if not FVerifyMode then
-    begin
-      FDriveHandle := CreateFile(PChar(Path), GENERIC_READ or GENERIC_WRITE,
-                                  FILE_SHARE_READ or FILE_SHARE_WRITE, nil,
-                                  CREATE_ALWAYS, 0, 0);
-      CloseHandle(FDriveHandle);
-    end;
-  end;
-
-  if FVerifyMode then
-  begin
-    FDriveHandle := CreateFile(PChar(Path), GENERIC_READ, FILE_SHARE_READ, nil,
-                                OPEN_EXISTING, 0, 0);
-    WriteHandle := CreateFile(PChar(FWritePath), GENERIC_READ or GENERIC_WRITE,
-                                FILE_SHARE_READ or FILE_SHARE_WRITE, nil,
-                                CREATE_ALWAYS, 0, 0);
-  end
-  else
-  begin
-    FDriveHandle := CreateFile(PChar(Path), GENERIC_READ or GENERIC_WRITE,
-                                FILE_SHARE_READ or FILE_SHARE_WRITE, nil,
-                                OPEN_EXISTING, 0, 0);
+    DestPath := FileSave.FileName;
   end;
 
 
   bStart.Visible := false;
 
-  {CopyThrd := TCopyThread.Create(true);
   if FVerifyMode then
   begin
     bStart.Caption := '검증중';
-    CopyThrd.SetHandles(FOrignalHandle, FDriveHandle, FDLLHandle, WriteHandle);
+    FVerifyThrd := TVerifyThread.Create(FOrigPath, DestPath);
   end
   else
   begin
     bStart.Caption := '복사중';
-    CopyThrd.SetHandles(FOrignalHandle, FDriveHandle, FDLLHandle);
+    FCopyThrd := TCopyThread.Create(FOrigPath, DestPath);
   end;
-
-  CopyThrd.Start; }
+  FEndTask := false;
 end;
 
-constructor TfRetSel.Create(AOwner: TComponent; OriginalHandle: THandle);
+constructor TfRetSel.Create(AOwner: TComponent; OrigPath: String);
 begin
   inherited Create(AOwner);
-  FOrignalHandle := OriginalHandle;
+  FOrigPath := OrigPath;
+end;
+
+procedure TfRetSel.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  if ((FVerifyThrd <> nil) or (FCopyThrd <> nil)) and
+     (EndTask = false) then
+    Action := caNone;
 end;
 
 procedure TfRetSel.FormCreate(Sender: TObject);
@@ -123,21 +112,17 @@ begin
 
   FDriveList := TList<Integer>.Create;
 
-  FDLLHandle := LoadLibrary(PChar(AppPath + 'DriveCopy.dll'));
-
-  if GetLastError <> 0 then
-    FDLLHandle := 0;
-
   FVerifyMode := false;
   RefreshDrives;
 end;
 
 procedure TfRetSel.FormDestroy(Sender: TObject);
 begin
-  if FDriveHandle <> 0 then
-    CloseHandle(FDriveHandle);
-  if FDLLHandle <> 0 then
-    FreeLibrary(FDLLHandle);
+  if FVerifyThrd <> nil then
+    FreeAndNil(FVerifyThrd)
+  else if FCopyThrd <> nil then
+    FreeAndNil(FCopyThrd);
+
   if FDriveList <> nil then
     FreeAndNil(FDriveList);
 end;

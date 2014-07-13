@@ -6,7 +6,7 @@ uses
   Vcl.ComCtrls, Vcl.StdCtrls, Classes, SysUtils, Windows;
 
 const
-  LinearRead = 32768;
+  LinearRead = 16 shl 10 shl 10; // 16MB
 
 type
   TCopyThread = class(TThread)
@@ -35,15 +35,16 @@ type
     FBuffer, FOutputBuffer: TBuffer;
     FEmpty: Boolean;
     FClosed: Boolean;
+    FReadyToClose: Boolean;
   public
     property Closed: Boolean read FClosed;
     constructor Create;
 
     procedure SetInnerBufLength(NewLength: Integer);
-    procedure Close;
+    procedure ReadyToClose;
 
     function TakeBuf: TBuffer;
-    procedure PutBuf(InBuffer: TBuffer);
+    procedure PutBuf(InBuffer: TBuffer; NeedClose: Boolean);
   end;
 
   TCopyProducer = class(TThread)
@@ -66,7 +67,7 @@ type
     FStaticText: TStaticText;
   public
     constructor Create(BufStor: TBufferStorage; Path: String;
-                       MaxLength: Integer; ProgressBar: TProgressBar;
+                       MaxLength: Int64; ProgressBar: TProgressBar;
                        StaticText: TStaticText);
     destructor Destroy; override;
 
@@ -88,6 +89,7 @@ end;
 
 procedure TCopyThread.EndCopy;
 begin
+  fRetSel.EndTask := true;
   fRetSel.Close;
 end;
 
@@ -111,7 +113,7 @@ begin
   if not FVerifyMode then
   begin
     FileStream := TFileStream.Create(FSrcPath, fmOpenRead);
-    FMaxLength := FileStream.Seek(0, TSeekOrigin.soEnd);
+    FMaxLength := FileStream.Size;
     FreeAndNil(FileStream);
 
     CopyProducer := TCopyProducer.Create(BufStor, FSrcPath);
@@ -131,15 +133,16 @@ end;
 
 { BufferStorage }
 
-procedure TBufferStorage.Close;
+procedure TBufferStorage.ReadyToClose;
 begin
-  FClosed := true;
+  FReadyToClose := true;
 end;
 
 constructor TBufferStorage.Create;
 begin
   FEmpty := true;
   FClosed := false;
+  FReadyToClose := false;
 end;
 
 procedure TBufferStorage.SetInnerBufLength(NewLength: Integer);
@@ -147,33 +150,41 @@ begin
   SetLength(FBuffer, NewLength);
 end;
 
-procedure TBufferStorage.PutBuf(InBuffer: TBuffer);
+procedure TBufferStorage.PutBuf(InBuffer: TBuffer; NeedClose: Boolean);
 var
   ReadOffset: Integer;
   MaxLength: Integer;
 begin
   TMonitor.Enter(Self);
-  if Length(InBuffer) = 0 then
-  begin
-    Close;
-
-    TMonitor.PulseAll(Self);
-    TMonitor.Exit(Self);
-
-    exit;
-  end;
 
   try
     while not FEmpty do
     begin
       TMonitor.Wait(Self, INFINITE);
+      if FClosed then exit;
+    end;
+
+    if Length(InBuffer) = 0 then
+    begin
+      FClosed := true;
+      FEmpty := false;
+
+      TMonitor.PulseAll(Self);
+      TMonitor.Exit(Self);
+
+      exit;
+    end
+    else if NeedClose then
+    begin
+      ReadyToClose;
+      SetLength(FBuffer, Length(InBuffer));
     end;
 
     CopyMemory(@FBuffer[0], @InBuffer[0], Length(InBuffer));
-
-    FEmpty := False;
-    TMonitor.PulseAll(Self);
   finally
+    FEmpty := false;
+
+    TMonitor.PulseAll(Self);
     TMonitor.Exit(Self);
   end;
 end;
@@ -187,22 +198,24 @@ begin
       TMonitor.Wait(Self, INFINITE);
     end;
 
-    if FClosed = false then
-    begin
-      SetLength(FOutputBuffer, Length(FBuffer));
-      CopyMemory(@FOutputBuffer[0], @FBuffer[0], Length(FBuffer));
-    end
-    else
+    if FClosed then
     begin
       SetLength(FOutputBuffer, 0);
+      exit(FOutputBuffer);
     end;
+
+    SetLength(FOutputBuffer, Length(FBuffer));
+    CopyMemory(@FOutputBuffer[0], @FBuffer[0], Length(FBuffer));
 
     result := FOutputBuffer;
 
-    FEmpty := True;
-    TMonitor.PulseAll(Self);
+    if FReadyToClose then
+      FClosed := true;
   finally
-     TMonitor.Exit(Self);
+    FEmpty := true;
+
+    TMonitor.PulseAll(Self);
+    TMonitor.Exit(Self);
   end;
 end;
 
@@ -234,10 +247,10 @@ begin
   repeat
     ReadLength := FFileStream.Read(Buffer[0], LinearRead);
 
-    if ReadLength = 0 then
-      SetLength(Buffer, 0);
+    if FFileStream.Position = FFileStream.Size then
+      SetLength(Buffer, ReadLength);
 
-    FBufStor.PutBuf(Buffer);
+    FBufStor.PutBuf(Buffer, FFileStream.Position = FFileStream.Size);
   until ReadLength = 0;
 end;
 
@@ -248,8 +261,8 @@ procedure TCopyConsumer.ApplyProgress;
 var
   MaxMega, CurrMega: Int64;
 begin
-  MaxMega := FMaxLength shr 10;
-  CurrMega := FCurrWritten shr 10;
+  MaxMega := FMaxLength shr 20;
+  CurrMega := FCurrWritten shr 20;
 
   FStaticText.Caption := IntToStr(MaxMega) + 'MB / ' +
                          IntToStr(CurrMega) + 'MB';
@@ -257,7 +270,7 @@ begin
 end;
 
 constructor TCopyConsumer.Create(BufStor: TBufferStorage; Path: String;
-                                 MaxLength: Integer; ProgressBar: TProgressBar;
+                                 MaxLength: Int64; ProgressBar: TProgressBar;
                                  StaticText: TStaticText);
 begin
   inherited Create(false);
@@ -268,7 +281,7 @@ begin
   FProgressBar := ProgressBar;
   FStaticText := StaticText;
 
-  FFileStream := TFileStream.Create(Path, fmOpenRead);
+  FFileStream := TFileStream.Create(Path, fmOpenWrite or fmCreate);
 end;
 
 destructor TCopyConsumer.Destroy;
@@ -307,6 +320,6 @@ begin
     end
     else
       Dec(CurrNum);
-  until (GotLength <= 0) or (WrittenLength = 0);
+  until FBufStor.Closed;
 end;
 end.

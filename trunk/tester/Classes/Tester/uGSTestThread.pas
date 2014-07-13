@@ -321,7 +321,8 @@ end;
 
 procedure TGSTestThread.ApplyState_WriteError(TBWStr, DayStr: String);
 var
-  ErrorString: String;
+  ErrorName: String;
+  ErrorContents: String;
 begin
   with fMain do
   begin
@@ -331,28 +332,29 @@ begin
     end;
     while FTester.ErrorBuf.Count > 0 do
     begin
-      ErrorString := FormatDateTime('[yyyy/mm/dd hh:nn:ss]', Now);
       case FTester.ErrorBuf.Items[0].FIOType of
       0{ioRead}:
-        ErrorString := ErrorString + '읽기 오류: ';
+        ErrorName := '읽기 오류: ';
       1{ioWrite}:
-        ErrorString := ErrorString + '쓰기 오류: ';
+        ErrorName := '쓰기 오류: ';
       2{ioTrim}:
-        ErrorString := ErrorString + '트림 오류: ';
+        ErrorName := '트림 오류: ';
       3{ioFlush}:
-        ErrorString := ErrorString + '플러시 오류';
+        ErrorName := '플러시 오류';
       end;
 
       case FTester.ErrorBuf.Items[0].FIOType of
       0..2:
       begin
-        ErrorString := ErrorString + '위치 ' + IntToStr(FTester.ErrorBuf.Items[0].FLBA)
-                        + ', ';
-        ErrorString := ErrorString + '길이 ' + IntToStr(FTester.ErrorBuf.Items[0].FLength);
+        ErrorContents := '위치 '
+                          + IntToStr(FTester.ErrorBuf.Items[0].FLBA)
+                          + ', ';
+        ErrorContents := ErrorContents + '길이 '
+                          + IntToStr(FTester.ErrorBuf.Items[0].FLength);
       end;
       end;
 
-      lAlert.Items.Add(ErrorString);
+      lAlert.Items.Add(GetLogLine(ErrorName, ErrorContents));
       FTester.ErrorBuf.Delete(0);
       if FTester.ErrorBuf.Count = 0 then
       begin

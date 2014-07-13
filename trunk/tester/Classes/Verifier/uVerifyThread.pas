@@ -6,7 +6,7 @@ uses
   Vcl.ComCtrls, Vcl.StdCtrls, Classes, SysUtils, Windows;
 
 const
-  LinearRead = 32768;
+  LinearRead = 16 shl 10 shl 10; // 16MB
 
 type
   TVerifyThread = class(TThread)
@@ -14,13 +14,14 @@ type
     FSrcPath, FDestPath: String;
     FVerifyMode: Boolean;
     FMaxLength: Int64;
+    FUBER: Double;
 
     FProgressBar: TProgressBar;
     FStaticText: TStaticText;
   public
     constructor Create(SrcPath, DestPath: String);
     procedure Execute; override;
-    procedure EndCopy;
+    procedure EndVerify;
   end;
 
 implementation
@@ -37,20 +38,23 @@ type
     FDestBuffer: TBuffer;
   end;
 
+  TCurrTurn = (ctSrc, ctDest, ctConsumer);
+
   TBufferStorage = class
   private
     FBuffer, FOutputBuffer: TTakeBuffer;
-    FEmpty: Boolean;
+    FCurrTurn: TCurrTurn;
+    FReadyToClose: Boolean;
     FClosed: Boolean;
   public
     property Closed: Boolean read FClosed;
     constructor Create;
 
     procedure SetInnerBufLength(NewLength: Integer);
-    procedure Close;
+    procedure ReadyToClose;
 
     function TakeBuf: TTakeBuffer;
-    procedure PutBuf(IsSrc: Boolean; InBuffer: TBuffer);
+    procedure PutBuf(IsSrc: Boolean; InBuffer: TBuffer; NeedClose: Boolean);
   end;
 
   TVerifyProducer = class(TThread)
@@ -68,18 +72,17 @@ type
   TVerifyConsumer = class(TThread)
   private
     FBufStor: TBufferStorage;
-    FFileStream: TFileStream;
     FMaxLength, FCurrCmp: Int64;
     FCurrErr: Double;
     FProgressBar: TProgressBar;
     FStaticText: TStaticText;
+
     function GetUBER: Double;
   public
     property UBER: Double read GetUBER;
     constructor Create(BufStor: TBufferStorage; Path: String;
-                       MaxLength: Integer; ProgressBar: TProgressBar;
+                       MaxLength: Int64; ProgressBar: TProgressBar;
                        StaticText: TStaticText);
-    destructor Destroy; override;
 
     procedure Execute; override;
     procedure ApplyProgress;
@@ -97,8 +100,10 @@ begin
   FStaticText := fRetSel.sProgress;
 end;
 
-procedure TVerifyThread.EndCopy;
+procedure TVerifyThread.EndVerify;
 begin
+  fRetSel.EndTask := true;
+  fRetSel.UBER := FUBER;
   fRetSel.Close;
 end;
 
@@ -123,7 +128,7 @@ begin
   if not FVerifyMode then
   begin
     FileStream := TFileStream.Create(FSrcPath, fmOpenRead);
-    FMaxLength := FileStream.Seek(0, TSeekOrigin.soEnd);
+    FMaxLength := FileStream.Size;
     FreeAndNil(FileStream);
 
     VerifyProducer_Src := TVerifyProducer.Create(true, BufStor, FSrcPath);
@@ -135,26 +140,29 @@ begin
     WaitForSingleObject(VerifyProducer_Dest.Handle, INFINITE);
     WaitForSingleObject(VerifyProducer_Src.Handle, INFINITE);
 
+    FUBER := VerifyConsumer.UBER;
+
     FreeAndNil(VerifyConsumer);
     FreeAndNil(VerifyProducer_Dest);
     FreeAndNil(VerifyProducer_Src);
   end;
 
   FreeAndNil(BufStor);
-  Synchronize(EndCopy);
+  Synchronize(EndVerify);
 end;
 
 { BufferStorage }
 
-procedure TBufferStorage.Close;
+procedure TBufferStorage.ReadyToClose;
 begin
-  FClosed := true;
+  FReadyToClose := true;
 end;
 
 constructor TBufferStorage.Create;
 begin
-  FEmpty := true;
+  FCurrTurn := ctSrc;
   FClosed := false;
+  FReadyToClose := false;
 end;
 
 procedure TBufferStorage.SetInnerBufLength(NewLength: Integer);
@@ -163,36 +171,64 @@ begin
   SetLength(FBuffer.FDestBuffer, NewLength);
 end;
 
-procedure TBufferStorage.PutBuf(IsSrc: Boolean; InBuffer: TBuffer);
+procedure TBufferStorage.PutBuf(IsSrc: Boolean;
+                                InBuffer: TBuffer; NeedClose: Boolean);
 var
   ReadOffset: Integer;
   MaxLength: Integer;
+  MyTurn: TCurrTurn;
 begin
   TMonitor.Enter(Self);
-  if Length(InBuffer) = 0 then
-  begin
-    Close;
-
-    TMonitor.PulseAll(Self);
-    TMonitor.Exit(Self);
-
-    exit;
-  end;
 
   try
-    while not FEmpty do
+    if IsSrc then
+      MyTurn := ctSrc
+    else
+      MyTurn := ctDest;
+
+    while FCurrTurn <> MyTurn do
     begin
       TMonitor.Wait(Self, INFINITE);
+      if FClosed then exit;
     end;
+
+    if Length(InBuffer) = 0 then
+    begin
+      FClosed := true;
+
+      if MyTurn = ctDest then
+        MyTurn := ctDest
+      else
+        MyTurn := ctConsumer;
+
+      TMonitor.PulseAll(Self);
+      TMonitor.Exit(Self);
+
+      exit;
+    end
+    else if NeedClose and IsSrc then
+    begin
+      ReadyToClose;
+
+      if IsSrc then
+        SetLength(FBuffer.FSrcBuffer, Length(InBuffer))
+      else
+        SetLength(FBuffer.FDestBuffer, Length(InBuffer));
+    end;
+
 
     if IsSrc then
       CopyMemory(@FBuffer.FSrcBuffer[0], @InBuffer[0], Length(InBuffer))
     else
       CopyMemory(@FBuffer.FDestBuffer[0], @InBuffer[0], Length(InBuffer));
 
-    FEmpty := False;
-    TMonitor.PulseAll(Self);
   finally
+    if FCurrTurn = ctSrc then
+      FCurrTurn := ctDest
+    else
+      FCurrTurn := ctConsumer;
+
+    TMonitor.PulseAll(Self);
     TMonitor.Exit(Self);
   end;
 end;
@@ -201,9 +237,16 @@ function TBufferStorage.TakeBuf: TTakeBuffer;
 begin
   TMonitor.Enter(Self);
   try
-    while FEmpty do
+    while FCurrTurn <> ctConsumer do
     begin
       TMonitor.Wait(Self, INFINITE);
+    end;
+
+    if FClosed then
+    begin
+      SetLength(FOutputBuffer.FSrcBuffer, 0);
+      SetLength(FOutputBuffer.FDestBuffer, 0);
+      exit(FOutputBuffer);
     end;
 
     if FClosed = false then
@@ -224,10 +267,13 @@ begin
 
     result := FOutputBuffer;
 
-    FEmpty := True;
-    TMonitor.PulseAll(Self);
+    if FReadyToClose then
+      FClosed := true;
   finally
-     TMonitor.Exit(Self);
+    FCurrTurn := ctSrc;
+
+    TMonitor.PulseAll(Self);
+    TMonitor.Exit(Self);
   end;
 end;
 
@@ -261,10 +307,10 @@ begin
   repeat
     ReadLength := FFileStream.Read(Buffer[0], LinearRead);
 
-    if ReadLength = 0 then
-      SetLength(Buffer, 0);
+    if FFileStream.Position = FFileStream.Size then
+      SetLength(Buffer, ReadLength div SizeOf(UInt32));
 
-    FBufStor.PutBuf(FIsSrc, Buffer);
+    FBufStor.PutBuf(FIsSrc, Buffer, FFileStream.Position = FFileStream.Size);
   until ReadLength = 0;
 end;
 
@@ -275,18 +321,18 @@ procedure TVerifyConsumer.ApplyProgress;
 var
   MaxMega, CurrMega: Int64;
 begin
-  MaxMega := FMaxLength shr 10;
-  CurrMega := FCurrCmp shr 10;
+  MaxMega := FMaxLength shr 20;
+  CurrMega := FCurrCmp shr 20;
 
   FStaticText.Caption := IntToStr(MaxMega) + 'MB / ' +
                          IntToStr(CurrMega) + 'MB / ' +
-                         'UBER: ' + FormatFloat('%.20f', GetUBER) +
+                         'UBER: ' + FloatToStr(GetUBER) +
                          '%';
   FProgressBar.Position := (CurrMega * 100) div MaxMega;
 end;
 
 constructor TVerifyConsumer.Create(BufStor: TBufferStorage; Path: String;
-                                 MaxLength: Integer; ProgressBar: TProgressBar;
+                                 MaxLength: Int64; ProgressBar: TProgressBar;
                                  StaticText: TStaticText);
 begin
   inherited Create(false);
@@ -296,14 +342,6 @@ begin
 
   FProgressBar := ProgressBar;
   FStaticText := StaticText;
-
-  FFileStream := TFileStream.Create(Path, fmOpenRead);
-end;
-
-destructor TVerifyConsumer.Destroy;
-begin
-  FreeAndNil(FFileStream);
-  inherited;
 end;
 
 function DenseBitCount(X: UInt32): Integer;
@@ -317,14 +355,18 @@ begin
 end;
 
 procedure TVerifyConsumer.Execute;
+const
+  Period = 4;
 var
   Buffer: TTakeBuffer;
   GotLength: Integer;
   CurrBuf: Integer;
   XorResult: UInt32;
+  CurrNum: Integer;
 begin
   inherited;
 
+  CurrNum := Period;
   repeat
     Buffer := FBufStor.TakeBuf;
     GotLength := Length(Buffer.FSrcBuffer);
@@ -335,8 +377,16 @@ begin
       FCurrErr := FCurrErr + (DenseBitCount(XorResult) * OneBitErrUBER);
     end;
 
-    Inc(FCurrCmp, GotLength);
-  until GotLength <= 0;
+    Inc(FCurrCmp, GotLength * SizeOf(UInt32));
+
+    if CurrNum = 0 then
+    begin
+      Synchronize(ApplyProgress);
+      CurrNum := Period;
+    end
+    else
+      Dec(CurrNum);
+  until FBufStor.Closed;
 end;
 
 function TVerifyConsumer.GetUBER: Double;

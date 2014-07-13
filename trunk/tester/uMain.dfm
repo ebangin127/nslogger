@@ -2013,6 +2013,7 @@ object fMain: TfMain
         787B0E009EDB9EDBFE126FFF3F96BD05ADD00040460000000049454E44AE4260
         82}
       Stretch = True
+      OnClick = bForceRetenClick
     end
     object lForceReten: TLabel
       Left = 54
@@ -2027,6 +2028,7 @@ object fMain: TfMain
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
+      OnClick = bForceRetenClick
       OnMouseEnter = lForceRetenMouseEnter
       OnMouseLeave = lForceRetenMouseLeave
     end
@@ -3343,6 +3345,7 @@ object fMain: TfMain
         BDB8347C62EBC29E77BFB0B0E7190280EF129D6EA1B73FA7AB5AE79900600280
         C94D6E72FFFFDCFF01BD6373FAB0D23E600000000049454E44AE426082}
       Stretch = True
+      OnClick = bSaveClick
     end
     object lSave: TLabel
       Left = 277
@@ -3357,6 +3360,7 @@ object fMain: TfMain
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
+      OnClick = bSaveClick
       OnMouseEnter = lForceRetenMouseEnter
       OnMouseLeave = lForceRetenMouseLeave
     end
@@ -3381,7 +3385,7 @@ object fMain: TfMain
     object sAvgLatency: TStaticText
       Left = 93
       Top = 71
-      Width = 95
+      Width = 96
       Height = 24
       Caption = #50577#54840' (0.00ms)'
       Font.Charset = DEFAULT_CHARSET
@@ -3395,7 +3399,7 @@ object fMain: TfMain
     object sMaxLatency: TStaticText
       Left = 93
       Top = 123
-      Width = 95
+      Width = 96
       Height = 24
       Caption = #50577#54840' (0.00ms)'
       Font.Charset = DEFAULT_CHARSET
@@ -3514,7 +3518,7 @@ object fMain: TfMain
     object sDestPath: TStaticText
       Left = 108
       Top = 29
-      Width = 137
+      Width = 138
       Height = 24
       Caption = '\\.\PhysicalDrive0'
       Font.Charset = DEFAULT_CHARSET

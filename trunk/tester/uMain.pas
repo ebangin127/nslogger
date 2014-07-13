@@ -6,8 +6,9 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics,  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.ComCtrls, Vcl.StdCtrls, Vcl.ExtCtrls, Math, DateUtils,
+  Vcl.Imaging.pngimage,
   uRandomBuffer, uGSTestThread, uGSList, uSSDInfo, uTrimCommand,
-  uDiskFunctions, uSetting, uRetSel, Vcl.Imaging.pngimage;
+  uDiskFunctions, uSetting, uRetSel;
 
 const
   WM_AFTER_SHOW = WM_USER + 300;
@@ -92,6 +93,7 @@ type
     property NeedRetention: Boolean read FNeedRetention;
     property DriveModel: String read FDestDriveModel;
     property DriveSerial: String read FDestDriveSerial;
+    function GetLogLine(Name: String; Contents: String = ''): String;
     { Public declarations }
   end;
 
@@ -107,8 +109,7 @@ implementation
 procedure TfMain.bForceRetenClick(Sender: TObject);
 begin
   FNeedRetention := true;
-  lAlert.Items.Add('임의 리텐션 테스트: '
-                    + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
+  lAlert.Items.Add(GetLogLine('임의 리텐션 테스트'));
 
   if TestThread <> nil then
   begin
@@ -119,15 +120,8 @@ begin
 
     if NeedRetention then
     begin
-      fRetSel := TfRetSel.Create(self, CreateFile(PChar('\\.\PhysicalDrive'
-                                                  + IntToStr(FDiskNum)),
-                                                  GENERIC_READ or
-                                                    GENERIC_WRITE,
-                                                  FILE_SHARE_READ or
-                                                    FILE_SHARE_WRITE,
-                                                  nil,
-                                                  OPEN_EXISTING,
-                                                  0, 0));
+      fRetSel := TfRetSel.Create(self,
+                                 '\\.\PhysicalDrive' + IntToStr(FDiskNum));
       fRetSel.ShowModal;
     end;
   end;
@@ -144,6 +138,10 @@ end;
 procedure TfMain.FormCreate(Sender: TObject);
 begin
   AppPath := ExtractFilePath(Application.ExeName);
+
+  sDestPath.Caption := '';
+  sDestModel.Caption := '';
+  sDestSerial.Caption := '';
 end;
 
 procedure TfMain.FormDestroy(Sender: TObject);
@@ -164,20 +162,17 @@ begin
     case TestThread.ExitCode of
       EXIT_HOSTWRITE:
       begin
-        lAlert.Items.Add('쓰기 종료: '
-                          + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
+        lAlert.Items.Add(GetLogLine('쓰기 종료'));
       end;
       EXIT_RETENTION:
       begin
-        lAlert.Items.Add('주기적 리텐션 테스트: '
-                          + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
+        lAlert.Items.Add(GetLogLine('주기적 리텐션 테스트'));
 
         NeedRetention := true;
       end;
       EXIT_NORMAL:
       begin
-        lAlert.Items.Add('사용자 종료: '
-                          + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
+        lAlert.Items.Add(GetLogLine('사용자 종료'));
       end;
     end;
 
@@ -185,15 +180,8 @@ begin
 
     if NeedRetention then
     begin
-      fRetSel := TfRetSel.Create(self, CreateFile(PChar('\\.\PhysicalDrive'
-                                                  + IntToStr(FDiskNum)),
-                                                  GENERIC_READ or
-                                                    GENERIC_WRITE,
-                                                  FILE_SHARE_READ or
-                                                    FILE_SHARE_WRITE,
-                                                  nil,
-                                                  OPEN_EXISTING,
-                                                  0, 0));
+      fRetSel := TfRetSel.Create(self,
+                                 '\\.\PhysicalDrive' + IntToStr(FDiskNum));
       fRetSel.ShowModal;
     end;
   end;
@@ -389,6 +377,13 @@ begin
   iSave.Top := iForceReten.Top;
 end;
 
+function TfMain.GetLogLine(Name, Contents: String): String;
+begin
+  result := FormatDateTime('[yyyy/mm/dd hh:nn:ss] ', Now) + Name;
+  if Contents <> '' then
+    result := result + ': ' + Contents;
+end;
+
 procedure TfMain.gAlertResize;
 begin
   lAlert.Width := gAlert.Width - (lAlert.Left shl 1);
@@ -443,17 +438,13 @@ begin
 
     if Pos('리텐션', lAlert.Items[lAlert.Count - 1]) > 0 then
     begin
-      fRetSel := TfRetSel.Create(self, CreateFile(PChar('\\.\PhysicalDrive'
-                                                    + IntToStr(FDiskNum)),
-                                                  GENERIC_READ or
-                                                    GENERIC_WRITE,
-                                                  FILE_SHARE_READ or
-                                                    FILE_SHARE_WRITE,
-                                                  nil,
-                                                  OPEN_EXISTING,
-                                                  0, 0));
+      fRetSel := TfRetSel.Create(self,
+                                 '\\.\PhysicalDrive' + IntToStr(FDiskNum));
       fRetSel.SetMode(true, fSetting.SavePath + 'compare_error_log.txt');
       fRetSel.ShowModal;
+
+      lAlert.Items.Add(
+        GetLogLine('리텐션 테스트 종료', 'UBER - ' + FloatToStr(fRetSel.UBER)));
     end;
   end;
   TestThread.SetDisk(FDiskNum);
