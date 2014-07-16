@@ -3,10 +3,12 @@ unit uCopyThread;
 interface
 
 uses
-  Vcl.ComCtrls, Vcl.StdCtrls, Classes, SysUtils, Windows;
+  Vcl.ComCtrls, Vcl.StdCtrls, Classes, Dialogs, SysUtils, Windows,
+  uSSDInfo, uStrFunctions, uTrimCommand;
 
 const
-  LinearRead = 16 shl 10 shl 10; // 16MB
+  LinearRead = 1 shl 10 shl 10; // 1MB - The max native read
+  TimeoutInMillisec = 10000;
 
 type
   TCopyThread = class(TThread)
@@ -14,10 +16,12 @@ type
     FSrcPath, FDestPath: String;
     FVerifyMode: Boolean;
     FMaxLength: Int64;
+    FError: Boolean;
 
     FProgressBar: TProgressBar;
     FStaticText: TStaticText;
   public
+    property IsError: Boolean read FError;
     constructor Create(SrcPath, DestPath: String);
     procedure Execute; override;
     procedure EndCopy;
@@ -36,12 +40,15 @@ type
     FEmpty: Boolean;
     FClosed: Boolean;
     FReadyToClose: Boolean;
-  public
+    FError: Boolean;
+  public                
+    property IsError: Boolean read FError;
     property Closed: Boolean read FClosed;
     constructor Create;
 
     procedure SetInnerBufLength(NewLength: Integer);
     procedure ReadyToClose;
+    procedure Error;
 
     function TakeBuf: TBuffer;
     procedure PutBuf(InBuffer: TBuffer; NeedClose: Boolean);
@@ -50,9 +57,11 @@ type
   TCopyProducer = class(TThread)
   private
     FBufStor: TBufferStorage;
-    FFileStream: TFileStream;
+    FFileHandle: THandle;
+    FMaxLength: Int64;
   public
-    constructor Create(BufStor: TBufferStorage; Path: String);
+    constructor Create(BufStor: TBufferStorage; Path: String;
+                       MaxLength: Int64);
     destructor Destroy; override;
 
     procedure Execute; override;
@@ -89,6 +98,10 @@ end;
 
 procedure TCopyThread.EndCopy;
 begin
+  if IsError then
+    MessageDlg('오류가 발생하여 작업을 중단하였습니다',
+               mtError, [mbOK], 0);
+
   fRetSel.EndTask := true;
   fRetSel.Close;
 end;
@@ -102,7 +115,7 @@ var
   CopyProducer: TCopyProducer;
   CopyConsumer: TCopyConsumer;
 
-  FileStream: TFileStream;
+  SSDInfo: TSSDInfo;
 begin
   inherited;
 
@@ -112,14 +125,17 @@ begin
 
   if not FVerifyMode then
   begin
-    FileStream := TFileStream.Create(FSrcPath, fmOpenRead);
-    FMaxLength := FileStream.Size;
-    FreeAndNil(FileStream);
+    SSDInfo := TSSDInfo.Create;
+    SSDInfo.SetDeviceName(StrToInt(ExtractDeviceNum(FSrcPath)));
+    FMaxLength := (SSDInfo.UserSize shr 1) shl 10; //Unit: Bytes
+    FreeAndNil(SSDInfo);
 
-    CopyProducer := TCopyProducer.Create(BufStor, FSrcPath);
+    CopyProducer := TCopyProducer.Create(BufStor, FSrcPath, FMaxLength);
     CopyConsumer := TCopyConsumer.Create(BufStor, FDestPath, FMaxLength,
                                          FProgressBar, FStaticText);
 
+    FError := BufStor.IsError;
+    
     WaitForSingleObject(CopyConsumer.Handle, INFINITE);
     WaitForSingleObject(CopyProducer.Handle, INFINITE);
 
@@ -143,11 +159,17 @@ begin
   FEmpty := true;
   FClosed := false;
   FReadyToClose := false;
+  FError := false;
 end;
 
 procedure TBufferStorage.SetInnerBufLength(NewLength: Integer);
 begin
   SetLength(FBuffer, NewLength);
+end;
+
+procedure TBufferStorage.Error;
+begin
+  FError := true;
 end;
 
 procedure TBufferStorage.PutBuf(InBuffer: TBuffer; NeedClose: Boolean);
@@ -191,6 +213,9 @@ end;
 
 function TBufferStorage.TakeBuf: TBuffer;
 begin
+  if FError then
+    exit(nil);
+
   TMonitor.Enter(Self);
   try
     while FEmpty do
@@ -221,37 +246,64 @@ end;
 
 { TCopyProducer }
 
-constructor TCopyProducer.Create(BufStor: TBufferStorage; Path: String);
+constructor TCopyProducer.Create(BufStor: TBufferStorage; Path: String;
+                                 MaxLength: Int64);
 begin
   inherited Create(false);
   FBufStor := BufStor;
-  FFileStream := TFileStream.Create(Path, fmOpenRead);
+  FFileHandle := CreateFile(PChar(Path),
+                            GENERIC_READ or GENERIC_WRITE,
+                            FILE_SHARE_READ or FILE_SHARE_WRITE,
+                            nil,
+                            OPEN_EXISTING,
+                            FILE_FLAG_NO_BUFFERING,
+                            0);
+  FMaxLength := MaxLength;
 end;
 
 destructor TCopyProducer.Destroy;
 begin
-  FreeAndNil(FFileStream);
+  CloseHandle(FFileHandle);
   inherited;
 end;
 
 procedure TCopyProducer.Execute;
 var
   Buffer: TBuffer;
-  ReadLength: Integer;
+  ReadLength: Cardinal;
+  CurrPos: Int64;
+  OvlpResult: Boolean;
 begin
   inherited;
-
   FBufStor.SetInnerBufLength(LinearRead);
   SetLength(Buffer, LinearRead);
+  CurrPos := 0;
 
   repeat
-    ReadLength := FFileStream.Read(Buffer[0], LinearRead);
+    OvlpResult := true;
+    ReadLength := ReadSector(FFileHandle, CurrPos shr 9, @Buffer[0]);
+    if ReadLength = -1 then
+    begin
+      OvlpResult := false;
+      ReadLength := 0;
+    end;
 
-    if FFileStream.Position = FFileStream.Size then
+    if CurrPos + ReadLength > FMaxLength then
+    begin
+      ReadLength := FMaxLength - CurrPos;
+      SetLength(Buffer, ReadLength);
+    end
+    else if (OvlpResult) and (LinearRead > ReadLength)then
       SetLength(Buffer, ReadLength);
 
-    FBufStor.PutBuf(Buffer, FFileStream.Position = FFileStream.Size);
-  until ReadLength = 0;
+    if OvlpResult = false then
+    begin
+      FillChar(Buffer[0], Length(Buffer), #0);
+    end;
+
+    Inc(CurrPos, ReadLength);
+    FBufStor.PutBuf(Buffer, CurrPos >= FMaxLength);
+  until CurrPos >= FMaxLength;
 end;
 
 
@@ -306,6 +358,9 @@ begin
   CurrNum := Period;
   repeat
     Buffer := FBufStor.TakeBuf;
+    if Buffer = nil then
+      exit;
+    
     GotLength := Length(Buffer);
     if Length(Buffer) > 0 then
     begin

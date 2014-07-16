@@ -57,6 +57,7 @@ type
     function AddRead(Length: Word; LBA: UINT64): Boolean;
     function AddWrite(Length: Word; LBA: UINT64): Boolean;
     function AddTrim(Length: Word; LBA: UINT64): Boolean;
+    function AddNode(Node: TGSNode): Boolean;
     function AddFlush: Boolean;
 
     function GetNextItem: PTGSNode;
@@ -265,6 +266,11 @@ end;
 function TGSList.AddTrim(Length: Word; LBA: UINT64): Boolean;
 begin
   result := Add(TIOTypeInt[ioTrim], Length, LBA);
+end;
+
+function TGSList.AddNode(Node: TGSNode): Boolean;
+begin
+  result := Add(Node.FIOType, Node.FLength, Node.FLBA);
 end;
 
 function TGSList.AddFlush: Boolean;

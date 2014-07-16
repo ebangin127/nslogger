@@ -12,9 +12,11 @@ library parser;
 
 
 uses
-  System.SysUtils, Math, Windows,
+  System.SysUtils,
+  Math,
+  Windows,
   System.Classes,
-  uGSList in '..\tester\Classes\TGSList\uGSList.pas';
+  uGSList in '..\tester\Classes\Tester\uGSList.pas';
 
 const
   LinearRead = 32768;
@@ -28,7 +30,8 @@ type
   private
     FBuffer, FOutputBuffer: TMTBuffer;
     FEmpty: Boolean;
-    FClose: Boolean;
+    FClosed: Boolean;
+    FToBeClosed: Boolean;
     FReadOffset: Integer;
     FHalfInByte, FHalfInArray: Integer;
 
@@ -37,10 +40,10 @@ type
     constructor Create;
 
     procedure SetInnerBufLength(NewLength: Integer);
-    procedure Close;
+    procedure ReadyToClose;
 
     function TakeBuf: TMTBuffer;
-    procedure PutBuf(InBuffer: TMTBuffer);
+    procedure PutBuf(InBuffer: TMTBuffer; NeedClose: Boolean);
   end;
 
   TProducer = class(TThread)
@@ -167,9 +170,9 @@ exports makeJEDECList, makeJEDECListAndFix, makeJedecClass, deleteJedecClass;
 
 { BufferStorage }
 
-procedure TBufferStorage.Close;
+procedure TBufferStorage.ReadyToClose;
 begin
-  FClose := true;
+  FToBeClosed := true;
 end;
 
 constructor TBufferStorage.Create;
@@ -177,7 +180,7 @@ begin
   FEmpty := true;
   FFirstCopy := true;
   FReadOffset := 0;
-  FClose := false;
+  FClosed := false;
 end;
 
 procedure TBufferStorage.SetInnerBufLength(NewLength: Integer);
@@ -188,26 +191,33 @@ begin
   FHalfInArray := FHalfInByte shr 1;
 end;
 
-procedure TBufferStorage.PutBuf(InBuffer: TMTBuffer);
+procedure TBufferStorage.PutBuf(InBuffer: TMTBuffer; NeedClose: Boolean);
 var
   ReadOffset: Integer;
   MaxLength: Integer;
 begin
   TMonitor.Enter(Self);
-  if Length(InBuffer) = 0 then
-  begin
-    Close;
-
-    TMonitor.PulseAll(Self);
-    TMonitor.Exit(Self);
-
-    exit;
-  end;
 
   try
     while not FEmpty do
     begin
       TMonitor.Wait(Self, INFINITE);
+    end;
+
+    if Length(InBuffer) = 0 then
+    begin
+      FClosed := true;
+      FEmpty := false;
+
+      TMonitor.PulseAll(Self);
+      TMonitor.Exit(Self);
+
+      exit;
+    end
+    else if NeedClose then
+    begin
+      ReadyToClose;
+      SetLength(FBuffer, Length(InBuffer));
     end;
 
     if FFirstCopy = false then
@@ -237,9 +247,13 @@ begin
     CopyMemory(@FBuffer[FHalfInArray], @InBuffer[0],
                Length(InBuffer) * SizeOf(Char));
 
-    FEmpty := False;
-    TMonitor.PulseAll(Self);
+    if FToBeClosed then
+      FClosed := true;
+
   finally
+    FEmpty := False;
+
+    TMonitor.PulseAll(Self);
     TMonitor.Exit(Self);
   end;
 end;
@@ -253,24 +267,26 @@ begin
       TMonitor.Wait(Self, INFINITE);
     end;
 
-    if FClose = false then
-    begin
-      SetLength(FOutputBuffer, ((FHalfInByte + FReadOffset) shr 1) + 1);
-      CopyMemory(@FOutputBuffer[0], @FBuffer[(FHalfInByte - FReadOffset) shr 1],
-                                              FHalfInByte + FReadOffset);
-      FOutputBuffer[Length(FOutputBuffer) - 1] := #0;
-    end
-    else
+    if FClosed then
     begin
       SetLength(FOutputBuffer, 0);
+      exit(FOutputBuffer);
     end;
+
+    SetLength(FOutputBuffer, ((FHalfInByte + FReadOffset) shr 1) + 1);
+    CopyMemory(@FOutputBuffer[0], @FBuffer[(FHalfInByte - FReadOffset) shr 1],
+                                            FHalfInByte + FReadOffset);
+    FOutputBuffer[Length(FOutputBuffer) - 1] := #0;
 
     result := FOutputBuffer;
 
-    FEmpty := True;
-    TMonitor.PulseAll(Self);
+    if FToBeClosed then
+      FClosed := true;
   finally
-     TMonitor.Exit(Self);
+    FEmpty := True;
+
+    TMonitor.PulseAll(Self);
+    TMonitor.Exit(Self);
   end;
 end;
 
@@ -307,10 +323,13 @@ begin
   repeat
     ReadLength := FFileStream.Read(Buffer[0], ToReadLength);
 
-    if ReadLength = 0 then
-      SetLength(Buffer, 0);
+    if ReadLength < ToReadLength then
+    begin
+      ReadLength := ReadLength div SizeOfChar;
+      SetLength(Buffer, ReadLength);
+    end;
 
-    FBufStor.PutBuf(Buffer);
+    FBufStor.PutBuf(Buffer, FFileStream.Position = FFileStream.Size);
   until ReadLength = 0;
 end;
 

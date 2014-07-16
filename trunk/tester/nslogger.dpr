@@ -22,7 +22,9 @@ uses
   uSSDInfo in 'Classes\SSDInfo\uSSDInfo.pas',
   uSSDVersion in 'Classes\SSDInfo\uSSDVersion.pas',
   uCopyThread in 'Classes\Verifier\uCopyThread.pas',
-  uVerifyThread in 'Classes\Verifier\uVerifyThread.pas';
+  uVerifyThread in 'Classes\Verifier\uVerifyThread.pas',
+  uGSMTAnalyzer in '..\..\..\..\SWMEM\3. GStorage\trunk\tester\Classes\TGSMTAnalyzer\uGSMTAnalyzer.pas',
+  uParser in 'Classes\Parser\uParser.pas';
 
 {$R *.res}
 

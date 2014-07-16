@@ -5,7 +5,7 @@
         <FrameworkType>None</FrameworkType>
         <MainSource>parser.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Release</Config>
+        <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
         <AppType>Library</AppType>
@@ -68,6 +68,7 @@
         <DCC_UsePackage>dbexpress;IndyIPClient;bindcompdbx;bindcompfmx;CustomIPTransport;dsnap;IndyIPServer;rtl;dbrtl;IndySystem;IndyCore;bindcomp;inetdb;IndyIPCommon;DBXInterBaseDriver;inet;DataSnapCommon;xmlrtl;inetdbxpress;dbxcds;DbxCommonDriver;IndyProtocols;bindengine;soaprtl;$(DCC_UsePackage)</DCC_UsePackage>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
+        <DCC_ExeOutput>..\trunk\exe\bin\</DCC_ExeOutput>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <DCC_UsePackage>bindcompvcl;dbexpress;IndyIPClient;bindcompdbx;vclie;vcltouch;bindcompfmx;websnap;CustomIPTransport;vcldbx;VclSmp;dsnap;IndyIPServer;rtl;dbrtl;IndySystem;vcl;IndyCore;bindcomp;inetdb;IndyIPCommon;vclib;dsnapcon;inetdbbde;DBXInterBaseDriver;inet;DataSnapCommon;vclx;svnui;xmlrtl;ibxpress;svn;vclimg;webdsnap;inetdbxpress;dbxcds;DbxCommonDriver;IndyProtocols;MetropolisUILiveTile;bdertl;vclactnband;bindengine;vcldb;adortl;soaprtl;vcldsnap;$(DCC_UsePackage)</DCC_UsePackage>
@@ -88,7 +89,8 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <Debugger_HostApplication>D:\내 작업들\SWMEM\3. GStorage\trunk\exe\bin\GrillStorage.exe</Debugger_HostApplication>
+        <DCC_ExeOutput>..\trunk\exe\bin\</DCC_ExeOutput>
+        <Debugger_HostApplication>..\exe\bin\nslogger.exe</Debugger_HostApplication>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
@@ -103,6 +105,7 @@
         <DCC_DebugInformation>false</DCC_DebugInformation>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
+        <DCC_ExeOutput>..\trunk\exe\bin\</DCC_ExeOutput>
         <Debugger_HostApplication>D:\내 작업들\SWMEM\3. GStorage\trunk\exe\bin\GrillStorage.exe</Debugger_HostApplication>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
     </PropertyGroup>
@@ -110,7 +113,7 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\tester\Classes\TGSList\uGSList.pas"/>
+        <DCCReference Include="..\tester\Classes\Tester\uGSList.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

@@ -3,7 +3,7 @@ unit uGSTestThread;
 interface
 
 uses Classes, SysUtils, ComCtrls, Math, Windows, DateUtils, Dialogs,
-     uGSTester, uGSList, uRandomBuffer, uSaveFile, uDiskFunctions;
+     uGSTester, uGSList, uRandomBuffer, uSaveFile, uDiskFunctions, uParser;
 
 type
   TmakeJEDECList  = function (TraceList: Pointer; path: PChar): PTGListHeader;
@@ -33,7 +33,6 @@ type
     FSavePath: String;
     FTracePath: String;
 
-    FLoadedState: Integer; //Bit 0: BufferLoaded, Bit 1: ListLoaded
     FFullyLoaded: Boolean;
     FStarted: Boolean;
 
@@ -43,8 +42,7 @@ type
     FSecCounter: Integer;
     FLastSyncCount: Integer;
 
-    FDLLHandle: THandle;
-    ClassPTR: Pointer;
+    ClassPTR: TGSList;
 
     FMaxLBA: UInt64;
     FOrigLBA: UInt64;
@@ -54,11 +52,6 @@ type
     FRetentionTest: UInt64;
     FMaxFFR: Integer;
     FExitCode: Byte;
-
-    makeJEDECList: TmakeJEDECList;
-    makeJEDECListAndFix: TmakeJEDECListAndFix;
-    makeJEDECClass: TmakeJEDECClass;
-    deleteJEDECClass: TdeleteJEDECClass;
 
     FMainNeedReten: Boolean;
     FMainDriveModel, FMainDriveSerial: String;
@@ -112,7 +105,6 @@ type
               Boolean; overload;
     function AssignBufferSetting(BufSize: Integer; RandomnessInString: String):
               Boolean; overload;
-    function AssignDLLPath(DLLPath: String): Boolean;
     function SetDisk(DriveNumber: Integer): Boolean;
 
     function Save(SaveFilePath: String): Boolean;
@@ -177,16 +169,6 @@ begin
   FreeAndNil(FTester);
   FreeAndNil(FRandomBuffer);
   FreeAndNil(FSaveFile);
-  if FDLLHandle <> 0 then
-  begin
-    if ClassPTR <> nil then
-    begin
-      deleteJEDECClass(ClassPTR);
-    end;
-
-    FreeLibrary(FDLLHandle);
-    FDLLHandle := 0;
-  end;
 end;
 
 
@@ -213,8 +195,8 @@ begin
                         + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
     end;
 
-    TBWStr := GetTBWStr(FTester.GetHostWrite / 1024 / 1024); //Unit: MB
-    DayStr := GetDayStr(FTester.GetHostWrite / 1024 / 1024 / 10); //Unit: 10GB/d
+    TBWStr := GetTBWStr(FTester.GetHostWrite shr 20); //Unit: MB
+    DayStr := GetDayStr((FTester.GetHostWrite shr 30) / 10); //Unit: 10GB/d
 
     ApplyState_Latency;
     ApplyState_Progress(TBWStr, DayStr);
@@ -377,25 +359,13 @@ begin
   FLastSync := 0;
   FSecCounter := 0;
 
-  ClassPTR := makeJEDECClass;
+  ClassPTR := TGSList.Create;
 
-  if @makeJEDECListAndFix = nil then
-  begin
-    FTester.AssignListHeader(makeJEDECList(ClassPTR, PChar(FTracePath)));
-    FTester.CheckAlign(Align, MaxLBA, OrigLBA);
-  end
-  else
-  begin
-    FTester.AssignListHeader(makeJEDECListAndFix(ClassPTR, PChar(FTracePath),
-                                                 MaxLBA / OrigLBA));
-  end;
+  FTester.AssignListHeader(makeJEDECListAndFix(ClassPTR, PChar(FTracePath),
+                                               MaxLBA / OrigLBA));
 
-  try
-    Synchronize(ApplyStart);
-    Synchronize(ApplyState);
-  except
-
-  end;
+  Synchronize(ApplyStart);
+  Synchronize(ApplyState);
 
   while not Terminated do
   begin
@@ -624,30 +594,6 @@ begin
   FSavePath := Path;
 end;
 
-function TGSTestThread.AssignDLLPath(DLLPath: String): Boolean;
-begin
-  if FileExists(DLLPath) then
-
-  FDLLHandle := LoadLibrary(PChar(DLLPath));
-
-  @makeJEDECList := GetProcAddress(FDLLHandle, 'makeJEDECList');
-  @makeJEDECListAndFix := GetProcAddress(FDLLHandle, 'makeJEDECListAndFix');
-  @makeJEDECClass := GetProcAddress(FDLLHandle, 'makeJedecClass');
-  @deleteJEDECClass := GetProcAddress(FDLLHandle, 'deleteJedecClass');
-
-  if (@makeJEDECList = nil) or (@makeJEDECClass = nil)
-  or (@deleteJEDECClass = nil) then
-  begin
-    FreeLibrary(FDLLHandle);
-    FDLLHandle := 0;
-    exit(false);
-  end;
-
-  result := true;
-  FLoadedState := FLoadedState or ((1 and Integer(result)) shl 1);
-  FFullyLoaded := (FLoadedState = (1 or (1 shl 1)));
-end;
-
 function TGSTestThread.AssignBufferSetting(BufSize: Integer;
   RandomnessInInteger: Integer): Boolean;
 begin
@@ -658,8 +604,7 @@ begin
   if result then
     FBufSize := BufSize;
 
-  FLoadedState := FLoadedState or (1 and Integer(result));
-  FFullyLoaded := (FLoadedState = (1 or (1 shl 1)));
+  FFullyLoaded := true;
 end;
 
 function TGSTestThread.AssignBufferSetting(BufSize: Integer;

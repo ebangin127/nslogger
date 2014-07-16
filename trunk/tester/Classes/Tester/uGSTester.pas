@@ -9,7 +9,7 @@ uses Windows, SysUtils, Generics.Collections, MMSystem, Math, Dialogs,
 const
   MaxIOSize = 65536;
   MainLatencyRatio = 204;
-  TimeoutInMilliSec = 60000;
+  TimeoutInMilliSec = 10000;
   MaxParallelIO = 32;
 
 type
@@ -370,6 +370,9 @@ end;
 
 function TGSTester.GetAverageLatency: Int64;
 begin
+  if FIterator = 0 then
+    exit(0);
+
   result := round(FMaxLatency / FIterator);
 end;
 

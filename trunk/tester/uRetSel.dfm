@@ -5,7 +5,7 @@ object fRetSel: TfRetSel
   Caption = #47532#53584#49496' '#53580#49828#53944
   ClientHeight = 104
   ClientWidth = 280
-  Color = clBtnFace
+  Color = clWhite
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11

@@ -136,6 +136,8 @@ begin
 end;
 
 procedure TfMain.FormCreate(Sender: TObject);
+var
+  Buffer: PTLLBufferLarge;
 begin
   AppPath := ExtractFilePath(Application.ExeName);
 
@@ -261,7 +263,7 @@ end;
 procedure TfMain.lForceRetenMouseEnter(Sender: TObject);
 begin
   if Sender is TLabel then
-    TLabel(Sender).Font.Color := clHighlightText;
+    TLabel(Sender).Font.Color := clHighlight;
 end;
 
 procedure TfMain.lForceRetenMouseLeave(Sender: TObject);
@@ -422,9 +424,9 @@ begin
   sDestSerial.Caption := FDestDriveSerial;
 
   sDestTBW.Caption := IntToStr(FDestTBW) + 'TBW / ' +
-                      GetDayStr(FDestTBW shl 10 * 10);
+                      GetDayStr((FDestTBW shl 10) / 10);
   sRetention.Caption := IntToStr(FRetentionTBW) + 'TBW / ' +
-                        GetDayStr(FRetentionTBW shl 10 * 10);
+                        GetDayStr((FRetentionTBW shl 10) / 10);
   sMaxFFR.Caption := IntToStr(FMaxFFR) + '%';
 
   Application.ProcessMessages;
@@ -459,7 +461,6 @@ begin
 
   TestThread.AssignSavePath(FSaveFilePath);
   TestThread.AssignBufferSetting(128 shl 10, 100);
-  TestThread.AssignDLLPath(AppPath + 'parser.dll');
   TestThread.StartThread;
 
   FreeAndNil(SSDInfo);

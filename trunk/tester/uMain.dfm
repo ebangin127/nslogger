@@ -3385,7 +3385,7 @@ object fMain: TfMain
     object sAvgLatency: TStaticText
       Left = 93
       Top = 71
-      Width = 96
+      Width = 95
       Height = 24
       Caption = #50577#54840' (0.00ms)'
       Font.Charset = DEFAULT_CHARSET
@@ -3399,7 +3399,7 @@ object fMain: TfMain
     object sMaxLatency: TStaticText
       Left = 93
       Top = 123
-      Width = 96
+      Width = 95
       Height = 24
       Caption = #50577#54840' (0.00ms)'
       Font.Charset = DEFAULT_CHARSET
@@ -3518,7 +3518,7 @@ object fMain: TfMain
     object sDestPath: TStaticText
       Left = 108
       Top = 29
-      Width = 138
+      Width = 137
       Height = 24
       Caption = '\\.\PhysicalDrive0'
       Font.Charset = DEFAULT_CHARSET

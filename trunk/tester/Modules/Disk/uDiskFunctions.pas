@@ -6,6 +6,9 @@ uses Windows, SysUtils, Dialogs, Math, Classes,
      ComObj, ShellAPI, Variants, ActiveX,
      uStrFunctions;
 
+const
+  OneMega = 1 shl 20;
+
 type
   //--GetMotherDrive--//
   DISK_EXTENT = RECORD
@@ -58,6 +61,8 @@ type
   //---ATA + DeviceIOCtl---//
   TLLBuffer = Array[0..511] of Byte;
   TLLBufferEx = Array[0..4095] of Byte;
+  TLLBufferLarge = Array[0..OneMega - 1] of Byte;
+  PTLLBufferLarge = ^TLLBufferLarge;
 
   ATA_PASS_THROUGH_EX = Packed Record
     Length: USHORT;
@@ -99,15 +104,22 @@ type
     Buffer: TLLBufferEx;
   end;
 
+  ATA_PTH_BUFFER_16MB = Packed Record
+    PTH: ATA_PASS_THROUGH_EX;
+    Buffer: TLLBufferLarge;
+  end;
+  PATA_PTH_BUFFER_16MB = ^ATA_PTH_BUFFER_16MB;
+
   ATA_PTH_DIR_BUFFER = Packed Record
     PTH: ATA_PASS_THROUGH_DIRECT;
     Buffer: TLLBuffer;
   end;
 
-  ATA_PTH_DIR_BUFFER_4K = Packed Record
+  ATA_PTH_DIR_BUFFER_LARGE = Packed Record
     PTH: ATA_PASS_THROUGH_DIRECT;
-    Buffer: TLLBufferEx;
+    Buffer: TLLBufferLarge;
   end;
+  PATA_PTH_DIR_BUFFER_LARGE = ^ATA_PTH_DIR_BUFFER_LARGE;
   //---ATA + DeviceIOCtl---//
 
 
@@ -487,15 +499,17 @@ begin
     result := Format('%d년 ', [HWDayYear]);
   end;
 
-  if HWDay > 30 then //Above 1mon
+  if HWDayMon > 0 then //Above 1mon
   begin
     result := result + Format('%d개월 ', [HWDayMon]);
   end;
 
   if HWDayDay > 0 then
   begin
-    result := result + Format('%d일 ', [HWDayDay]);
-  end;
+    result := result + Format('%d일 ', [HWDayDay])
+  end
+  else if (Day < 1) and (Day >= 0) then
+    result := result + Format('%.1f일 ',[Day]);
 end;
 end.
 

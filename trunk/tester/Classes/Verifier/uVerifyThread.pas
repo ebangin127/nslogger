@@ -3,10 +3,11 @@ unit uVerifyThread;
 interface
 
 uses
-  Vcl.ComCtrls, Vcl.StdCtrls, Classes, SysUtils, Windows;
+  Vcl.ComCtrls, Vcl.StdCtrls, Classes, SysUtils, Windows,
+  uSSDInfo, uStrFunctions, uTrimCommand;
 
 const
-  LinearRead = 16 shl 10 shl 10; // 16MB
+  LinearRead = 1 shl 10 shl 10; // 1MB - The max native read
 
 type
   TVerifyThread = class(TThread)
@@ -60,10 +61,16 @@ type
   TVerifyProducer = class(TThread)
   private
     FBufStor: TBufferStorage;
+
     FFileStream: TFileStream;
+    FFileHandle: THandle;
+    FMaxLength: Int64;
+
     FIsSrc: Boolean;
+    FIsDrive: Boolean;
   public
-    constructor Create(IsSrc: Boolean; BufStor: TBufferStorage; Path: String);
+    constructor Create(IsSrc: Boolean; BufStor: TBufferStorage; Path: String;
+                       MaxLength: Int64);
     destructor Destroy; override;
 
     procedure Execute; override;
@@ -88,7 +95,7 @@ type
     procedure ApplyProgress;
   end;
 
-{ TCopyThrd }
+{ TVerifyThrd }
 
 constructor TVerifyThread.Create(SrcPath, DestPath: String);
 begin
@@ -108,9 +115,13 @@ begin
 end;
 
 procedure TVerifyThread.Execute;
+const
+  PhyDrv = '\\.\PhysicalDrive';
 var
   dwRead: Integer;
   dwWrite: Integer;
+
+  DestMaxLength: Integer;
 
   BufStor: TBufferStorage;
   VerifyProducer_Src: TVerifyProducer;
@@ -118,6 +129,7 @@ var
   VerifyConsumer: TVerifyConsumer;
 
   FileStream: TFileStream;
+  SSDInfo: TSSDInfo;
 begin
   inherited;
 
@@ -127,12 +139,22 @@ begin
 
   if not FVerifyMode then
   begin
-    FileStream := TFileStream.Create(FSrcPath, fmOpenRead);
-    FMaxLength := FileStream.Size;
-    FreeAndNil(FileStream);
+    SSDInfo := TSSDInfo.Create;
+    SSDInfo.SetDeviceName(StrToInt(ExtractDeviceNum(FSrcPath)));
+    FMaxLength := (SSDInfo.UserSize shr 1) shl 10; //Unit: Bytes
+    if Copy(FDestPath, 0, Length(PhyDrv)) = PhyDrv then
+    begin
+      SSDInfo.SetDeviceName(StrToInt(ExtractDeviceNum(FSrcPath)));
+      DestMaxLength := (SSDInfo.UserSize shr 1) shl 10; //Unit: Bytes
+    end
+    else
+      DestMaxLength := 0;
+    FreeAndNil(SSDInfo);
 
-    VerifyProducer_Src := TVerifyProducer.Create(true, BufStor, FSrcPath);
-    VerifyProducer_Dest := TVerifyProducer.Create(false, BufStor, FDestPath);
+    VerifyProducer_Src := TVerifyProducer.Create(true, BufStor, FSrcPath,
+                                                 FMaxLength);
+    VerifyProducer_Dest := TVerifyProducer.Create(false, BufStor, FDestPath,
+                                                  DestMaxLength);
     VerifyConsumer := TVerifyConsumer.Create(BufStor, FDestPath, FMaxLength,
                                          FProgressBar, FStaticText);
 
@@ -149,6 +171,100 @@ begin
 
   FreeAndNil(BufStor);
   Synchronize(EndVerify);
+end;
+
+{ TVerifyProducer }
+
+constructor TVerifyProducer.Create(IsSrc: Boolean; BufStor: TBufferStorage;
+                                   Path: String; MaxLength: Int64);
+const
+  PhyDrv = '\\.\PhysicalDrive';
+begin
+  inherited Create(false);
+  FBufStor := BufStor;
+
+  FIsDrive := Copy(Path, 0, Length(PhyDrv)) = PhyDrv;
+  if FIsDrive then
+  begin
+    FFileHandle := CreateFile(PChar(Path),
+                              GENERIC_READ or GENERIC_WRITE,
+                              FILE_SHARE_READ or FILE_SHARE_WRITE,
+                              nil,
+                              OPEN_EXISTING,
+                              FILE_FLAG_NO_BUFFERING,
+                              0);
+    FFileStream := nil;
+  end
+  else
+  begin
+    FFileStream := TFileStream.Create(Path, fmOpenRead);
+    FFileHandle := 0;
+  end;
+  FIsSrc := IsSrc;
+  FMaxLength := MaxLength;
+end;
+
+destructor TVerifyProducer.Destroy;
+begin
+  if FFileHandle <> 0 then
+    CloseHandle(FFileHandle);
+  if FFileStream <> nil then
+    FreeAndNil(FFileStream);
+  inherited;
+end;
+
+procedure TVerifyProducer.Execute;
+var
+  Buffer: TBuffer;
+  ReadLength: Cardinal;
+  CurrPos: Int64;
+  OvlpResult: Boolean;
+  IsEnd: Boolean;
+begin
+  inherited;
+  FBufStor.SetInnerBufLength(LinearRead div SizeOf(UInt32));
+  SetLength(Buffer, LinearRead div SizeOf(UInt32));
+  CurrPos := 0;
+
+  repeat
+    if FIsDrive then
+    begin
+      OvlpResult := true;
+      ReadLength := ReadSector(FFileHandle, CurrPos shr 9, @Buffer[0]);
+      if ReadLength = -1 then
+      begin
+        OvlpResult := false;
+        ReadLength := 0;
+      end;
+
+      if CurrPos + ReadLength > FMaxLength then
+      begin
+        ReadLength := FMaxLength - CurrPos;
+        SetLength(Buffer, ReadLength div SizeOf(UInt32));
+      end
+      else if (OvlpResult) and (LinearRead > ReadLength)then
+        SetLength(Buffer, ReadLength div SizeOf(UInt32));
+
+      if OvlpResult = false then
+      begin
+        FillMemory(@Buffer[0], Length(Buffer) * SizeOf(UInt32), 0);
+      end;
+
+      Inc(CurrPos, ReadLength);
+      FBufStor.PutBuf(FIsSrc, Buffer, CurrPos >= FMaxLength);
+      IsEnd := CurrPos >= FMaxLength;
+    end
+    else
+    begin
+      ReadLength := FFileStream.Read(Buffer[0], LinearRead);
+
+      if FFileStream.Position = FFileStream.Size then
+        SetLength(Buffer, ReadLength div SizeOf(UInt32));
+
+      FBufStor.PutBuf(FIsSrc, Buffer, FFileStream.Position = FFileStream.Size);
+      IsEnd := FFileStream.Position = FFileStream.Size;
+    end;
+  until IsEnd;
 end;
 
 { BufferStorage }
@@ -171,8 +287,7 @@ begin
   SetLength(FBuffer.FDestBuffer, NewLength);
 end;
 
-procedure TBufferStorage.PutBuf(IsSrc: Boolean;
-                                InBuffer: TBuffer; NeedClose: Boolean);
+procedure TBufferStorage.PutBuf(IsSrc: Boolean; InBuffer: TBuffer; NeedClose: Boolean);
 var
   ReadOffset: Integer;
   MaxLength: Integer;
@@ -196,7 +311,7 @@ begin
     begin
       FClosed := true;
 
-      if MyTurn = ctDest then
+      if MyTurn = ctSrc then
         MyTurn := ctDest
       else
         MyTurn := ctConsumer;
@@ -216,12 +331,12 @@ begin
         SetLength(FBuffer.FDestBuffer, Length(InBuffer));
     end;
 
-
     if IsSrc then
-      CopyMemory(@FBuffer.FSrcBuffer[0], @InBuffer[0], Length(InBuffer))
+      CopyMemory(@FBuffer.FSrcBuffer[0], @InBuffer[0], Length(InBuffer)
+                                                       * SizeOf(UInt32))
     else
-      CopyMemory(@FBuffer.FDestBuffer[0], @InBuffer[0], Length(InBuffer));
-
+      CopyMemory(@FBuffer.FDestBuffer[0], @InBuffer[0], Length(InBuffer)
+                                                       * SizeOf(UInt32));
   finally
     if FCurrTurn = ctSrc then
       FCurrTurn := ctDest
@@ -255,9 +370,11 @@ begin
       SetLength(FOutputBuffer.FDestBuffer, Length(FBuffer.FDestBuffer));
 
       CopyMemory(@FOutputBuffer.FSrcBuffer[0],
-                 @FBuffer.FSrcBuffer[0], Length(FBuffer.FSrcBuffer));
+                 @FBuffer.FSrcBuffer[0], Length(FBuffer.FSrcBuffer)
+                                         * SizeOf(UInt32));
       CopyMemory(@FOutputBuffer.FDestBuffer[0],
-                 @FBuffer.FDestBuffer[0], Length(FBuffer.FDestBuffer));
+                 @FBuffer.FDestBuffer[0], Length(FBuffer.FDestBuffer)
+                                          * SizeOf(UInt32));
     end
     else
     begin
@@ -277,42 +394,7 @@ begin
   end;
 end;
 
-{ TVerifyProducer }
-
-constructor TVerifyProducer.Create(IsSrc: Boolean; BufStor: TBufferStorage;
-                                 Path: String);
-begin
-  inherited Create(false);
-  FBufStor := BufStor;
-  FFileStream := TFileStream.Create(Path, fmOpenRead);
-  FIsSrc := IsSrc;
-end;
-
-destructor TVerifyProducer.Destroy;
-begin
-  FreeAndNil(FFileStream);
-  inherited;
-end;
-
-procedure TVerifyProducer.Execute;
-var
-  Buffer: TBuffer;
-  ReadLength: Integer;
-begin
-  inherited;
-
-  FBufStor.SetInnerBufLength(LinearRead div SizeOf(UInt32));
-  SetLength(Buffer, LinearRead div SizeOf(UInt32));
-
-  repeat
-    ReadLength := FFileStream.Read(Buffer[0], LinearRead);
-
-    if FFileStream.Position = FFileStream.Size then
-      SetLength(Buffer, ReadLength div SizeOf(UInt32));
-
-    FBufStor.PutBuf(FIsSrc, Buffer, FFileStream.Position = FFileStream.Size);
-  until ReadLength = 0;
-end;
+{
 
 
 { TVerifyConsumer }
@@ -326,8 +408,7 @@ begin
 
   FStaticText.Caption := IntToStr(MaxMega) + 'MB / ' +
                          IntToStr(CurrMega) + 'MB / ' +
-                         'UBER: ' + FloatToStr(GetUBER) +
-                         '%';
+                         'UBER: ' + FloatToStr(GetUBER);
   FProgressBar.Position := (CurrMega * 100) div MaxMega;
 end;
 

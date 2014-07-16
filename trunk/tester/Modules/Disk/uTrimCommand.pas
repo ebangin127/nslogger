@@ -16,7 +16,8 @@ function SendFlushCommand(const hPhyDevice: THandle): Cardinal; overload;
 function SendFlushCommand(const hPhyDevice: THandle; pOverlapped: POVERLAPPED):
                          Cardinal; overload;
 
-function IsZeroSector(const DriveLetter: String; StartLBA: Int64): Byte;
+function ReadSector(const hPhyDevice: THandle; StartLBA: Int64;
+                    Buffer: PTLLBufferLarge): Integer;
 
 const
   TRIM_ZeroSector = 1;
@@ -139,57 +140,58 @@ begin
   end;
 end;
 
-function IsZeroSector(const DriveLetter: String; StartLBA: Int64): Byte;
+function ReadSector(const hPhyDevice: THandle; StartLBA: Int64;
+                    Buffer: PTLLBufferLarge): Integer;
 var
-  ICBuffer: ATA_PTH_BUFFER_4K;
+  ICDBuffer: PATA_PTH_DIR_BUFFER_LARGE;
   BytesRead: Cardinal;
-  i: integer;
-  hPhyDevice: THandle;
+  CurrError: Integer;
+  SectorCount: Integer;
 begin
-  hPhyDevice := CreateFile(PChar(DriveLetter), GENERIC_READ or GENERIC_WRITE,
-                    FILE_SHARE_READ or FILE_SHARE_WRITE, nil, OPEN_EXISTING, 0, 0);
-
   result := 0;
-  if GetLastError = 0 Then
+  GetMem(ICDBuffer, SizeOf(ATA_PTH_DIR_BUFFER_LARGE));
+  FillMemory(ICDBuffer, SizeOf(ATA_PTH_DIR_BUFFER_LARGE), 0);
+
+  ICDBuffer.PTH.Length := SizeOf(ICDBuffer.PTH);
+  ICDBuffer.PTH.AtaFlags := ATA_FLAGS_48BIT_COMMAND or ATA_FLAGS_DATA_IN;
+  ICDBuffer.PTH.DataTransferLength := SizeOf(ICDBuffer.Buffer);
+  ICDBuffer.PTH.TimeOutValue := 10;
+  ICDBuffer.PTH.DataBuffer := @ICDBuffer.Buffer;
+
+  ICDBuffer.PTH.CurrentTaskFile[2] := StartLBA and 255;
+  StartLBA := StartLBA shr 8;
+  ICDBuffer.PTH.CurrentTaskFile[3] := StartLBA and 255;
+  StartLBA := StartLBA shr 8;
+  ICDBuffer.PTH.CurrentTaskFile[4] := StartLBA and 255;
+  StartLBA := StartLBA shr 8;
+  ICDBuffer.PTH.PreviousTaskFile[2] := StartLBA and 255;
+  StartLBA := StartLBA shr 8;
+  ICDBuffer.PTH.PreviousTaskFile[3] := StartLBA and 255;
+  StartLBA := StartLBA shr 8;
+  ICDBuffer.PTH.PreviousTaskFile[4] := StartLBA and 255;
+
+  SectorCount := SizeOf(ICDBuffer.Buffer) div 512;
+
+  ICDBuffer.PTH.CurrentTaskFile[1] := LongRec(SectorCount).Bytes[0];
+  ICDBuffer.PTH.PreviousTaskFile[1] := LongRec(SectorCount).Bytes[1];
+  ICDBuffer.PTH.CurrentTaskFile[5] := $1 shl 6;
+  ICDBuffer.PTH.CurrentTaskFile[6] := $24;
+
+  DeviceIOControl(hPhyDevice, IOCTL_ATA_PASS_THROUGH_DIRECT,
+                  ICDBuffer, SizeOf(ATA_PTH_DIR_BUFFER_LARGE),
+                  ICDBuffer, SizeOf(ATA_PTH_DIR_BUFFER_LARGE),
+                  BytesRead, nil);
+
+  CurrError := GetLastError;
+  if (CurrError = ERROR_SUCCESS) and (ICDBuffer.PTH.DataTransferLength = OneMega) then
   begin
-    ICBuffer.PTH.Length := SizeOf(ICBuffer.PTH);
-    ICBuffer.PTH.AtaFlags := ATA_FLAGS_48BIT_COMMAND or ATA_FLAGS_DATA_IN;
-    ICBuffer.PTH.DataTransferLength := SizeOf(ICBuffer.Buffer);
-    ICBuffer.PTH.TimeOutValue := 2;
-    ICBuffer.PTH.DataBufferOffset := PChar(@ICBuffer.Buffer) - PChar(@ICBuffer.PTH) + 20;
-
-    ICBuffer.PTH.CurrentTaskFile[2] := StartLBA and 255;
-    StartLBA := StartLBA shr 8;
-    ICBuffer.PTH.CurrentTaskFile[3] := StartLBA and 255;
-    StartLBA := StartLBA shr 8;
-    ICBuffer.PTH.CurrentTaskFile[4] := StartLBA and 255;
-    StartLBA := StartLBA shr 8;
-    ICBuffer.PTH.PreviousTaskFile[2] := StartLBA and 255;
-    StartLBA := StartLBA shr 8;
-    ICBuffer.PTH.PreviousTaskFile[3] := StartLBA and 255;
-    StartLBA := StartLBA shr 8;
-    ICBuffer.PTH.PreviousTaskFile[4] := StartLBA and 255;
-
-    ICBuffer.PTH.CurrentTaskFile[1] := $8;
-    ICBuffer.PTH.CurrentTaskFile[5] := $1 shl 6;
-    ICBuffer.PTH.CurrentTaskFile[6] := $24;
-
-    DeviceIOControl(hPhyDevice, IOCTL_ATA_PASS_THROUGH, @ICBuffer, SizeOf(ICBuffer), @ICBuffer, SizeOf(ICBuffer), BytesRead, nil);
-    if BytesRead <> 4136 then
-      result := TRIM_Error;
-  end;
-
-  if result <> TRIM_Error then
+    result := ICDBuffer.PTH.DataTransferLength;
+    CopyMemory(Buffer, @ICDBuffer.Buffer, result);
+  end
+  else
   begin
-    for i := 0 to 4095 do
-      ICBuffer.Buffer[0] := ICBuffer.Buffer[0] or ICBuffer.Buffer[i];
-
-    if ICBuffer.Buffer[0] = 0 then
-      result := TRIM_ZeroSector
-    else
-      result := TRIM_NonZeroSector;
+    result := -1;
   end;
-
-  CloseHandle(hPhyDevice);
+  FreeMem(ICDBuffer);
 end;
 end.
