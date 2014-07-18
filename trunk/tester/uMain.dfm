@@ -3611,8 +3611,19 @@ object fMain: TfMain
       Top = 10
       Width = 760
       Height = 388
-      ItemHeight = 13
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -13
+      Font.Name = #47569#51008' '#44256#46357
+      Font.Style = []
+      ItemHeight = 17
+      ParentFont = False
       TabOrder = 0
     end
+  end
+  object tSave: TTimer
+    Interval = 60000
+    Left = 392
+    Top = 408
   end
 end

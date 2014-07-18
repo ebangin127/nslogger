@@ -32,6 +32,7 @@ type
 
     FSavePath: String;
     FTracePath: String;
+    FAlertPath: String;
 
     FFullyLoaded: Boolean;
     FStarted: Boolean;
@@ -65,6 +66,7 @@ type
     procedure WriteMaxTBW(const Value: UInt64);
     procedure WriteRetTest(const Value: UInt64);
     function GetFFR: Double;
+    procedure AddToAlert(const Value: String);
   public
     property ExitCode: Byte read FExitCode;
 
@@ -75,6 +77,7 @@ type
 
     property MaxHostWrite: UInt64 read ReadMaxTBW write WriteMaxTBW;
     property RetentionTest: UInt64 read ReadRetTest write WriteRetTest;
+    property NeedVerify: Boolean read FMainNeedReten write FMainNeedReten;
 
     property FFR: Double read GetFFR;
 
@@ -96,6 +99,8 @@ type
 
 
     procedure ApplyStart;
+    procedure ApplyEnd;
+
     procedure Execute; override;
 
     procedure StartThread;
@@ -105,6 +110,7 @@ type
               Boolean; overload;
     function AssignBufferSetting(BufSize: Integer; RandomnessInString: String):
               Boolean; overload;
+    procedure AssignAlertPath(const Path: String);
     function SetDisk(DriveNumber: Integer): Boolean;
 
     function Save(SaveFilePath: String): Boolean;
@@ -172,6 +178,31 @@ begin
 end;
 
 
+procedure TGSTestThread.ApplyEnd;
+begin
+  with fMain do
+  begin
+    case FExitCode of
+      EXIT_HOSTWRITE:
+      begin
+        lAlert.Items.Add(GetLogLine('쓰기 종료'));
+      end;
+      EXIT_RETENTION:
+      begin
+        lAlert.Items.Add(GetLogLine('주기적 리텐션 테스트'));
+      end;
+      EXIT_ERROR:
+      begin
+        lAlert.Items.Add(GetLogLine('기능 실패율 비정상'));
+      end;
+      EXIT_NORMAL:
+      begin
+        lAlert.Items.Add(GetLogLine('사용자 종료'));
+      end;
+    end;
+  end;
+end;
+
 procedure TGSTestThread.ApplyStart;
 begin
   fMain.iSave.Enabled := true;
@@ -191,8 +222,8 @@ begin
     if FLastSyncCount <> FTester.GetOverallTestCount + 1 then
     begin
       FLastSyncCount := FTester.GetOverallTestCount + 1;
-      lAlert.Items.Add(IntToStr(FLastSyncCount) + '회 시작: '
-                        + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
+      AddToAlert(IntToStr(FLastSyncCount) + '회 시작: '
+                 + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
     end;
 
     TBWStr := GetTBWStr(FTester.GetHostWrite shr 20); //Unit: MB
@@ -201,6 +232,7 @@ begin
     ApplyState_Latency;
     ApplyState_Progress(TBWStr, DayStr);
     ApplyState_WriteError(TBWStr, DayStr);
+    ApplyState_FFR;
   end;
 end;
 
@@ -301,47 +333,66 @@ begin
   end;
 end;
 
+procedure TGSTestThread.AddToAlert(const Value: String);
+begin
+  with fMain do
+  begin
+    lAlert.Items.Add(Value);
+    FTester.ErrorBuf.AddLine(Value);
+  end;
+end;
+
 procedure TGSTestThread.ApplyState_WriteError(TBWStr, DayStr: String);
 var
   ErrorName: String;
   ErrorContents: String;
+  CurrNode: PTGSNode;
+  UpdateStarted: Boolean;
 begin
   with fMain do
   begin
+    UpdateStarted := false;
+
+    DayStr := Trim(DayStr);
     if FTester.ErrorBuf.Count > 0 then
     begin
-      lAlert.Items.Add('---' + TBWStr + '(' + DayStr + ') 지점의 오류 ---');
+      lAlert.Items.BeginUpdate;
+      AddToAlert('---' + TBWStr + '(' + DayStr + ') 지점의 오류 ---');
+      UpdateStarted := true;
     end;
-    while FTester.ErrorBuf.Count > 0 do
+
+    for CurrNode in FTester.ErrorBuf do
     begin
-      case FTester.ErrorBuf.Items[0].FIOType of
+      case CurrNode.FIOType of
       0{ioRead}:
-        ErrorName := '읽기 오류: ';
+        ErrorName := '읽기 오류';
       1{ioWrite}:
-        ErrorName := '쓰기 오류: ';
+        ErrorName := '쓰기 오류';
       2{ioTrim}:
-        ErrorName := '트림 오류: ';
+        ErrorName := '트림 오류';
       3{ioFlush}:
         ErrorName := '플러시 오류';
       end;
 
-      case FTester.ErrorBuf.Items[0].FIOType of
+      case CurrNode.FIOType of
       0..2:
       begin
         ErrorContents := '위치 '
-                          + IntToStr(FTester.ErrorBuf.Items[0].FLBA)
+                          + IntToStr(CurrNode.FLBA)
                           + ', ';
         ErrorContents := ErrorContents + '길이 '
-                          + IntToStr(FTester.ErrorBuf.Items[0].FLength);
+                          + IntToStr(CurrNode.FLength);
       end;
       end;
 
-      lAlert.Items.Add(GetLogLine(ErrorName, ErrorContents));
-      FTester.ErrorBuf.Delete(0);
-      if FTester.ErrorBuf.Count = 0 then
-      begin
-        lAlert.Items.Add('---' + TBWStr + '(' + DayStr + ') 지점의 오류 끝---');
-      end;
+      AddToAlert(GetLogLine(ErrorName, ErrorContents));
+    end;
+
+    if UpdateStarted then
+    begin
+      AddToAlert('---' + TBWStr + '(' + DayStr + ') 지점의 오류 끝---');
+      lAlert.Items.EndUpdate;
+      FTester.ErrorBuf.Clear;
     end;
   end;
 end;
@@ -382,16 +433,15 @@ begin
       else
          FExitCode := EXIT_HOSTWRITE;
 
+      Synchronize(ApplyEnd);
+
       break;
     end;
 
-    if FTester.ProcessNextOperation = false then
-    begin
-      FLastSync := CurrTime - 5001;
-    end;
+    FTester.ProcessNextOperation;
 
     CurrTime := GetTickCount;
-    if ((CurrTime - FLastSync) > 5000) and (not Terminated) then
+    if ((CurrTime - FLastSync) > 1000) and (not Terminated) then
     begin
       try
         Synchronize(ApplyState);
@@ -400,7 +450,7 @@ begin
       end;
 
       FSecCounter := FSecCounter + 1;
-      if FSecCounter >= 120 then // 10 minutes
+      if FSecCounter >= 300 then // 5 minutes
       begin
         SaveTodaySpeed(FSavePath);
         SaveTBW(FSavePath);
@@ -514,7 +564,7 @@ begin
   FSaveFile.OverallTestCount := FTester.OverallTestCount;
   FSaveFile.Iterator := FTester.Iterator;
 
-  FTester.ErrorBuf.Save(SaveFilePath + 'error.txt');
+  FTester.ErrorBuf.Save;
   result := FSaveFile.SaveToFile(SaveFilePath + 'settings.ini');
 end;
 
@@ -592,6 +642,12 @@ end;
 procedure TGSTestThread.AssignSavePath(const Path: String);
 begin
   FSavePath := Path;
+end;
+
+procedure TGSTestThread.AssignAlertPath(const Path: String);
+begin
+  FAlertPath := Path;
+  FTester.ErrorBuf.AssignSavePath(Path);
 end;
 
 function TGSTestThread.AssignBufferSetting(BufSize: Integer;

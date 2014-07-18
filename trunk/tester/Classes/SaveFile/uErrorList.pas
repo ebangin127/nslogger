@@ -4,75 +4,71 @@ interface
 uses Classes, SysUtils, DateUtils, Math, Generics.Collections,
      uGSList;
 
+const
+  SaveLine = 10000;
+
 type
   time_t = Int64;
 
-  TErrorNode = record
-    FTime: time_t;
-    FPos: UINT64;
-    FLength: Integer;
-  end;
-
-  TErrorList = class(TList<TGSNode>)
+  TErrorList = class(TList<PTGSNode>)
   private
-    FUnitSize: Double;
-    FErrorNodeList: TList<TErrorNode>;
+    FToSaveList: TStringList;
+    FSavePath: String;
   public
-    constructor Create(Size: Integer);
+    constructor Create;
     destructor Destroy; override;
 
-    procedure AddTGSNode(Node: TGSNode);
-    function Save(Path: String): Boolean;
+    procedure AssignSavePath(const Path: String);
+
+    procedure AddLine(const Value: String);
+    procedure Save;
   end;
 
 implementation
 
 { TErrorList }
 
-constructor TErrorList.Create(Size: Integer);
+procedure TErrorList.AddLine(const Value: String);
 begin
-  FUnitSize := Size / 180;
-  FErrorNodeList := TList<TErrorNode>.Create;
+  FToSaveList.Add(Value);
+  if FToSaveList.Count > SaveLine then
+  begin
+    Save;
+    FToSaveList.Clear;
+  end;
+end;
+
+procedure TErrorList.AssignSavePath(const Path: String);
+begin
+  FSavePath := Path;
+end;
+
+constructor TErrorList.Create;
+begin
+  inherited;
+  FToSaveList := TStringList.Create;
 end;
 
 destructor TErrorList.Destroy;
 begin
-  FreeAndNil(FErrorNodeList);
+  FreeAndNil(FToSaveList);
+  inherited;
 end;
 
-procedure TErrorList.AddTGSNode(Node: TGSNode);
-var
-  ErrorNode: TErrorNode;
-begin
-  ErrorNode.FTime := DateTimeToUnix(Now);
-  ErrorNode.FPos := Node.FLBA;
-  ErrorNode.FLength := Node.FLength;
-  FErrorNodeList.Add(ErrorNode);
-  Add(Node);
-end;
-
-function TErrorList.Save(Path: String): Boolean;
+procedure TErrorList.Save;
 var
   DestFile: TStreamWriter;
-  CurrNode: TErrorNode;
   CurrLine: String;
 begin
-  result := false;
-
-  DestFile := TStreamWriter.Create(Path, true, TEncoding.Unicode, 4096);
+  DestFile := TStreamWriter.Create(FSavePath, true, TEncoding.Unicode, 4096);
   if DestFile = nil then
     exit;
 
-  for CurrNode in FErrorNodeList.List do
+  for CurrLine in FToSaveList do
   begin
-    if (CurrNode.FTime <> 0) or
-        (CurrNode.FPos <> 0) or
-        (CurrNode.FLength <> 0) then
-    CurrLine := IntToStr(CurrNode.FTime) + ' ' +
-                UIntToStr(CurrNode.FPos) + ' ' +
-                IntToStr(CurrNode.FLength);
     DestFile.WriteLine(CurrLine);
   end;
+  FToSaveList.Clear;
 
   FreeAndNil(DestFile);
 end;

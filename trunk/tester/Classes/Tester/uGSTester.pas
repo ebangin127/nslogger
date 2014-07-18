@@ -8,12 +8,11 @@ uses Windows, SysUtils, Generics.Collections, MMSystem, Math, Dialogs,
 
 const
   MaxIOSize = 65536;
-  MainLatencyRatio = 204;
   TimeoutInMilliSec = 10000;
-  MaxParallelIO = 32;
+  MaxParallelIO = 4;
 
 type
-  TTestStage = (stReady, stLatencyTest, stMainTest, stCount);
+  TTestStage = (stReady, stLatencyTest, stCount);
   TGSTester = class
   private
     FMasterTrace: TGSList;
@@ -31,11 +30,15 @@ type
     FAvgLatency, FMaxLatency: Int64; //Unit: us(10^-6)
     FHostWrite: Int64;
 
+    FStartTime: Int64;
+
     FRandomBuffer: PTRandomBuffer;
     FReadBuffer: Array[0..MaxIOSize - 1] of Byte;
 
     FErrorBuf: TErrorList;
     FErrorCount: Integer;
+
+    FCleared: Boolean;
 
     function DiskWrite(Contents: PTGSNode): Boolean;
     function DiskRead(Contents: PTGSNode): Boolean;
@@ -80,7 +83,7 @@ type
   end;
 
 const
-  TTestStageNum: Array[TTestStage] of Integer = (0, 1, 2, 3);
+  TTestStageNum: Array[TTestStage] of Integer = (0, 1, 2);
 
 implementation
 
@@ -254,6 +257,7 @@ var
   CurrOvlp: POVERLAPPED;
 begin
   result := true;
+  FCleared := true;
 
   if FOverlapped.Count > 0 then
   begin
@@ -290,7 +294,7 @@ begin
 
   FOverallTestCount := 0;
 
-  FErrorBuf := TErrorList.Create(Capacity);
+  FErrorBuf := TErrorList.Create;
   FOverlapped := TList<POVERLAPPED>.Create;
 end;
 
@@ -370,10 +374,10 @@ end;
 
 function TGSTester.GetAverageLatency: Int64;
 begin
-  if FIterator = 0 then
+  if (FIterator div MaxParallelIO) = 0 then
     exit(0);
 
-  result := round(FMaxLatency / FIterator);
+  result := round(FSumLatency / (FIterator div MaxParallelIO));
 end;
 
 function TGSTester.GetOverallTestCount: Integer;
@@ -384,8 +388,8 @@ end;
 function TGSTester.ProcessNextOperation: Boolean;
 var
   NextOperation: PTGSNode;
-  StartTime, EndTime: Int64;
   OverallTime: Int64;
+  EndTime: Int64;
 begin
   result := false;
   NextOperation := nil;
@@ -396,13 +400,14 @@ begin
     stReady:
     begin
       FMasterTrace.GoToFirst;
+      FCleared := true;
 
       FStage := stLatencyTest;
       result := ProcessNextOperation;
       exit;
     end;
 
-    stLatencyTest..stMainTest:
+    stLatencyTest:
     begin
       if FIterator = FMasterTrace.GetLength then
       begin
@@ -418,14 +423,6 @@ begin
         exit;
       end;
 
-      if (FIterator and $399) <= MainLatencyRatio then
-      begin
-        ClearList;
-        FStage := stLatencyTest;
-      end
-      else
-        FStage := stMainTest;
-
       NextOperation := FMasterTrace.GetNextItem;
     end;
   end;
@@ -433,9 +430,10 @@ begin
   if NextOperation <> nil then
   begin
     Inc(FIterator, 1);
-    if FStage = stLatencyTest then
+    if FCleared then
     begin
-      QueryPerformanceCounter(StartTime);
+      QueryPerformanceCounter(FStartTime);
+      FCleared := false;
     end;
 
     case NextOperation.FIOType of
@@ -449,11 +447,11 @@ begin
         result := DiskFlush;
     end;
 
-    if FStage = stLatencyTest then
+    if FCleared then
     begin
       QueryPerformanceCounter(EndTime);
 
-      OverallTime := round((EndTime - StartTime) / FFrequency);
+      OverallTime := round((EndTime - FStartTime) / FFrequency);
       Inc(FSumLatency, OverallTime);
       if (FMaxLatency < 0) or (FMaxLatency < OverallTime) then
       begin
@@ -463,7 +461,7 @@ begin
 
     if result = false then
     begin
-      FErrorBuf.AddTGSNode(NextOperation^);
+      FErrorBuf.Add(NextOperation);
       Inc(FErrorCount);
     end;
   end;

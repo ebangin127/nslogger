@@ -22,6 +22,7 @@ type
     FileSave: TSaveDialog;
     pProgress: TProgressBar;
     sProgress: TStaticText;
+    FileOpen: TOpenDialog;
     constructor Create(AOwner: TComponent; OrigPath: String);
     procedure FormCreate(Sender: TObject);
     procedure RefreshDrives;
@@ -67,10 +68,26 @@ begin
   end
   else
   begin
-    if FileSave.Execute(Self.Handle) = false then
-      exit;
+    if FVerifyMode then
+    begin
+      if FileOpen.Execute(Self.Handle) = false then
+        exit
+      else
+        DestPath := FileSave.FileName;
+    end
+    else
+    begin
+      if FileSave.Execute(Self.Handle) = false then
+        exit
+      else
+        DestPath := FileSave.FileName;
 
-    DestPath := FileSave.FileName;
+      if Copy(LowerCase(DestPath), Length(DestPath) - Length('.raw'),
+              Length('.raw')) <> '.raw' then
+      begin
+        DestPath := DestPath + '.raw';
+      end;
+    end;
   end;
 
 
@@ -114,6 +131,7 @@ begin
 
   FVerifyMode := false;
   RefreshDrives;
+  cDestination.ItemIndex := 0;
 end;
 
 procedure TfRetSel.FormDestroy(Sender: TObject);
@@ -137,6 +155,9 @@ begin
   TempSSDInfo := TSSDInfo.Create;
   for CurrDrv := 0 to 99 do
   begin
+    if FOrigPath = '\\.\PhysicalDrive' + IntToStr(CurrDrv) then
+      Continue;
+
     hdrive := CreateFile(PChar('\\.\PhysicalDrive' + IntToStr(CurrDrv)),
                                 GENERIC_READ or GENERIC_WRITE,
                                 FILE_SHARE_READ or FILE_SHARE_WRITE,
@@ -151,9 +172,6 @@ begin
       begin                              //인해 쓰기 테스트 불가.
         FDriveList.Add(CurrDrv);
         cDestination.Items.Add(IntToStr(CurrDrv) + ' - ' + TempSSDInfo.Model);
-
-        if cDestination.ItemIndex = -1 then
-          cDestination.ItemIndex := 0;
       end;
     end;
 
@@ -171,13 +189,17 @@ begin
 end;
 
 procedure TfRetSel.SetMode(VerifyMode: Boolean);
+var
+  ItemIndexBkup: Integer;
 begin
   FVerifyMode := VerifyMode;
+  ItemIndexBkup := cDestination.ItemIndex;
   if VerifyMode then
   begin
     cDestination.Items[cDestination.Items.Count - 1] := '파일에서 불러오기';
     bStart.Caption := '검증 시작';
   end;
+  cDestination.ItemIndex := ItemIndexBkup;
 end;
 
 end.

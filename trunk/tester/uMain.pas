@@ -58,6 +58,7 @@ type
     lRetention: TLabel;
     lMaxFFR: TLabel;
     sMaxFFR: TStaticText;
+    tSave: TTimer;
     procedure FormShow(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure bSaveClick(Sender: TObject);
@@ -150,33 +151,13 @@ procedure TfMain.FormDestroy(Sender: TObject);
 var
   NeedRetention: Boolean;
 begin
-  if DirectoryExists(FSaveFilePath) then
-  begin
-    lAlert.Items.SaveToFile(FSaveFilePath + 'alert.txt');
-  end;
-
   NeedRetention := false or FNeedRetention;
   if TestThread <> nil then
   begin
     TestThread.Terminate;
     WaitForSingleObject(TestThread.Handle, 60);
 
-    case TestThread.ExitCode of
-      EXIT_HOSTWRITE:
-      begin
-        lAlert.Items.Add(GetLogLine('쓰기 종료'));
-      end;
-      EXIT_RETENTION:
-      begin
-        lAlert.Items.Add(GetLogLine('주기적 리텐션 테스트'));
-
-        NeedRetention := true;
-      end;
-      EXIT_NORMAL:
-      begin
-        lAlert.Items.Add(GetLogLine('사용자 종료'));
-      end;
-    end;
+    NeedRetention := TestThread.ExitCode = EXIT_RETENTION;
 
     FreeAndNil(TestThread);
 
@@ -436,9 +417,8 @@ begin
   if fSetting.LoadedFromFile then
   begin
     TestThread.Load(fSetting.SavePath + 'settings.ini');
-    lAlert.Items.LoadFromFile(FSaveFilePath + 'alert.txt');
 
-    if Pos('리텐션', lAlert.Items[lAlert.Count - 1]) > 0 then
+    if TestThread.NeedVerify then
     begin
       fRetSel := TfRetSel.Create(self,
                                  '\\.\PhysicalDrive' + IntToStr(FDiskNum));
@@ -460,7 +440,8 @@ begin
   TestThread.RetentionTest := FRetentionTBW;
 
   TestThread.AssignSavePath(FSaveFilePath);
-  TestThread.AssignBufferSetting(128 shl 10, 100);
+  TestThread.AssignBufferSetting(16 shl 20, 100);
+  TestThread.AssignAlertPath(FSaveFilePath + 'alert.txt');
   TestThread.StartThread;
 
   FreeAndNil(SSDInfo);

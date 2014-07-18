@@ -153,6 +153,9 @@ begin
     end;
   until (FSavePath <> '') and (not(FileExists(FSavePath + 'settings.ini')));
 
+  if FileExists(FSavePath + 'alert.txt') then
+    DeleteFile(PChar(FSavePath + 'alert.txt'));
+
   FOptionsSet := true;
   Close;
 end;

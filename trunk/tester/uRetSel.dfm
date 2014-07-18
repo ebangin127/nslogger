@@ -77,8 +77,17 @@ object fRetSel: TfRetSel
     OnClick = bStartClick
   end
   object FileSave: TSaveDialog
+    DefaultExt = 'RAW Image File'
     Filter = 'RAW Image File|*.raw'
-    Left = 208
-    Top = 72
+    Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
+    Left = 232
+    Top = 40
+  end
+  object FileOpen: TOpenDialog
+    FileName = 'E:\M6S.raw'
+    Filter = 'RAW Image File|*.raw'
+    Options = [ofEnableSizing]
+    Left = 176
+    Top = 40
   end
 end
