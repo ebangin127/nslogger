@@ -3,7 +3,8 @@ unit uSetting;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, System.UITypes,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Generics.Collections,
   uDiskFunctions, uSSDInfo, uFileFunctions, uSaveFile, uGSTestThread;
 
@@ -99,7 +100,7 @@ end;
 procedure TfSetting.bStartNewClick(Sender: TObject);
 var
   MaxTBW, MaxReten: Integer;
-  MaxFFR, MaxUBER: Integer;
+  MaxFFR: Integer;
 begin
   if cDestination.ItemIndex = -1 then
   begin
@@ -201,6 +202,7 @@ var
   hdrive: Integer;
   DRVLetters: TDriveLetters;
 begin
+  result := -1;
   TempSSDInfo := TSSDInfo.Create;
   for CurrDrv := 0 to 99 do
   begin

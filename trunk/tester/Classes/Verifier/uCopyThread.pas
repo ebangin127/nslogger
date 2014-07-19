@@ -4,6 +4,7 @@ interface
 
 uses
   Vcl.ComCtrls, Vcl.StdCtrls, Classes, Dialogs, SysUtils, Windows,
+  System.UITypes,
   uSSDInfo, uStrFunctions, uTrimCommand;
 
 const
@@ -108,9 +109,6 @@ end;
 
 procedure TCopyThread.Execute;
 var
-  dwRead: Integer;
-  dwWrite: Integer;
-
   BufStor: TBufferStorage;
   CopyProducer: TCopyProducer;
   CopyConsumer: TCopyConsumer;
@@ -120,8 +118,6 @@ begin
   inherited;
 
   BufStor := TBufferStorage.Create;
-  dwRead := 0;
-  dwWrite := 0;
 
   if not FVerifyMode then
   begin
@@ -173,9 +169,6 @@ begin
 end;
 
 procedure TBufferStorage.PutBuf(InBuffer: TBuffer; NeedClose: Boolean);
-var
-  ReadOffset: Integer;
-  MaxLength: Integer;
 begin
   TMonitor.Enter(Self);
 
@@ -270,7 +263,7 @@ end;
 procedure TCopyProducer.Execute;
 var
   Buffer: TBuffer;
-  ReadLength: Cardinal;
+  ReadLength: Integer;
   CurrPos: Int64;
   OvlpResult: Boolean;
 begin
@@ -348,7 +341,6 @@ const
   Period = FiftyMB div LinearRead;
 var
   Buffer: TBuffer;
-  ReadLength: Integer;
   GotLength: Integer;
   WrittenLength: Integer;
   CurrNum: Integer;
@@ -360,7 +352,8 @@ begin
     Buffer := FBufStor.TakeBuf;
     if Buffer = nil then
       exit;
-    
+
+    WrittenLength := 0;
     GotLength := Length(Buffer);
     if Length(Buffer) > 0 then
     begin

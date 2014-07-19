@@ -137,8 +137,6 @@ begin
 end;
 
 procedure TfMain.FormCreate(Sender: TObject);
-var
-  Buffer: PTLLBufferLarge;
 begin
   AppPath := ExtractFilePath(Application.ExeName);
 
@@ -151,7 +149,6 @@ procedure TfMain.FormDestroy(Sender: TObject);
 var
   NeedRetention: Boolean;
 begin
-  NeedRetention := false or FNeedRetention;
   if TestThread <> nil then
   begin
     TestThread.Terminate;
@@ -173,8 +170,6 @@ end;
 procedure TfMain.FormResize(Sender: TObject);
 const
   BUTTON_MINIMUM_HEIGHT = 65;
-var
-  UnitSize: Double;
 begin
   //°¡·Î
   //ÇÑ Ä­ 10 + ¹Ý Ä­ 5

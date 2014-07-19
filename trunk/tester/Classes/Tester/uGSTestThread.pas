@@ -114,8 +114,8 @@ type
     function SetDisk(DriveNumber: Integer): Boolean;
 
     function Save(SaveFilePath: String): Boolean;
-    function SaveTodaySpeed(SaveFilePath: String): Boolean;
-    function SaveTBW(SaveFilePath: String): Boolean;
+    procedure SaveTodaySpeed(SaveFilePath: String);
+    procedure SaveTBW(SaveFilePath: String);
     function Load(SaveFilePath: String): Boolean;
 
     procedure GetMainInfo;
@@ -301,6 +301,9 @@ begin
                             Format('%.2f%s)', [MaxLatency, 'ms']);
 
 
+    pAvgLatencyPos := 0;
+    pMaxLatencyPos := 0;
+
     if AvgLatency > 0 then
       pAvgLatencyPos := round(Log10((AvgLatency / ERROR_VALUE) * 100)
                                / 2 * 100);
@@ -315,7 +318,6 @@ end;
 
 procedure TGSTestThread.ApplyState_Progress(TBWStr, DayStr: String);
 var
-  HostWrite: Double;
   TestProgress: Integer;
 begin
   with fMain do
@@ -475,7 +477,7 @@ begin
   FMainDriveSerial := fMain.DriveSerial;
 end;
 
-function TGSTestThread.SaveTodaySpeed(SaveFilePath: String): Boolean;
+procedure TGSTestThread.SaveTodaySpeed(SaveFilePath: String);
 var
   SaveFile: TStringList;
   LastTime, CurrTime: TDateTime;
@@ -488,10 +490,10 @@ begin
     SaveFile.LoadFromFile(SaveFilePath + 'speedlog.txt');
 
   //오늘 저장한 적이 있으면 처리
+  CurrTime := Now;
   if SaveFile.Count > 0 then
   begin
     LastTime := UnixToDateTime(StrToInt64(SaveFile[0]));
-    CurrTime := Now;
     if (LastTime >= floor(CurrTime)) and (LastTime < ceil(CurrTime)) then
     begin
       SaveFile.Delete(SaveFile.Count - 1);
@@ -524,14 +526,11 @@ begin
   FreeAndNil(SaveFile);
 end;
 
-function TGSTestThread.SaveTBW(SaveFilePath: String): Boolean;
+procedure TGSTestThread.SaveTBW(SaveFilePath: String);
 var
   SaveFile: TStringList;
-  LastTime, CurrTime: TDateTime;
-  SavedToday: Boolean;
 begin
   SaveFile := TStringList.Create;
-  SavedToday := false;
 
   //저장하기 위해서 내용 적기
   Synchronize(GetMainInfo);

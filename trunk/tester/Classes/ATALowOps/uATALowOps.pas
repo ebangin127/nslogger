@@ -35,7 +35,6 @@ var
   ICBuffer: ATA_PTH_BUFFER;
   bResult: Boolean;
   BytesRead: Cardinal;
-  CurrBuf: Integer;
 begin
   FillChar(ICBuffer, SizeOf(ICBuffer), #0);
 
@@ -68,7 +67,6 @@ var
   dwBytesReturned: DWORD;
   Status: Longbool;
   ICBuffer: SCSI_PTH_BUFFER;
-  CurrBuf: Integer;
 begin
   fillchar(ICBuffer, SizeOf(ICBuffer), #0);
 	ICBuffer.spt.Length     := sizeof(SCSI_PASS_THROUGH);

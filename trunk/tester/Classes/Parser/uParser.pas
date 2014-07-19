@@ -57,7 +57,6 @@ type
     FBufStor: TBufferStorage;
     FGSList: TGSList;
     FMultiConst: Double;
-    FMaxLBA: Integer;
   public
     constructor Create(BufStor: TBufferStorage; GSList: TGSList;
                        MultiConst: Double);
@@ -187,8 +186,6 @@ end;
 
 procedure TBufferStorage.PutBuf(InBuffer: TMTBuffer;
                                 CurrSize: Integer; NeedClose: Boolean);
-var
-  MaxLength: Integer;
 begin
   TMonitor.Enter(Self);
 
@@ -281,13 +278,10 @@ end;
 procedure TProducer.Execute;
 var
   ReadLength: Integer;
-  SizeOfChar: Integer;
-  ToReadLength: Integer;
   CurrLength: Integer;
 begin
   inherited;
 
-  SizeOfChar := SizeOf(Char);
   FBufStor.SetInnerBufLength(LinearRead * 2);
 
   repeat
@@ -299,7 +293,6 @@ begin
           (FFileStream.Position < FFileStream.Size) do
     begin
       Inc(CurrLength, 1);
-      Inc(ReadLength, FFileStream.Read(FBuffer[CurrLength - 1], SizeOf(Char)));
     end;
 
     FBufStor.PutBuf(FBuffer, CurrLength,
@@ -322,25 +315,17 @@ end;
 procedure TConsumer.Execute;
 var
   Buffer: TMTBuffer;
-  CurrLineIdx: Integer;
 
-  SizeOfChar: Integer;
-  ToReadLength: Integer;
   LastLine: String;
-  LastLinePtr: PChar;
-  EndTarget: Int64;
 
   PStrBuffer: PChar;
   CurrLine: PChar;
   CurrChar: Integer;
 
   StrBuffer: String;
-  LastChar: Char;
-  EndIndex: Integer;
   BufEnd: Integer;
   CurrLineLength: Cardinal;
 
-  LengthLastLineShl1: Integer;
   NeedMultiConst: Boolean;
 begin
   inherited;
@@ -394,7 +379,6 @@ begin
         begin
           //마지막 줄 처리
           LastLine := CurrLine;
-          LastChar := Buffer[BufEnd - 1];
 
           //줄로 분해된 문장 처리하기
           if CurrLineLength > 0 then

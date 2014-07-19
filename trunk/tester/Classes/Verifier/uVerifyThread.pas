@@ -118,9 +118,6 @@ procedure TVerifyThread.Execute;
 const
   PhyDrv = '\\.\PhysicalDrive';
 var
-  dwRead: Integer;
-  dwWrite: Integer;
-
   DestMaxLength: Integer;
 
   BufStor: TBufferStorage;
@@ -128,14 +125,11 @@ var
   VerifyProducer_Dest: TVerifyProducer;
   VerifyConsumer: TVerifyConsumer;
 
-  FileStream: TFileStream;
   SSDInfo: TSSDInfo;
 begin
   inherited;
 
   BufStor := TBufferStorage.Create;
-  dwRead := 0;
-  dwWrite := 0;
 
   if not FVerifyMode then
   begin
@@ -216,7 +210,7 @@ end;
 procedure TVerifyProducer.Execute;
 var
   Buffer: TBuffer;
-  ReadLength: Cardinal;
+  ReadLength: Integer;
   CurrPos: Int64;
   OvlpResult: Boolean;
   IsEnd: Boolean;
@@ -289,8 +283,6 @@ end;
 
 procedure TBufferStorage.PutBuf(IsSrc: Boolean; InBuffer: TBuffer; NeedClose: Boolean);
 var
-  ReadOffset: Integer;
-  MaxLength: Integer;
   MyTurn: TCurrTurn;
 begin
   TMonitor.Enter(Self);
@@ -311,10 +303,10 @@ begin
     begin
       FClosed := true;
 
-      if MyTurn = ctSrc then
-        MyTurn := ctDest
+      if FCurrTurn = ctSrc then
+        FCurrTurn := ctDest
       else
-        MyTurn := ctConsumer;
+        FCurrTurn := ctConsumer;
 
       TMonitor.PulseAll(Self);
       TMonitor.Exit(Self);

@@ -111,9 +111,6 @@ begin
   CurrOvlp.Offset := LowOrder;
   CurrOvlp.OffsetHigh := HighOrder;
 
-  LowOrder := 0;
-  HighOrder := 0;
-
   WriteFile(FDriveHandle, BufferPoint^, IOLength,
             BytesWritten, CurrOvlp);
 
@@ -160,9 +157,6 @@ begin
   CurrOvlp.hEvent := CreateEvent(nil, true, false, nil);
   CurrOvlp.Offset := LowOrder;
   CurrOvlp.OffsetHigh := HighOrder;
-
-  LowOrder := 0;
-  HighOrder := 0;
 
   ReadFile(FDriveHandle, BufferPoint, IOLength,
            BytesRead, CurrOvlp);

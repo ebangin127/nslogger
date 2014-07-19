@@ -23,7 +23,7 @@ type
     pProgress: TProgressBar;
     sProgress: TStaticText;
     FileOpen: TOpenDialog;
-    constructor Create(AOwner: TComponent; OrigPath: String);
+    constructor Create(AOwner: TComponent; OrigPath: String); reintroduce;
     procedure FormCreate(Sender: TObject);
     procedure RefreshDrives;
     procedure FormDestroy(Sender: TObject);
@@ -59,7 +59,6 @@ uses uMain;
 procedure TfRetSel.bStartClick(Sender: TObject);
 var
   DestPath: String;
-  WriteHandle: THandle;
 begin
   if cDestination.ItemIndex <> cDestination.Items.Count - 1 then
   begin

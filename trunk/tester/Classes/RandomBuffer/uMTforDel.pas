@@ -70,7 +70,9 @@ begin
   mt[0] := s and $ffffffff;
   for mti_local := 1 to (N - 1) do
   begin
-    mt[mti_local] := (1812433253 * (mt[mti_local - 1] xor (mt[mti_local - 1] shr 30)) + mti_local);
+    mt[mti_local] :=
+      (1812433253 * (mt[mti_local - 1] xor (mt[mti_local - 1] shr 30))
+        + mti_local);
     { See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. }
     { In the previous versions, MSBs of the seed affect   }
     { only MSBs of the array mt[].                        }

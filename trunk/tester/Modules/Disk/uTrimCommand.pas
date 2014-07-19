@@ -117,12 +117,11 @@ function SendFlushCommand(const hPhyDevice: THandle; pOverlapped: POVERLAPPED):
                          Cardinal;
 var
   ICBuffer: ATA_PTH_BUFFER;
-  bResult: Boolean;
   BytesRead: Cardinal;
-  CurrBuf: Integer;
 begin
   FillChar(ICBuffer, SizeOf(ICBuffer), #0);
 
+  result := 0;
   If hPhyDevice <> 0 Then
   begin
     ICBuffer.PTH.Length := SizeOf(ICBuffer.PTH);
@@ -133,9 +132,9 @@ begin
 
     ICBuffer.PTH.CurrentTaskFile[6] := $E7;
 
-    bResult := DeviceIOControl(hPhyDevice, IOCTL_ATA_PASS_THROUGH, @ICBuffer,
-                              SizeOf(ICBuffer), @ICBuffer, SizeOf(ICBuffer),
-                              BytesRead, nil);
+    DeviceIOControl(hPhyDevice, IOCTL_ATA_PASS_THROUGH, @ICBuffer,
+                    SizeOf(ICBuffer), @ICBuffer, SizeOf(ICBuffer),
+                    BytesRead, nil);
     result := GetLastError;
   end;
 end;
@@ -148,7 +147,6 @@ var
   CurrError: Integer;
   SectorCount: Integer;
 begin
-  result := 0;
   GetMem(ICDBuffer, SizeOf(ATA_PTH_DIR_BUFFER_LARGE));
   FillMemory(ICDBuffer, SizeOf(ATA_PTH_DIR_BUFFER_LARGE), 0);
 
