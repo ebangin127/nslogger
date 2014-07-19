@@ -1,27 +1,13 @@
-library parser;
+unit uParser;
 
-{ Important note about DLL memory management: ShareMem must be the
-  first unit in your library's USES clause AND your project's (select
-  Project-View Source) USES clause if your DLL exports any procedures or
-  functions that pass strings as parameters or function results. This
-  applies to all strings passed to and from your DLL--even those that
-  are nested in records and classes. ShareMem is the interface unit to
-  the BORLNDMM.DLL shared memory manager, which must be deployed along
-  with your DLL. To avoid using BORLNDMM.DLL, pass string information
-  using PChar or ShortString parameters. }
-
+interface
 
 uses
-  System.SysUtils,
-  Math,
-  Windows,
-  System.Classes,
-  uGSList in '..\tester\Classes\Tester\uGSList.pas';
+  Classes, Windows, SysUtils,
+  uIntFunctions, uGSList;
 
 const
-  LinearRead = 32768;
-
-{$R *.res}
+  LinearRead = 16 shl 20; // 16MB
 
 type
   TMTBuffer = Array of Char;
@@ -32,24 +18,33 @@ type
     FEmpty: Boolean;
     FClosed: Boolean;
     FToBeClosed: Boolean;
-    FReadOffset: Integer;
     FHalfInByte, FHalfInArray: Integer;
 
+    FCurrSize: Integer;
     FFirstCopy: Boolean;
   public
+    property Closed: Boolean read FClosed;
+
     constructor Create;
 
     procedure SetInnerBufLength(NewLength: Integer);
     procedure ReadyToClose;
 
     function TakeBuf: TMTBuffer;
-    procedure PutBuf(InBuffer: TMTBuffer; NeedClose: Boolean);
+    procedure PutBuf(InBuffer: TMTBuffer; CurrSize: Integer; NeedClose: Boolean);
   end;
 
+function makeJEDECListAndFix(TraceList: Pointer; Path: PChar; MultiConst: Double):
+                        PTGListHeader; cdecl; export;
+
+implementation
+
+type
   TProducer = class(TThread)
   private
     FBufStor: TBufferStorage;
     FFileStream: TFileStream;
+    FBuffer: TMTBuffer;
   public
     constructor Create(BufStor: TBufferStorage; Path: String);
     destructor Destroy; override;
@@ -62,6 +57,7 @@ type
     FBufStor: TBufferStorage;
     FGSList: TGSList;
     FMultiConst: Double;
+    FMaxLBA: Integer;
   public
     constructor Create(BufStor: TBufferStorage; GSList: TGSList;
                        MultiConst: Double);
@@ -118,7 +114,7 @@ begin
     result.FLBA := StrToInt64(Copy(CurrLine, LBAStartIdx, LBALength));
     result.FLength := StrToInt(Copy(CurrLine, LBAEndIdx + 1, Length(CurrLine)));
   except
-    Writeln(CurrLine);
+    Assert(false, CurrLine);
   end;
 end;
 
@@ -179,21 +175,19 @@ constructor TBufferStorage.Create;
 begin
   FEmpty := true;
   FFirstCopy := true;
-  FReadOffset := 0;
   FClosed := false;
 end;
 
 procedure TBufferStorage.SetInnerBufLength(NewLength: Integer);
 begin
-  SetLength(FBuffer, NewLength + 1);
-  FBuffer[NewLength] := #0;
+  SetLength(FBuffer, NewLength);
   FHalfInByte := SizeOf(Char) * (Length(FBuffer) shr 1);
   FHalfInArray := FHalfInByte shr 1;
 end;
 
-procedure TBufferStorage.PutBuf(InBuffer: TMTBuffer; NeedClose: Boolean);
+procedure TBufferStorage.PutBuf(InBuffer: TMTBuffer;
+                                CurrSize: Integer; NeedClose: Boolean);
 var
-  ReadOffset: Integer;
   MaxLength: Integer;
 begin
   TMonitor.Enter(Self);
@@ -204,7 +198,7 @@ begin
       TMonitor.Wait(Self, INFINITE);
     end;
 
-    if Length(InBuffer) = 0 then
+    if CurrSize = 0 then
     begin
       FClosed := true;
       FEmpty := false;
@@ -217,39 +211,11 @@ begin
     else if NeedClose then
     begin
       ReadyToClose;
-      SetLength(FBuffer, Length(InBuffer));
+      SetLength(FBuffer, CurrSize);
     end;
 
-    if FFirstCopy = false then
-    begin
-      MaxLength := FHalfInByte shl 1;
-
-      ReadOffset := 2;
-      if (FBuffer[(MaxLength - ReadOffset) shr 1] = #$D) or
-         (FBuffer[(MaxLength - ReadOffset) shr 1] = #$A) then
-         ReadOffset := 0
-      else
-      begin
-        while FBuffer[(MaxLength - ReadOffset) shr 1] <> '$' do
-          Inc(ReadOffset, SizeOf(Char));
-      end;
-
-      CopyMemory(@FBuffer[(FHalfInByte - ReadOffset) shr 1],
-                 @FBuffer[(MaxLength - ReadOffset) shr 1],
-                 ReadOffset);
-      FReadOffset := ReadOffset;
-    end
-    else
-    begin
-      FFirstCopy := false;
-    end;
-
-    CopyMemory(@FBuffer[FHalfInArray], @InBuffer[0],
-               Length(InBuffer) * SizeOf(Char));
-
-    if FToBeClosed then
-      FClosed := true;
-
+    CopyMemory(@FBuffer[0], @InBuffer[0], CurrSize * SizeOf(Char));
+    FCurrSize := CurrSize;
   finally
     FEmpty := False;
 
@@ -259,6 +225,8 @@ begin
 end;
 
 function TBufferStorage.TakeBuf: TMTBuffer;
+var
+  NewLength: Integer;
 begin
   TMonitor.Enter(Self);
   try
@@ -270,13 +238,17 @@ begin
     if FClosed then
     begin
       SetLength(FOutputBuffer, 0);
+
+      TMonitor.PulseAll(Self);
+      TMonitor.Exit(Self);
+
       exit(FOutputBuffer);
     end;
 
-    SetLength(FOutputBuffer, ((FHalfInByte + FReadOffset) shr 1) + 1);
-    CopyMemory(@FOutputBuffer[0], @FBuffer[(FHalfInByte - FReadOffset) shr 1],
-                                            FHalfInByte + FReadOffset);
-    FOutputBuffer[Length(FOutputBuffer) - 1] := #0;
+    NewLength := FCurrSize * SizeOf(Char);
+    SetLength(FOutputBuffer, FCurrSize + 1);
+    CopyMemory(@FOutputBuffer[0], @FBuffer[0], NewLength);
+    FOutputBuffer[FCurrSize] := #0;
 
     result := FOutputBuffer;
 
@@ -297,6 +269,7 @@ begin
   inherited Create(false);
   FBufStor := BufStor;
   FFileStream := TFileStream.Create(Path, fmOpenRead);
+  SetLength(FBuffer, LinearRead shl 1);
 end;
 
 destructor TProducer.Destroy;
@@ -307,30 +280,31 @@ end;
 
 procedure TProducer.Execute;
 var
-  Buffer: TMTBuffer;
-
   ReadLength: Integer;
   SizeOfChar: Integer;
   ToReadLength: Integer;
+  CurrLength: Integer;
 begin
   inherited;
 
   SizeOfChar := SizeOf(Char);
-  ToReadLength := LinearRead * SizeOfChar;
   FBufStor.SetInnerBufLength(LinearRead * 2);
-  SetLength(Buffer, LinearRead);
 
   repeat
-    ReadLength := FFileStream.Read(Buffer[0], ToReadLength);
-
-    if ReadLength < ToReadLength then
+    CurrLength := LinearRead shr 1;
+    ReadLength := FFileStream.Read(FBuffer[0], CurrLength shl 1);
+    CurrLength := ReadLength shr 1;
+    while (FBuffer[CurrLength - 1] <> #$D) and
+          (FBuffer[CurrLength - 1] <> #$A) and
+          (FFileStream.Position < FFileStream.Size) do
     begin
-      ReadLength := ReadLength div SizeOfChar;
-      SetLength(Buffer, ReadLength);
+      Inc(CurrLength, 1);
+      Inc(ReadLength, FFileStream.Read(FBuffer[CurrLength - 1], SizeOf(Char)));
     end;
 
-    FBufStor.PutBuf(Buffer, FFileStream.Position = FFileStream.Size);
-  until ReadLength = 0;
+    FBufStor.PutBuf(FBuffer, CurrLength,
+                    FFileStream.Position = FFileStream.Size);
+  until FFileStream.Position = FFileStream.Size;
 end;
 
 
@@ -399,37 +373,38 @@ begin
         if PStrBuffer[CurrChar] = #13 then Inc(CurrChar);
         if PStrBuffer[CurrChar] = #10 then Inc(CurrChar);
         CurrLine[CurrLineLength] := #0;
-        Assert(CurrLine[0] <> ' ', Format('CurrChar: %d, CurrLineLength: %d',
-                                          [CurrChar,CurrLineLength]));
+        if PStrBuffer[CurrChar] = #0 then Inc(CurrChar);
+        Assert((CurrLine[0] = '$') or (CurrLineLength = 0),
+                LastLine + ' / '
+                + CurrLine + ' / '
+                + IntToStr(BufEnd) + ' '
+                + IntToStr(CurrChar));
 
         if CurrChar < BufEnd then
         begin
           //줄로 분해된 문장 처리하기
-          if CurrLineLength > 0 then
+          if (CurrLineLength > 0) then
             if NeedMultiConst then
               FGSList.AddNode(DivideIntoNode(CurrLine, FMultiConst))
             else
               FGSList.AddNode(DivideIntoNode(CurrLine));
+            LastLine := CurrLine;
         end
         else
         begin
           //마지막 줄 처리
           LastLine := CurrLine;
           LastChar := Buffer[BufEnd - 1];
-          if (LastChar = #13) or (LastChar = #10) then
-          begin
-            //줄로 분해된 문장 처리하기
-            if CurrLineLength > 0 then
-              if NeedMultiConst then
-                FGSList.AddNode(DivideIntoNode(CurrLine, FMultiConst))
-              else
-                FGSList.AddNode(DivideIntoNode(CurrLine));
-          end;
+
+          //줄로 분해된 문장 처리하기
+          if CurrLineLength > 0 then
+            if NeedMultiConst then
+              FGSList.AddNode(DivideIntoNode(CurrLine, FMultiConst))
+            else
+              FGSList.AddNode(DivideIntoNode(CurrLine));
         end;
       end;
     end;
-  until BufEnd <= 0;
+  until FBufStor.Closed;
 end;
-
-begin
 end.
