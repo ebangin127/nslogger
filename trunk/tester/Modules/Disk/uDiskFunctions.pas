@@ -485,14 +485,41 @@ begin
 end;
 
 function GetDayStr(Day: Double): String;
+const
+  Months = [0..11];
+  Day28 = [1];
+  Day31 = [0, 2, 4, 6, 7, 9, 11];
 var
   HWDay: Double;
+  CurrMon: Integer;
+  CurrMonDays: Integer;
   HWDayYear, HWDayMon, HWDayDay: Integer;
 begin
   HWDay := Day;
+
   HWDayYear := floor(HWDay / 365);
-  HWDayMon := floor((HWDay - (HWDayYear * 365)) / 30);
-  HWDayDay := floor(HWDay - (HWDayYear * 365) - (HWDayMon * 30));
+  HWDay := HWDay - (HWDayYear * 365);
+
+  HWDayMon := 0;
+  for CurrMon in Months do
+  begin
+    if CurrMon in Day31 then
+      CurrMonDays := 31
+    else if CurrMon in Day28 then
+      CurrMonDays := 28
+    else
+      CurrMonDays := 30;
+
+    if HWDay >= CurrMonDays then
+    begin
+      HWDay := HWDay - CurrMonDays;
+      Inc(HWDayMon, 1);
+    end
+    else
+      break;
+  end;
+
+  HWDayDay := floor(HWDay);
 
   if HWDayYear > 0 then //Above 1yr
   begin

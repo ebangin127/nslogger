@@ -333,6 +333,7 @@ begin
   lForceReten.Left := iForceReten.Left + iForceReten.Width + InnerPadding;
   LastFontSize := lForceReten.Font.Size;
   ForceRetenWidth := lForceReten.Left + lForceReten.Width;
+  lForceReten.Font.Size := 9;
   while ForceRetenWidth < UnitSize do
   begin
     LastFontSize := lForceReten.Font.Size;
@@ -435,7 +436,7 @@ begin
   TestThread.RetentionTest := FRetentionTBW;
 
   TestThread.AssignSavePath(FSaveFilePath);
-  TestThread.AssignBufferSetting(16 shl 20, 100);
+  TestThread.AssignBufferSetting(16 shl 10, 100);
   TestThread.AssignAlertPath(FSaveFilePath + 'alert.txt');
   TestThread.StartThread;
 

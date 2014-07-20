@@ -293,6 +293,7 @@ begin
           (FFileStream.Position < FFileStream.Size) do
     begin
       Inc(CurrLength, 1);
+      Inc(ReadLength, FFileStream.Read(FBuffer[CurrLength - 1], SizeOf(Char)));
     end;
 
     FBufStor.PutBuf(FBuffer, CurrLength,
