@@ -376,6 +376,7 @@ begin
         ErrorName := '플러시 오류';
       end;
 
+      ErrorContents := '';
       case CurrNode.FIOType of
       0..2:
       begin
