@@ -464,6 +464,9 @@ begin
       FLastSync := CurrTime;
     end;
   end;
+
+  if fMain <> nil then
+    Synchronize(ApplyState);
 end;
 
 function TGSTestThread.GetFFR: Double;

@@ -164,6 +164,7 @@
         <DCCReference Include="Classes\Verifier\uCopyThread.pas"/>
         <DCCReference Include="Classes\Verifier\uVerifyThread.pas"/>
         <DCCReference Include="Classes\Parser\uParser.pas"/>
+        <DCCReference Include="Classes\Tester\uPreCondThread.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

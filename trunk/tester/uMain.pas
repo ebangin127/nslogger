@@ -418,7 +418,7 @@ begin
     begin
       fRetSel := TfRetSel.Create(self,
                                  '\\.\PhysicalDrive' + IntToStr(FDiskNum));
-      fRetSel.SetMode(true, fSetting.SavePath + 'compare_error_log.txt');
+      fRetSel.SetMode(rsmVerify, fSetting.SavePath + 'compare_error_log.txt');
       fRetSel.ShowModal;
 
       lAlert.Items.Add(

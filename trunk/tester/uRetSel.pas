@@ -6,13 +6,11 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Vcl.ComCtrls, Generics.Collections,
-  uSSDInfo, uDiskFunctions, uCopyThread, uVerifyThread;
+  uSSDInfo, uDiskFunctions, uStrFunctions,
+  uCopyThread, uVerifyThread, uPreCondThread;
 
 type
-  TssdCopy  = function (readDrive, writeDrive: THandle;
-                        dwRead, dwWrite: PInteger): Integer; cdecl;
-  TssdDriveCompare = function (readDrive, compDrive, writeLog: THandle;
-                               dwRead, dwWrite: PInteger): Integer; cdecl;
+  TRetSelMode = (rsmVerify, rsmCopy, rsmPreCond);
 
 type
   TfRetSel = class(TForm)
@@ -33,18 +31,19 @@ type
     FOrigPath: String;
     FDriveList: TList<Integer>;
     FWritePath: String;
-    FVerifyMode: Boolean;
+    FMode: TRetSelMode;
     FEndTask: Boolean;
     FUBER: Double;
 
     FCopyThrd: TCopyThread;
     FVerifyThrd: TVerifyThread;
+    FPreCondThrd: TPreCondThread;
   public
     property EndTask: Boolean read FEndTask write FEndTask;
     property UBER: Double read FUBER write FUBER;
 
-    procedure SetMode(VerifyMode: Boolean; WritePath: String); overload;
-    procedure SetMode(VerifyMode: Boolean); overload;
+    procedure SetMode(Mode: TRetSelMode; WritePath: String); overload;
+    procedure SetMode(Mode: TRetSelMode); overload;
   end;
 
 var
@@ -60,31 +59,40 @@ procedure TfRetSel.bStartClick(Sender: TObject);
 var
   DestPath: String;
 begin
-  if cDestination.ItemIndex <> cDestination.Items.Count - 1 then
+  if (cDestination.ItemIndex <> cDestination.Items.Count - 1) and
+      (FMode <> rsmPreCond) then
   begin
     DestPath := '\\.\PhysicalDrive' +
             IntToStr(FDriveList[cDestination.ItemIndex]);
   end
   else
   begin
-    if FVerifyMode then
-    begin
-      if FileOpen.Execute(Self.Handle) = false then
-        exit
-      else
-        DestPath := FileSave.FileName;
-    end
-    else
-    begin
-      if FileSave.Execute(Self.Handle) = false then
-        exit
-      else
-        DestPath := FileSave.FileName;
-
-      if Copy(LowerCase(DestPath), Length(DestPath) - Length('.raw'),
-              Length('.raw')) <> '.raw' then
+    case FMode of
+      rsmVerify:
       begin
-        DestPath := DestPath + '.raw';
+        if FileOpen.Execute(Self.Handle) = false then
+          exit
+        else
+          DestPath := FileSave.FileName;
+      end;
+
+      rsmCopy:
+      begin
+        if FileSave.Execute(Self.Handle) = false then
+          exit
+        else
+          DestPath := FileSave.FileName;
+
+        if Copy(LowerCase(DestPath), Length(DestPath) - Length('.raw'),
+                Length('.raw')) <> '.raw' then
+        begin
+          DestPath := DestPath + '.raw';
+        end;
+      end;
+
+      rsmPreCond:
+      begin
+        DestPath := FWritePath;
       end;
     end;
   end;
@@ -92,16 +100,23 @@ begin
 
   bStart.Visible := false;
 
-  if FVerifyMode then
-  begin
-    bStart.Caption := '검증중';
-    FVerifyThrd := TVerifyThread.Create(FOrigPath, DestPath);
-  end
-  else
-  begin
-    bStart.Caption := '복사중';
-    FCopyThrd := TCopyThread.Create(FOrigPath, DestPath);
+  case FMode of
+    rsmVerify:
+    begin
+      FVerifyThrd := TVerifyThread.Create(FOrigPath, DestPath);
+    end;
+
+    rsmCopy:
+    begin
+      FCopyThrd := TCopyThread.Create(FOrigPath, DestPath);
+    end;
+
+    rsmPreCond:
+    begin
+      FPreCondThrd := TPreCondThread.Create(DestPath, pProgress, sProgress);
+    end;
   end;
+
   FEndTask := false;
 end;
 
@@ -128,7 +143,7 @@ begin
 
   FDriveList := TList<Integer>.Create;
 
-  FVerifyMode := false;
+  FMode := rsmCopy;
   RefreshDrives;
   cDestination.ItemIndex := 0;
 end;
@@ -181,23 +196,36 @@ begin
   cDestination.Items.Add('파일로 저장');
 end;
 
-procedure TfRetSel.SetMode(VerifyMode: Boolean; WritePath: String);
+procedure TfRetSel.SetMode(Mode: TRetSelMode; WritePath: String);
 begin
-  SetMode(VerifyMode);
+  SetMode(Mode);
   FWritePath := WritePath;
 end;
 
-procedure TfRetSel.SetMode(VerifyMode: Boolean);
+procedure TfRetSel.SetMode(Mode: TRetSelMode);
 var
   ItemIndexBkup: Integer;
 begin
-  FVerifyMode := VerifyMode;
+  FMode := Mode;
   ItemIndexBkup := cDestination.ItemIndex;
-  if VerifyMode then
+
+  if Mode = rsmVerify then
   begin
     cDestination.Items[cDestination.Items.Count - 1] := '파일에서 불러오기';
     bStart.Caption := '검증 시작';
+  end
+  else if Mode = rsmPreCond then
+  begin
+    cDestination.Clear;
+    cDestination.Items.Add(FWritePath);
+
+    FDriveList.Clear;
+    FDriveList.Add(StrToInt(ExtractDeviceNum(FWritePath)));
+
+    bStart.Caption := '테스트 사전 준비 시작';
+    Caption := '테스트 사전 준비';
   end;
+
   cDestination.ItemIndex := ItemIndexBkup;
 end;
 

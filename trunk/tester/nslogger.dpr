@@ -23,7 +23,8 @@ uses
   uSSDVersion in 'Classes\SSDInfo\uSSDVersion.pas',
   uCopyThread in 'Classes\Verifier\uCopyThread.pas',
   uVerifyThread in 'Classes\Verifier\uVerifyThread.pas',
-  uParser in 'Classes\Parser\uParser.pas';
+  uParser in 'Classes\Parser\uParser.pas',
+  uPreCondThread in 'Classes\Tester\uPreCondThread.pas';
 
 {$R *.res}
 
