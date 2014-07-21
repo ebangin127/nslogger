@@ -112,6 +112,7 @@ type
               Boolean; overload;
     procedure AssignAlertPath(const Path: String);
     function SetDisk(DriveNumber: Integer): Boolean;
+    procedure SetHostWrite(HostWrite: Int64);
 
     function Save(SaveFilePath: String): Boolean;
     procedure SaveTodaySpeed(SaveFilePath: String);
@@ -600,6 +601,11 @@ begin
   result := FTester.SetDisk(DriveNumber);
   if result then
     FSaveFile.Disknum := DriveNumber;
+end;
+
+procedure TGSTestThread.SetHostWrite(HostWrite: Int64);
+begin
+  FTester.HostWrite := HostWrite;
 end;
 
 function TGSTestThread.LBAto48Bit(NewLBA: UInt64): UInt64;

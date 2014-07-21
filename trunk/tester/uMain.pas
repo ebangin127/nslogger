@@ -424,6 +424,14 @@ begin
       lAlert.Items.Add(
         GetLogLine('리텐션 테스트 종료', 'UBER - ' + FloatToStr(fRetSel.UBER)));
     end;
+  end
+  else
+  begin
+    fRetSel := TfRetSel.Create(self,
+                               '\\.\PhysicalDrive' + IntToStr(FDiskNum));
+    fRetSel.SetMode(rsmPreCond, fSetting.SavePath);
+    fRetSel.ShowModal;
+    TestThread.SetHostWrite(fRetSel.Written);
   end;
   TestThread.SetDisk(FDiskNum);
 
