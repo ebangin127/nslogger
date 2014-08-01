@@ -15,7 +15,6 @@ type
   TCopyThread = class(TThread)
   private
     FSrcPath, FDestPath: String;
-    FVerifyMode: Boolean;
     FMaxLength: Int64;
     FError: Boolean;
 
@@ -119,25 +118,22 @@ begin
 
   BufStor := TBufferStorage.Create;
 
-  if not FVerifyMode then
-  begin
-    SSDInfo := TSSDInfo.Create;
-    SSDInfo.SetDeviceName(StrToInt(ExtractDeviceNum(FSrcPath)));
-    FMaxLength := (SSDInfo.UserSize shr 1) shl 10; //Unit: Bytes
-    FreeAndNil(SSDInfo);
+  SSDInfo := TSSDInfo.Create;
+  SSDInfo.SetDeviceName(StrToInt(ExtractDeviceNum(FSrcPath)));
+  FMaxLength := (SSDInfo.UserSize shr 1) shl 10; //Unit: Bytes
+  FreeAndNil(SSDInfo);
 
-    CopyProducer := TCopyProducer.Create(BufStor, FSrcPath, FMaxLength);
-    CopyConsumer := TCopyConsumer.Create(BufStor, FDestPath, FMaxLength,
-                                         FProgressBar, FStaticText);
+  CopyProducer := TCopyProducer.Create(BufStor, FSrcPath, FMaxLength);
+  CopyConsumer := TCopyConsumer.Create(BufStor, FDestPath, FMaxLength,
+                                       FProgressBar, FStaticText);
 
-    FError := BufStor.IsError;
-    
-    WaitForSingleObject(CopyConsumer.Handle, INFINITE);
-    WaitForSingleObject(CopyProducer.Handle, INFINITE);
+  FError := BufStor.IsError;
 
-    FreeAndNil(CopyProducer);
-    FreeAndNil(CopyConsumer);
-  end;
+  WaitForSingleObject(CopyConsumer.Handle, INFINITE);
+  WaitForSingleObject(CopyProducer.Handle, INFINITE);
+
+  FreeAndNil(CopyProducer);
+  FreeAndNil(CopyConsumer);
 
   FreeAndNil(BufStor);
   Synchronize(EndCopy);
@@ -281,17 +277,17 @@ begin
       ReadLength := 0;
     end;
 
-    if CurrPos + ReadLength > FMaxLength then
+    if CurrPos + ReadLength >= FMaxLength then
     begin
       ReadLength := FMaxLength - CurrPos;
       SetLength(Buffer, ReadLength);
     end
-    else if (OvlpResult) and (LinearRead > ReadLength)then
+    else if (OvlpResult) and (LinearRead > ReadLength) then
       SetLength(Buffer, ReadLength);
 
     if OvlpResult = false then
     begin
-      FillChar(Buffer[0], Length(Buffer), #0);
+      SetLength(Buffer, 0);
     end;
 
     Inc(CurrPos, ReadLength);

@@ -13,7 +13,6 @@ type
   TVerifyThread = class(TThread)
   private
     FSrcPath, FDestPath: String;
-    FVerifyMode: Boolean;
     FMaxLength: Int64;
     FUBER: Double;
 
@@ -131,37 +130,34 @@ begin
 
   BufStor := TBufferStorage.Create;
 
-  if not FVerifyMode then
+  SSDInfo := TSSDInfo.Create;
+  SSDInfo.SetDeviceName(StrToInt(ExtractDeviceNum(FSrcPath)));
+  FMaxLength := (SSDInfo.UserSize shr 1) shl 10; //Unit: Bytes
+  if Copy(FDestPath, 0, Length(PhyDrv)) = PhyDrv then
   begin
-    SSDInfo := TSSDInfo.Create;
     SSDInfo.SetDeviceName(StrToInt(ExtractDeviceNum(FSrcPath)));
-    FMaxLength := (SSDInfo.UserSize shr 1) shl 10; //Unit: Bytes
-    if Copy(FDestPath, 0, Length(PhyDrv)) = PhyDrv then
-    begin
-      SSDInfo.SetDeviceName(StrToInt(ExtractDeviceNum(FSrcPath)));
-      DestMaxLength := (SSDInfo.UserSize shr 1) shl 10; //Unit: Bytes
-    end
-    else
-      DestMaxLength := 0;
-    FreeAndNil(SSDInfo);
+    DestMaxLength := (SSDInfo.UserSize shr 1) shl 10; //Unit: Bytes
+  end
+  else
+    DestMaxLength := 0;
+  FreeAndNil(SSDInfo);
 
-    VerifyProducer_Src := TVerifyProducer.Create(true, BufStor, FSrcPath,
-                                                 FMaxLength);
-    VerifyProducer_Dest := TVerifyProducer.Create(false, BufStor, FDestPath,
-                                                  DestMaxLength);
-    VerifyConsumer := TVerifyConsumer.Create(BufStor, FDestPath, FMaxLength,
-                                         FProgressBar, FStaticText);
+  VerifyProducer_Src := TVerifyProducer.Create(true, BufStor, FSrcPath,
+                                               FMaxLength);
+  VerifyProducer_Dest := TVerifyProducer.Create(false, BufStor, FDestPath,
+                                                DestMaxLength);
+  VerifyConsumer := TVerifyConsumer.Create(BufStor, FDestPath, FMaxLength,
+                                       FProgressBar, FStaticText);
 
-    WaitForSingleObject(VerifyConsumer.Handle, INFINITE);
-    WaitForSingleObject(VerifyProducer_Dest.Handle, INFINITE);
-    WaitForSingleObject(VerifyProducer_Src.Handle, INFINITE);
+  WaitForSingleObject(VerifyConsumer.Handle, INFINITE);
+  WaitForSingleObject(VerifyProducer_Dest.Handle, INFINITE);
+  WaitForSingleObject(VerifyProducer_Src.Handle, INFINITE);
 
-    FUBER := VerifyConsumer.UBER;
+  FUBER := VerifyConsumer.UBER;
 
-    FreeAndNil(VerifyConsumer);
-    FreeAndNil(VerifyProducer_Dest);
-    FreeAndNil(VerifyProducer_Src);
-  end;
+  FreeAndNil(VerifyConsumer);
+  FreeAndNil(VerifyProducer_Dest);
+  FreeAndNil(VerifyProducer_Src);
 
   FreeAndNil(BufStor);
   Synchronize(EndVerify);
@@ -241,7 +237,7 @@ begin
 
       if OvlpResult = false then
       begin
-        FillMemory(@Buffer[0], Length(Buffer) * SizeOf(UInt32), 0);
+        SetLength(Buffer, 0);
       end;
 
       Inc(CurrPos, ReadLength);

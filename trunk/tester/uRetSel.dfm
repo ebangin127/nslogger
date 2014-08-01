@@ -58,6 +58,7 @@ object fRetSel: TfRetSel
     Font.Height = -13
     Font.Name = #47569#51008' '#44256#46357
     Font.Style = []
+    ImeName = 'Microsoft Office IME 2007'
     ParentFont = False
     TabOrder = 0
   end

@@ -75,7 +75,7 @@ begin
         if FileOpen.Execute(Self.Handle) = false then
           exit
         else
-          DestPath := FileSave.FileName;
+          DestPath := FileOpen.FileName;
       end;
 
       rsmCopy:
@@ -84,12 +84,6 @@ begin
           exit
         else
           DestPath := FileSave.FileName;
-
-        if Copy(LowerCase(DestPath), Length(DestPath) - Length('.raw'),
-                Length('.raw')) <> '.raw' then
-        begin
-          DestPath := DestPath + '.raw';
-        end;
       end;
 
       rsmPreCond:

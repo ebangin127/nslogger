@@ -248,7 +248,7 @@ function GetIsDriveAccessible(DeviceName: String; Handle: THandle = 0): Boolean;
 function GetSSDList: TSSDListResult;
 
 //날짜, TBW 계산
-function GetTBWStr(MBW: Double): String;
+function GetByte2TBWStr(BW: Int64): String;
 function GetDayStr(Day: Double): String;
 
 const
@@ -464,8 +464,11 @@ begin
   FreeAndNil(SCSIList);
 end;
 
-function GetTBWStr(MBW: Double): String;
+function GetByte2TBWStr(BW: Int64): String;
+var
+  MBW: Double;
 begin
+  MBW := BW / 1024 / 1024;
   if MBW > (1024 * 1024 * 1024 / 4 * 3) then //Above 0.75PB
   begin
     result := Format('%.2fPBW', [MBW / 1024 / 1024 / 1024]);

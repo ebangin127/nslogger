@@ -5,21 +5,13 @@ interface
 uses Classes, SysUtils, ComCtrls, Math, Windows, DateUtils, Dialogs,
      uGSTester, uGSList, uRandomBuffer, uSaveFile, uDiskFunctions, uParser;
 
-type
-  TmakeJEDECList  = function (TraceList: Pointer; path: PChar): PTGListHeader;
-                    cdecl;
-  TmakeJEDECListAndFix
-                  = function (TraceList: Pointer; path: PChar;
-                    MultiConst: Double): PTGListHeader; cdecl;
-  TmakeJEDECClass = function: Pointer; cdecl;
-  TdeleteJEDECClass = procedure(delClass: Pointer); cdecl;
-
 const
   ByteToTB = 40;
   EXIT_NORMAL = 0;
   EXIT_RETENTION = 1;
   EXIT_HOSTWRITE = 2;
   EXIT_ERROR = 3;
+  EXIT_EXT_RETENTION = 4;
   ABNORMAL_VALUE = 500;
   ERROR_VALUE = 10000;
 
@@ -66,7 +58,9 @@ type
     procedure WriteMaxTBW(const Value: UInt64);
     procedure WriteRetTest(const Value: UInt64);
     function GetFFR: Double;
-    procedure AddToAlert(const Value: String);
+    function GetHostWrite: Int64;
+    function GetMaxLatency: Double;
+    function GetAvgLatency: Double;
   public
     property ExitCode: Byte read FExitCode;
 
@@ -78,6 +72,10 @@ type
     property MaxHostWrite: UInt64 read ReadMaxTBW write WriteMaxTBW;
     property RetentionTest: UInt64 read ReadRetTest write WriteRetTest;
     property NeedVerify: Boolean read FMainNeedReten write FMainNeedReten;
+
+    property HostWrite: Int64 read GetHostWrite;
+    property MaxLatency: Double read GetMaxLatency;
+    property AvgLatency: Double read GetAvgLatency;
 
     property FFR: Double read GetFFR;
 
@@ -106,20 +104,19 @@ type
     procedure StartThread;
 
     procedure AssignSavePath(const Path: String);
-    function AssignBufferSetting(BufSize: Integer; RandomnessInInteger: Integer):
-              Boolean; overload;
-    function AssignBufferSetting(BufSize: Integer; RandomnessInString: String):
-              Boolean; overload;
+    function AssignBufferSetting(BufSize: Integer;
+              RandomnessInInteger: Integer): Boolean; overload;
+    function AssignBufferSetting(BufSize: Integer;
+              RandomnessInString: String): Boolean; overload;
     procedure AssignAlertPath(const Path: String);
     function SetDisk(DriveNumber: Integer): Boolean;
     procedure SetHostWrite(HostWrite: Int64);
 
     function Save(SaveFilePath: String): Boolean;
-    procedure SaveTodaySpeed(SaveFilePath: String);
-    procedure SaveTBW(SaveFilePath: String);
     function Load(SaveFilePath: String): Boolean;
 
     procedure GetMainInfo;
+    procedure AddToAlert(const Value: String);
   end;
 
 implementation
@@ -168,8 +165,14 @@ end;
 
 destructor TGSTestThread.Destroy;
 begin
-  SaveTodaySpeed(FSavePath);
-  SaveTBW(FSavePath);
+  if fMain <> nil then
+  begin
+    if fMain.RepeatRetention = false then
+      Synchronize(ApplyState)
+    else
+      FExitCode := EXIT_EXT_RETENTION;
+  end;
+
   Synchronize(GetMainInfo);
   Save(FSavePath);
 
@@ -186,19 +189,23 @@ begin
     case FExitCode of
       EXIT_HOSTWRITE:
       begin
-        lAlert.Items.Add(GetLogLine('쓰기 종료'));
+        AddToAlert(GetLogLine('쓰기 종료'));
       end;
       EXIT_RETENTION:
       begin
-        lAlert.Items.Add(GetLogLine('주기적 리텐션 테스트'));
+        AddToAlert(GetLogLine('주기적 리텐션 테스트'));
+      end;
+      EXIT_EXT_RETENTION:
+      begin
+        AddToAlert(GetLogLine('리텐션 테스트 연장 진행'));
       end;
       EXIT_ERROR:
       begin
-        lAlert.Items.Add(GetLogLine('기능 실패율 비정상'));
+        AddToAlert(GetLogLine('기능 실패율 비정상'));
       end;
       EXIT_NORMAL:
       begin
-        lAlert.Items.Add(GetLogLine('사용자 종료'));
+        AddToAlert(GetLogLine('사용자 종료'));
       end;
     end;
   end;
@@ -223,11 +230,11 @@ begin
     if FLastSyncCount <> FTester.GetOverallTestCount + 1 then
     begin
       FLastSyncCount := FTester.GetOverallTestCount + 1;
-      AddToAlert(IntToStr(FLastSyncCount) + '회 시작: '
-                 + FormatDateTime('yyyy/mm/dd hh:nn:ss', Now));
+      AddToAlert(GetLogLine(IntToStr(FLastSyncCount) + '회 시작',
+                            '반복자 위치 - ' + IntToStr(FTester.Iterator)));
     end;
 
-    TBWStr := GetTBWStr(FTester.GetHostWrite shr 20); //Unit: MB
+    TBWStr := GetByte2TBWStr(FTester.GetHostWrite);
     DayStr := GetDayStr((FTester.GetHostWrite shr 30) / 10); //Unit: 10GB/d
 
     ApplyState_Latency;
@@ -258,8 +265,8 @@ var
   AvgLatency, MaxLatency: Double;
   pAvgLatencyPos, pMaxLatencyPos: Integer;
 begin
-  AvgLatency := FTester.GetAverageLatency / 1000;
-  MaxLatency := FTester.GetMaximumLatency / 1000;
+  AvgLatency := GetAvgLatency;
+  MaxLatency := GetMaxLatency;
 
   with fMain do
   begin
@@ -456,8 +463,6 @@ begin
       FSecCounter := FSecCounter + 1;
       if FSecCounter >= 300 then // 5 minutes
       begin
-        SaveTodaySpeed(FSavePath);
-        SaveTBW(FSavePath);
         Save(FSavePath);
         FSecCounter := 0;
       end;
@@ -465,14 +470,29 @@ begin
       FLastSync := CurrTime;
     end;
   end;
+end;
 
-  if fMain <> nil then
-    Synchronize(ApplyState);
+function TGSTestThread.GetAvgLatency: Double;
+begin
+  result := FTester.GetAverageLatency / 1000;
+end;
+
+function TGSTestThread.GetMaxLatency: Double;
+begin
+  result := FTester.GetMaximumLatency / 1000;
 end;
 
 function TGSTestThread.GetFFR: Double;
 begin
-  result := (FTester.ErrorCount / FTester.GetLength) * 100;
+  if FTester.GetLength > 0 then
+    result := (FTester.ErrorCount / FTester.GetLength) * 100
+  else
+    result := 0;
+end;
+
+function TGSTestThread.GetHostWrite: Int64;
+begin
+  result := FTester.HostWrite;
 end;
 
 procedure TGSTestThread.GetMainInfo;
@@ -480,71 +500,6 @@ begin
   FMainNeedReten := fMain.NeedRetention;
   FMainDriveModel := fMain.DriveModel;
   FMainDriveSerial := fMain.DriveSerial;
-end;
-
-procedure TGSTestThread.SaveTodaySpeed(SaveFilePath: String);
-var
-  SaveFile: TStringList;
-  LastTime, CurrTime: TDateTime;
-  SavedToday: Boolean;
-begin
-  SaveFile := TStringList.Create;
-  SavedToday := false;
-
-  if FileExists(SaveFilePath + 'speedlog.txt') then
-    SaveFile.LoadFromFile(SaveFilePath + 'speedlog.txt');
-
-  //오늘 저장한 적이 있으면 처리
-  CurrTime := Now;
-  if SaveFile.Count > 0 then
-  begin
-    LastTime := UnixToDateTime(StrToInt64(SaveFile[0]));
-    if (LastTime >= floor(CurrTime)) and (LastTime < ceil(CurrTime)) then
-    begin
-      SaveFile.Delete(SaveFile.Count - 1);
-      SavedToday := true;
-    end;
-  end
-  else
-  begin
-    SaveFile.Add('');
-  end;
-
-  //저장하기 위해서 내용 적기
-  SaveFile[0] := IntToStr(DateTimeToUnix(CurrTime));
-  SaveFile.Add(SaveFile[0] + ' ' +
-               IntToStr(FTester.StartLatency) + ' ' +
-               IntToStr(FTester.EndLatency) + ' ' +
-               IntToStr(FTester.MaxLatency) + ' ' +
-               IntToStr(FTester.AvgLatency));
-
-  SaveFile.SaveToFile(SaveFilePath + 'speedlog.txt');
-
-  if SavedToday = false then
-  begin
-    FTester.StartLatency := 0;
-    FTester.EndLatency := 0;
-    FTester.MaxLatency := 0;
-    FTester.AvgLatency := 0;
-  end;
-
-  FreeAndNil(SaveFile);
-end;
-
-procedure TGSTestThread.SaveTBW(SaveFilePath: String);
-var
-  SaveFile: TStringList;
-begin
-  SaveFile := TStringList.Create;
-
-  //저장하기 위해서 내용 적기
-  Synchronize(GetMainInfo);
-  SaveFile.Add(Trim(FMainDriveModel));
-  SaveFile.Add(IntToStr(floor(FTester.GetHostWrite / 1024 / 1024 / 1024 / 10)));
-
-  SaveFile.SaveToFile(SaveFilePath + 'tbwlog.txt');
-
-  FreeAndNil(SaveFile);
 end;
 
 function TGSTestThread.Save(SaveFilePath: String): Boolean;

@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics,  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.ComCtrls, Vcl.StdCtrls, Vcl.ExtCtrls, Math, DateUtils,
-  Vcl.Imaging.pngimage,
+  Vcl.Imaging.pngimage, System.UITypes,
   uRandomBuffer, uGSTestThread, uGSList, uSSDInfo, uTrimCommand,
   uDiskFunctions, uSetting, uRetSel;
 
@@ -67,6 +67,7 @@ type
     procedure FormResize(Sender: TObject);
     procedure lForceRetenMouseEnter(Sender: TObject);
     procedure lForceRetenMouseLeave(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     FDiskNum: Integer;
     FDestDriveModel: String;
@@ -77,6 +78,7 @@ type
     FMaxFFR: Integer;
     FSaveFilePath: String;
     FNeedRetention: Boolean;
+    FRepeatRetention: Boolean;
 
     procedure WmAfterShow(var Msg: TMessage); message WM_AFTER_SHOW;
     procedure ResizeStatusComponents(BasicTop: Integer;
@@ -94,6 +96,8 @@ type
     property NeedRetention: Boolean read FNeedRetention;
     property DriveModel: String read FDestDriveModel;
     property DriveSerial: String read FDestDriveSerial;
+    property RepeatRetention: Boolean read FRepeatRetention;
+
     function GetLogLine(Name: String; Contents: String = ''): String;
     { Public declarations }
   end;
@@ -134,6 +138,21 @@ procedure TfMain.bSaveClick(Sender: TObject);
 begin
   FNeedRetention := false;
   Close;
+end;
+
+procedure TfMain.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  if (TestThread <> nil) and
+      (FRepeatRetention = false) then
+    TestThread.AddToAlert(
+      GetLogLine('테스트 정상 종료', '쓰기량 - '
+                                     + GetByte2TBWStr(TestThread.HostWrite)
+                                     + ' / 평균 지연 - '
+                                     + Format('%.2f%s', [TestThread.AvgLatency,
+                                                         'ms'])
+                                     + ' / 최대 지연 - '
+                                     + Format('%.2f%s', [TestThread.MaxLatency,
+                                                         'ms'])));
 end;
 
 procedure TfMain.FormCreate(Sender: TObject);
@@ -410,6 +429,7 @@ begin
 
   TestThread := TGSTestThread.Create(fSetting.TracePath,
                                      true, SSDInfo.UserSize shr 9);
+  FRepeatRetention := false;
   if fSetting.LoadedFromFile then
   begin
     TestThread.Load(fSetting.SavePath + 'settings.ini');
@@ -421,8 +441,22 @@ begin
       fRetSel.SetMode(rsmVerify, fSetting.SavePath + 'compare_error_log.txt');
       fRetSel.ShowModal;
 
-      lAlert.Items.Add(
-        GetLogLine('리텐션 테스트 종료', 'UBER - ' + FloatToStr(fRetSel.UBER)));
+      if fRetSel.bStart.Visible = false then
+        TestThread.AddToAlert(
+          GetLogLine('리텐션 테스트 종료',
+                     'UBER - ' + FloatToStr(fRetSel.UBER)))
+      else
+        TestThread.AddToAlert(
+          GetLogLine('리텐션 테스트 검증 취소'));
+
+      FreeAndNil(fRetSel);
+
+      if MessageDlg('리텐션 테스트를 반복하시겠습니까?',
+                    mtWarning, mbOKCancel, 0) = mrOK then
+      begin
+        FNeedRetention := true;
+        FRepeatRetention := true;
+      end;
     end;
   end
   else
@@ -432,6 +466,10 @@ begin
     fRetSel.SetMode(rsmPreCond, fSetting.SavePath);
     fRetSel.ShowModal;
     TestThread.SetHostWrite(fRetSel.Written);
+    TestThread.AddToAlert(
+      GetLogLine('테스트 사전 준비 완료', '쓰기량 - '
+                                          + GetByte2TBWStr(fRetSel.Written)));
+    FreeAndNil(fRetSel);
   end;
   TestThread.SetDisk(FDiskNum);
 
@@ -446,8 +484,14 @@ begin
   TestThread.AssignSavePath(FSaveFilePath);
   TestThread.AssignBufferSetting(16 shl 10, 100);
   TestThread.AssignAlertPath(FSaveFilePath + 'alert.txt');
-  TestThread.StartThread;
 
   FreeAndNil(SSDInfo);
+  if FRepeatRetention then
+  begin
+    Close;
+    exit;
+  end;
+
+  TestThread.StartThread;
 end;
 end.

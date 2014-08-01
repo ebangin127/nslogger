@@ -277,7 +277,6 @@ end;
 
 procedure TProducer.Execute;
 var
-  ReadLength: Integer;
   CurrLength: Integer;
 begin
   inherited;
@@ -286,14 +285,13 @@ begin
 
   repeat
     CurrLength := LinearRead shr 1;
-    ReadLength := FFileStream.Read(FBuffer[0], CurrLength shl 1);
-    CurrLength := ReadLength shr 1;
+    CurrLength := FFileStream.Read(FBuffer[0], CurrLength shl 1) shr 1;
     while (FBuffer[CurrLength - 1] <> #$D) and
           (FBuffer[CurrLength - 1] <> #$A) and
           (FFileStream.Position < FFileStream.Size) do
     begin
       Inc(CurrLength, 1);
-      Inc(ReadLength, FFileStream.Read(FBuffer[CurrLength - 1], SizeOf(Char)));
+      FFileStream.Read(FBuffer[CurrLength - 1], SizeOf(Char));
     end;
 
     FBufStor.PutBuf(FBuffer, CurrLength,
