@@ -34,11 +34,13 @@ type
     FMode: TRetSelMode;
     FEndTask: Boolean;
     FUBER: Double;
+    FWritten: Int64;
 
     FCopyThrd: TCopyThread;
     FVerifyThrd: TVerifyThread;
     FPreCondThrd: TPreCondThread;
   public
+    property Written: Int64 read FWritten write FWritten;
     property EndTask: Boolean read FEndTask write FEndTask;
     property UBER: Double read FUBER write FUBER;
 
@@ -73,7 +75,7 @@ begin
         if FileOpen.Execute(Self.Handle) = false then
           exit
         else
-          DestPath := FileSave.FileName;
+          DestPath := FileOpen.FileName;
       end;
 
       rsmCopy:
@@ -82,17 +84,11 @@ begin
           exit
         else
           DestPath := FileSave.FileName;
-
-        if Copy(LowerCase(DestPath), Length(DestPath) - Length('.raw'),
-                Length('.raw')) <> '.raw' then
-        begin
-          DestPath := DestPath + '.raw';
-        end;
       end;
 
       rsmPreCond:
       begin
-        DestPath := FWritePath;
+        DestPath := FOrigPath;
       end;
     end;
   end;
@@ -128,7 +124,7 @@ end;
 
 procedure TfRetSel.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  if ((FVerifyThrd <> nil) or (FCopyThrd <> nil)) and
+  if ((FVerifyThrd <> nil) or (FCopyThrd <> nil) or (FPreCondThrd <> nil)) and
      (EndTask = false) then
     Action := caNone;
 end;
@@ -153,7 +149,9 @@ begin
   if FVerifyThrd <> nil then
     FreeAndNil(FVerifyThrd)
   else if FCopyThrd <> nil then
-    FreeAndNil(FCopyThrd);
+    FreeAndNil(FCopyThrd)
+  else if FPreCondThrd <> nil then
+    FreeAndNil(FPreCondThrd);
 
   if FDriveList <> nil then
     FreeAndNil(FDriveList);
@@ -217,10 +215,10 @@ begin
   else if Mode = rsmPreCond then
   begin
     cDestination.Clear;
-    cDestination.Items.Add(FWritePath);
+    cDestination.Items.Add(FOrigPath);
 
     FDriveList.Clear;
-    FDriveList.Add(StrToInt(ExtractDeviceNum(FWritePath)));
+    FDriveList.Add(StrToInt(ExtractDeviceNum(FOrigPath)));
 
     bStart.Caption := '테스트 사전 준비 시작';
     Caption := '테스트 사전 준비';
