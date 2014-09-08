@@ -137,7 +137,47 @@ begin
 end;
 
 procedure TfMain.FormCreate(Sender: TObject);
+var
+  MessageResult: Integer;
 begin
+  MessageResult :=
+    Application.MessageBox(
+      PChar('라이선스'
+            + Chr(13) + Chr(10) +
+              Chr(13) + Chr(10) +
+            '1. 본 프로그램은 2014/09/07 기준 SSDSAMO 닉네임'
+            + Chr(13) + Chr(10) +
+            '   Winfix, 머쨍, 야간순찰 - 3명만 사용할 수 있습니다'
+            + Chr(13) + Chr(10) +
+              Chr(13) + Chr(10) +
+            '2. 본 프로그램은 JEDEC의 기술 문서인 JESD219A의 수명 측정 표준인'
+            + Chr(13) + Chr(10) +
+            '   Client Workload 수행 및 결과 획득을 위해서만 사용할 수 있습니다'
+            + Chr(13) + Chr(10) +
+              Chr(13) + Chr(10) +
+            '3. 본 프로그램의 허가받지 않은 수정 혹은 배포를 금지합니다.'
+            + Chr(13) + Chr(10) +
+              Chr(13) + Chr(10) +
+            '4. 본 프로그램의 허가받지 않은 이용, 대한민국 법에 어긋나는'
+            + Chr(13) + Chr(10) +
+            '   목적으로의 이용, 변형 행위를 할 시 그로 인해 발생하는'
+            + Chr(13) + Chr(10) +
+            '   민/형사상 책임은 사용자가 집니다.'
+            + Chr(13) + Chr(10) +
+              Chr(13) + Chr(10) +
+            '이에 동의하시면 확인을 눌러주세요.'),
+      PChar(Caption + ' 라이선스'),
+      MB_OKCANCEL  + MB_ICONEXCLAMATION);
+
+  if MessageResult <> 1 then
+  begin
+    Application.MessageBox(PChar('동의하지 않으시는 경우 프로그램을 사용하실' +
+                                 ' 수 없습니다'),
+                           PChar(Caption + ' 라이선스'), MB_OK + MB_ICONERROR);
+    Application.Terminate;
+  end;
+
+
   AppPath := ExtractFilePath(Application.ExeName);
 
   sDestPath.Caption := '';
