@@ -265,7 +265,7 @@ constructor TProducer.Create(BufStor: TBufferStorage; Path: String);
 begin
   inherited Create(false);
   FBufStor := BufStor;
-  FFileStream := TFileStream.Create(Path, fmOpenRead);
+  FFileStream := TFileStream.Create(Path, fmOpenRead or fmShareDenyNone);
   SetLength(FBuffer, LinearRead shl 1);
 end;
 

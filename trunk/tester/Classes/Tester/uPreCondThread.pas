@@ -70,6 +70,7 @@ begin
     TPhysicalDrive.Create(Path);
   FMaxLength := PhysicalDrive.IdentifyDeviceResult.UserSizeInKB * 1024;
     //Unit: Bytes
+  PhysicalDrive := nil;
 
   FBufStor := TRandomBuffer.Create(RandomSeed);
   FBufStor.CreateBuffer(LinearRead shr 10);
@@ -79,7 +80,7 @@ begin
   FProgressBar := ProgressBar;
   FStaticText := StaticText;
 
-  FFileStream := TFileStream.Create(Path, fmOpenWrite);
+  FFileStream := TFileStream.Create(Path, fmOpenWrite or fmShareDenyNone);
 end;
 
 destructor TPreCondThread.Destroy;

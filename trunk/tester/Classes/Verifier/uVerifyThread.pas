@@ -186,7 +186,7 @@ begin
   end
   else
   begin
-    FFileStream := TFileStream.Create(Path, fmOpenRead);
+    FFileStream := TFileStream.Create(Path, fmOpenRead or fmShareDenyNone);
     FFileHandle := 0;
   end;
   FIsSrc := IsSrc;
