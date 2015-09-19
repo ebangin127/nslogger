@@ -94,8 +94,8 @@ begin
     end;
   end;
 
-
   bStart.Visible := false;
+  cDestination.Enabled := false;
 
   case FMode of
     rsmVerify:

@@ -61,9 +61,9 @@ object fRetSel: TfRetSel
   end
   object cDestination: TComboBox
     Left = 114
-    Top = 10
+    Top = 11
     Width = 242
-    Height = 25
+    Height = 31
     Margins.Left = 4
     Margins.Top = 4
     Margins.Right = 4

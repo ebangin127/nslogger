@@ -167,19 +167,6 @@ object fSetting: TfSetting
       TabOrder = 2
       OnClick = bStartNewClick
     end
-    object cDestination: TComboBox
-      Left = 109
-      Top = 22
-      Width = 222
-      Height = 22
-      Margins.Left = 4
-      Margins.Top = 4
-      Margins.Right = 4
-      Margins.Bottom = 4
-      Style = csOwnerDrawFixed
-      TabOrder = 3
-      OnKeyPress = cDestinationKeyPress
-    end
     object eFFR: TEdit
       Left = 195
       Top = 141
@@ -189,9 +176,18 @@ object fSetting: TfSetting
       Margins.Top = 4
       Margins.Right = 4
       Margins.Bottom = 4
-      TabOrder = 4
+      TabOrder = 3
       Text = '3'
     end
+  end
+  object cDestination: TComboBoxEx
+    Left = 120
+    Top = 34
+    Width = 222
+    Height = 30
+    ItemsEx = <>
+    Style = csExDropDownList
+    TabOrder = 2
   end
   object oTrace: TOpenDialog
     Filter = 'JESD219A-MT (*.txt)|*.txt'

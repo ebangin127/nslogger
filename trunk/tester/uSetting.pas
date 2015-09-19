@@ -7,7 +7,7 @@ uses
   System.Classes, Vcl.Graphics, System.UITypes,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Generics.Collections,
   uFileFunctions, uSaveFile, uGSTestThread, uPhysicalDrive,
-  uPartitionListGetter;
+  uPartitionListGetter, Vcl.ComCtrls;
 
 type
   TfSetting = class(TForm)
@@ -22,11 +22,11 @@ type
     Label3: TLabel;
     Label4: TLabel;
     bOpenExist: TButton;
-    cDestination: TComboBox;
     Label6: TLabel;
     eFFR: TEdit;
     Label7: TLabel;
     oTrace: TOpenDialog;
+    cDestination: TComboBoxEx;
     procedure FormCreate(Sender: TObject);
     procedure bStartNewClick(Sender: TObject);
     function FindDrive(Model, Serial: String): Integer;
