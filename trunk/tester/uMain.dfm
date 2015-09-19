@@ -1,15 +1,15 @@
 object fMain: TfMain
   Left = 0
   Top = 0
-  Caption = 'Naraeon SSD Lifelogger 1.0.0'
-  ClientHeight = 800
-  ClientWidth = 800
+  Caption = 'Naraeon SSD Lifelogger Alpha 1'
+  ClientHeight = 1169
+  ClientWidth = 1169
   Color = clWhite
-  Constraints.MinHeight = 720
-  Constraints.MinWidth = 700
+  Constraints.MinHeight = 1052
+  Constraints.MinWidth = 1023
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -11
+  Font.Height = -14
   Font.Name = #47569#51008' '#44256#46357
   Font.Style = []
   OldCreateOrder = False
@@ -19,13 +19,17 @@ object fMain: TfMain
   OnDestroy = FormDestroy
   OnResize = FormResize
   OnShow = FormShow
-  PixelsPerInch = 96
-  TextHeight = 13
+  PixelsPerInch = 120
+  TextHeight = 19
   object iLogo: TImage
-    Left = 10
-    Top = 10
+    Left = 15
+    Top = 15
     Width = 600
     Height = 48
+    Margins.Left = 4
+    Margins.Top = 4
+    Margins.Right = 4
+    Margins.Bottom = 4
     AutoSize = True
     Picture.Data = {
       0954506E67496D61676589504E470D0A1A0A0000000D49484452000002580000
@@ -294,146 +298,194 @@ object fMain: TfMain
       48B00882200882F8B9E4FF032549EFA0885B72620000000049454E44AE426082}
   end
   object gStatus: TGroupBox
-    Left = 10
-    Top = 74
-    Width = 391
-    Height = 313
+    Left = 15
+    Top = 108
+    Width = 571
+    Height = 458
+    Margins.Left = 4
+    Margins.Top = 4
+    Margins.Right = 4
+    Margins.Bottom = 4
     TabOrder = 0
     object lAvgLatency: TLabel
-      Left = 17
-      Top = 71
-      Width = 68
-      Height = 20
+      Left = 25
+      Top = 104
+      Width = 101
+      Height = 30
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #54217#44512' '#51648#50672':'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
     end
     object lMaxLatency: TLabel
-      Left = 15
-      Top = 123
-      Width = 68
-      Height = 20
+      Left = 22
+      Top = 180
+      Width = 101
+      Height = 30
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #52572#45824' '#51648#50672':'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
     end
     object lFFR: TLabel
-      Left = 15
-      Top = 174
-      Width = 116
-      Height = 20
+      Left = 22
+      Top = 254
+      Width = 172
+      Height = 30
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #44592#45733' '#49892#54056#50984'(FFR):'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
     end
     object lTestProgress: TLabel
-      Left = 17
-      Top = 21
-      Width = 83
-      Height = 20
+      Left = 25
+      Top = 31
+      Width = 123
+      Height = 30
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #53580#49828#53944' '#51652#54665':'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
     end
     object lMaxAlertL: TLabel
-      Left = 17
-      Top = 147
-      Width = 50
-      Height = 20
+      Left = 25
+      Top = 215
+      Width = 74
+      Height = 30
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #8592' '#50577#54840
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clGreen
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = [fsBold]
       ParentFont = False
     end
     object lAvgAlertL: TLabel
-      Left = 17
-      Top = 94
-      Width = 50
-      Height = 20
+      Left = 25
+      Top = 137
+      Width = 74
+      Height = 30
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #8592' '#50577#54840
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clGreen
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = [fsBold]
       ParentFont = False
     end
     object lMaxAlertR: TLabel
-      Left = 269
-      Top = 147
-      Width = 50
-      Height = 20
+      Left = 393
+      Top = 215
+      Width = 74
+      Height = 30
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #50948#54744' '#8594
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clRed
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = [fsBold]
       ParentFont = False
     end
     object lAvgAlertR: TLabel
-      Left = 269
-      Top = 94
-      Width = 50
-      Height = 20
+      Left = 393
+      Top = 137
+      Width = 74
+      Height = 30
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #50948#54744' '#8594
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clRed
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = [fsBold]
       ParentFont = False
     end
     object lFFRR: TLabel
-      Left = 269
-      Top = 202
-      Width = 50
-      Height = 20
+      Left = 393
+      Top = 295
+      Width = 74
+      Height = 30
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #50948#54744' '#8594
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clRed
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = [fsBold]
       ParentFont = False
     end
     object lFFRL: TLabel
-      Left = 17
-      Top = 202
-      Width = 50
-      Height = 20
+      Left = 25
+      Top = 295
+      Width = 74
+      Height = 30
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #8592' '#50577#54840
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clGreen
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = [fsBold]
       ParentFont = False
     end
     object iForceReten: TImage
-      Left = 15
-      Top = 262
-      Width = 48
-      Height = 48
+      Left = 22
+      Top = 383
+      Width = 70
+      Height = 70
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Enabled = False
       Picture.Data = {
         0954506E67496D61676589504E470D0A1A0A0000000D49484452000001000000
@@ -2017,15 +2069,19 @@ object fMain: TfMain
       OnClick = bForceRetenClick
     end
     object lForceReten: TLabel
-      Left = 54
-      Top = 270
-      Width = 104
-      Height = 15
+      Left = 79
+      Top = 395
+      Width = 148
+      Height = 23
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #47532#53584#49496' '#53580#49828#53944' '#49884#51089
       Enabled = False
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -12
+      Font.Height = -17
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
@@ -2034,10 +2090,14 @@ object fMain: TfMain
       OnMouseLeave = lForceRetenMouseLeave
     end
     object iSave: TImage
-      Left = 237
-      Top = 263
-      Width = 48
-      Height = 48
+      Left = 346
+      Top = 384
+      Width = 71
+      Height = 71
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Enabled = False
       Picture.Data = {
         0954506E67496D61676589504E470D0A1A0A0000000D49484452000001000000
@@ -3349,15 +3409,19 @@ object fMain: TfMain
       OnClick = bSaveClick
     end
     object lSave: TLabel
-      Left = 277
-      Top = 270
-      Width = 68
-      Height = 15
+      Left = 405
+      Top = 395
+      Width = 97
+      Height = 23
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #51200#51109' '#48143' '#51333#47308
       Enabled = False
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -12
+      Font.Height = -17
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
@@ -3366,92 +3430,124 @@ object fMain: TfMain
       OnMouseLeave = lForceRetenMouseLeave
     end
     object pAvgLatency: TProgressBar
-      Left = 74
-      Top = 96
-      Width = 189
-      Height = 22
+      Left = 108
+      Top = 140
+      Width = 276
+      Height = 32
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Smooth = True
       SmoothReverse = True
       TabOrder = 0
     end
     object pMaxLatency: TProgressBar
-      Left = 74
-      Top = 147
-      Width = 189
-      Height = 22
+      Left = 108
+      Top = 215
+      Width = 276
+      Height = 32
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Smooth = True
       SmoothReverse = True
       TabOrder = 1
     end
     object sAvgLatency: TStaticText
-      Left = 93
-      Top = 71
-      Width = 95
-      Height = 24
+      Left = 136
+      Top = 104
+      Width = 140
+      Height = 34
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #50577#54840' (0.00ms)'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
       TabOrder = 2
     end
     object sMaxLatency: TStaticText
-      Left = 93
-      Top = 123
-      Width = 95
-      Height = 24
+      Left = 136
+      Top = 180
+      Width = 140
+      Height = 34
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #50577#54840' (0.00ms)'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
       TabOrder = 3
     end
     object pFFR: TProgressBar
-      Left = 74
-      Top = 203
-      Width = 189
-      Height = 22
+      Left = 108
+      Top = 297
+      Width = 276
+      Height = 32
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Smooth = True
       SmoothReverse = True
       TabOrder = 4
     end
     object sFFR: TStaticText
-      Left = 141
-      Top = 174
-      Width = 25
-      Height = 24
+      Left = 206
+      Top = 254
+      Width = 34
+      Height = 34
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = '0%'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
       TabOrder = 5
     end
     object pTestProgress: TProgressBar
-      Left = 74
-      Top = 46
-      Width = 189
-      Height = 22
+      Left = 108
+      Top = 67
+      Width = 276
+      Height = 32
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Smooth = True
       SmoothReverse = True
       TabOrder = 6
     end
     object sTestProgress: TStaticText
-      Left = 109
-      Top = 21
-      Width = 118
-      Height = 24
+      Left = 159
+      Top = 31
+      Width = 173
+      Height = 34
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = '0% (0TBW / 0'#51068')'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
@@ -3459,142 +3555,186 @@ object fMain: TfMain
     end
   end
   object gFirstSet: TGroupBox
-    Left = 405
-    Top = 74
-    Width = 385
-    Height = 313
+    Left = 592
+    Top = 108
+    Width = 563
+    Height = 458
+    Margins.Left = 4
+    Margins.Top = 4
+    Margins.Right = 4
+    Margins.Bottom = 4
     TabOrder = 1
     object lDest: TLabel
-      Left = 25
-      Top = 29
-      Width = 68
-      Height = 20
+      Left = 37
+      Top = 42
+      Width = 101
+      Height = 30
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #45824#49345' '#50948#52824':'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
     end
     object lDestTBW: TLabel
-      Left = 25
-      Top = 121
-      Width = 69
-      Height = 20
+      Left = 37
+      Top = 177
+      Width = 103
+      Height = 30
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #47785#54364' TBW:'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
     end
     object lRetention: TLabel
-      Left = 25
-      Top = 153
-      Width = 138
-      Height = 20
+      Left = 37
+      Top = 224
+      Width = 205
+      Height = 30
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #47532#53584#49496' '#53580#49828#53944' '#51452#44592': '
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
     end
     object lMaxFFR: TLabel
-      Left = 25
-      Top = 185
-      Width = 138
-      Height = 20
+      Left = 37
+      Top = 270
+      Width = 205
+      Height = 30
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = #44592#45733' '#49892#54056#50984' '#49345#54620#49440': '
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
     end
     object sDestPath: TStaticText
-      Left = 108
-      Top = 29
-      Width = 137
-      Height = 24
+      Left = 158
+      Top = 42
+      Width = 202
+      Height = 34
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = '\\.\PhysicalDrive0'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
       TabOrder = 0
     end
     object sDestModel: TStaticText
-      Left = 108
-      Top = 59
-      Width = 31
-      Height = 24
+      Left = 158
+      Top = 86
+      Width = 44
+      Height = 34
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = 'SSD'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
       TabOrder = 1
     end
     object sDestSerial: TStaticText
-      Left = 108
-      Top = 89
-      Width = 84
-      Height = 24
+      Left = 158
+      Top = 130
+      Width = 124
+      Height = 34
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = '2147483647'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
       TabOrder = 2
     end
     object sDestTBW: TStaticText
-      Left = 108
-      Top = 121
-      Width = 82
-      Height = 24
+      Left = 158
+      Top = 177
+      Width = 121
+      Height = 34
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = '0TBW / 0'#51068
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
       TabOrder = 3
     end
     object sRetention: TStaticText
-      Left = 177
-      Top = 153
-      Width = 82
-      Height = 24
+      Left = 259
+      Top = 224
+      Width = 121
+      Height = 34
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = '0TBW / 0'#51068
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
       TabOrder = 4
     end
     object sMaxFFR: TStaticText
-      Left = 177
-      Top = 185
-      Width = 25
-      Height = 24
+      Left = 259
+      Top = 270
+      Width = 34
+      Height = 34
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Caption = '0%'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -15
+      Font.Height = -22
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
@@ -3602,22 +3742,30 @@ object fMain: TfMain
     end
   end
   object gAlert: TGroupBox
-    Left = 10
-    Top = 393
-    Width = 784
-    Height = 423
+    Left = 15
+    Top = 574
+    Width = 1145
+    Height = 619
+    Margins.Left = 4
+    Margins.Top = 4
+    Margins.Right = 4
+    Margins.Bottom = 4
     TabOrder = 2
     object lAlert: TListBox
-      Left = 10
-      Top = 10
-      Width = 760
-      Height = 388
+      Left = 15
+      Top = 15
+      Width = 1110
+      Height = 567
+      Margins.Left = 4
+      Margins.Top = 4
+      Margins.Right = 4
+      Margins.Bottom = 4
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
-      Font.Height = -13
+      Font.Height = -20
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
-      ItemHeight = 17
+      ItemHeight = 28
       ParentFont = False
       TabOrder = 0
     end

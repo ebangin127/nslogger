@@ -4,7 +4,7 @@ interface
 
 uses
   StdCtrls, ComCtrls, Classes, SysUtils, Windows, Dialogs,
-  uSSDInfo, uRandomBuffer, uStrFunctions;
+  uPhysicalDrive, uRandomBuffer, uStrFunctions;
 
 const
   LinearRead = 16 shl 20; // 16MB
@@ -59,17 +59,17 @@ constructor TPreCondThread.Create(Path: String; ProgressBar: TProgressBar;
                                   StaticText: TStaticText);
 var
   RandomSeed: Int64;
-  SSDInfo: TSSDInfo;
+  PhysicalDrive: IPhysicalDrive;
 begin
   inherited Create(false);
 
   if QueryPerformanceCounter(RandomSeed) = false then
     RandomSeed := GetTickCount;
 
-  SSDInfo := TSSDInfo.Create;
-  SSDInfo.SetDeviceName(StrToInt(ExtractDeviceNum(Path)));
-  FMaxLength := (SSDInfo.UserSize shr 1) shl 10; //Unit: Bytes
-  FreeAndNil(SSDInfo);
+  PhysicalDrive :=
+    TPhysicalDrive.Create(Path);
+  FMaxLength := PhysicalDrive.IdentifyDeviceResult.UserSizeInKB * 1024;
+    //Unit: Bytes
 
   FBufStor := TRandomBuffer.Create(RandomSeed);
   FBufStor.CreateBuffer(LinearRead shr 10);

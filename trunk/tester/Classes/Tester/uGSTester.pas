@@ -4,7 +4,7 @@ interface
 
 uses Windows, SysUtils, Generics.Collections, MMSystem, Math, Dialogs,
      Classes,
-     uGSList, uRandomBuffer, uTrimCommand, uErrorList;
+     uGSList, uRandomBuffer, uErrorList, uLegacyTrimCommand;
 
 const
   MaxIOSize = 65536;

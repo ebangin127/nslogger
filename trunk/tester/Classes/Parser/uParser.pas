@@ -4,7 +4,7 @@ interface
 
 uses
   Classes, Windows, SysUtils,
-  uIntFunctions, uGSList;
+  uGSList;
 
 const
   LinearRead = 16 shl 20; // 16MB

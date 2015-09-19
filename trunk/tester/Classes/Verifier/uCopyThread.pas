@@ -5,7 +5,7 @@ interface
 uses
   Vcl.ComCtrls, Vcl.StdCtrls, Classes, Dialogs, SysUtils, Windows,
   System.UITypes,
-  uSSDInfo, uStrFunctions, uTrimCommand;
+  uStrFunctions, uPhysicalDrive, uLegacyTrimCommand;
 
 const
   LinearRead = 1 shl 10 shl 10; // 1MB - The max native read
@@ -112,16 +112,16 @@ var
   CopyProducer: TCopyProducer;
   CopyConsumer: TCopyConsumer;
 
-  SSDInfo: TSSDInfo;
+  PhysicalDrive: IPhysicalDrive;
 begin
   inherited;
 
   BufStor := TBufferStorage.Create;
 
-  SSDInfo := TSSDInfo.Create;
-  SSDInfo.SetDeviceName(StrToInt(ExtractDeviceNum(FSrcPath)));
-  FMaxLength := (SSDInfo.UserSize shr 1) shl 10; //Unit: Bytes
-  FreeAndNil(SSDInfo);
+  PhysicalDrive :=
+    TPhysicalDrive.Create(FSrcPath);
+  FMaxLength := PhysicalDrive.IdentifyDeviceResult.UserSizeInKB * 1024;
+    //Unit: Bytes
 
   CopyProducer := TCopyProducer.Create(BufStor, FSrcPath, FMaxLength);
   CopyConsumer := TCopyConsumer.Create(BufStor, FDestPath, FMaxLength,

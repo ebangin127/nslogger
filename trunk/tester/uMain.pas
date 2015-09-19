@@ -7,8 +7,8 @@ uses
   System.Classes, Vcl.Graphics,  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.ComCtrls, Vcl.StdCtrls, Vcl.ExtCtrls, Math, DateUtils,
   Vcl.Imaging.pngimage, System.UITypes,
-  uRandomBuffer, uGSTestThread, uGSList, uSSDInfo, uTrimCommand,
-  uDiskFunctions, uSetting, uRetSel;
+  uSizeStrings, uDatasizeUnit, uPhysicalDrive, uRandomBuffer, uGSTestThread,
+  uGSList, uSetting, uRetSel;
 
 const
   WM_AFTER_SHOW = WM_USER + 300;
@@ -92,6 +92,7 @@ type
     procedure gFirstSetResize;
     procedure gChangeStateResize;
     procedure gAlertResize;
+    function DenaryKBtoGB: TDatasizeUnitChangeSetting;
   public
     property NeedRetention: Boolean read FNeedRetention;
     property DriveModel: String read FDestDriveModel;
@@ -145,58 +146,16 @@ begin
   if (TestThread <> nil) and
       (FRepeatRetention = false) then
     TestThread.AddToAlert(
-      GetLogLine('테스트 정상 종료', '쓰기량 - '
-                                     + GetByte2TBWStr(TestThread.HostWrite)
-                                     + ' / 평균 지연 - '
-                                     + Format('%.2f%s', [TestThread.AvgLatency,
-                                                         'ms'])
-                                     + ' / 최대 지연 - '
-                                     + Format('%.2f%s', [TestThread.MaxLatency,
-                                                         'ms'])));
+      GetLogLine('테스트 정상 종료', '쓰기량 - ' +
+      GetByte2TBWStr(TestThread.HostWrite) +
+      ' / 평균 지연 - ' +
+      Format('%.2f%s', [TestThread.AvgLatency, 'ms']) +
+      ' / 최대 지연 - ' +
+      Format('%.2f%s', [TestThread.MaxLatency, 'ms'])));
 end;
 
 procedure TfMain.FormCreate(Sender: TObject);
-var
-  MessageResult: Integer;
 begin
-  MessageResult :=
-    Application.MessageBox(
-      PChar('라이선스'
-            + Chr(13) + Chr(10) +
-              Chr(13) + Chr(10) +
-            '1. 본 프로그램은 2014/09/07 기준 SSDSAMO 닉네임'
-            + Chr(13) + Chr(10) +
-            '   Winfix, 머쨍, 야간순찰 - 3명만 사용할 수 있습니다'
-            + Chr(13) + Chr(10) +
-              Chr(13) + Chr(10) +
-            '2. 본 프로그램은 JEDEC의 기술 문서인 JESD219A의 수명 측정 표준인'
-            + Chr(13) + Chr(10) +
-            '   Client Workload 수행 및 결과 획득을 위해서만 사용할 수 있습니다'
-            + Chr(13) + Chr(10) +
-              Chr(13) + Chr(10) +
-            '3. 본 프로그램의 허가받지 않은 수정 혹은 배포를 금지합니다.'
-            + Chr(13) + Chr(10) +
-              Chr(13) + Chr(10) +
-            '4. 본 프로그램의 허가받지 않은 이용, 대한민국 법에 어긋나는'
-            + Chr(13) + Chr(10) +
-            '   목적으로의 이용, 변형 행위를 할 시 그로 인해 발생하는'
-            + Chr(13) + Chr(10) +
-            '   민/형사상 책임은 사용자가 집니다.'
-            + Chr(13) + Chr(10) +
-              Chr(13) + Chr(10) +
-            '이에 동의하시면 확인을 눌러주세요.'),
-      PChar(Caption + ' 라이선스'),
-      MB_OKCANCEL  + MB_ICONEXCLAMATION);
-
-  if MessageResult <> 1 then
-  begin
-    Application.MessageBox(PChar('동의하지 않으시는 경우 프로그램을 사용하실' +
-                                 ' 수 없습니다'),
-                           PChar(Caption + ' 라이선스'), MB_OK + MB_ICONERROR);
-    Application.Terminate;
-  end;
-
-
   AppPath := ExtractFilePath(Application.ExeName);
 
   sDestPath.Caption := '';
@@ -428,9 +387,16 @@ begin
   lAlert.Height := gAlert.Height - (OuterPadding shl 1);
 end;
 
+function TfMain.DenaryKBtoGB: TDatasizeUnitChangeSetting;
+begin
+  result.FNumeralSystem := TNumeralSystem.Denary;
+  result.FFromUnit := KiloUnit;
+  result.FToUnit := GigaUnit;
+end;
+
 procedure TfMain.WmAfterShow(var Msg: TMessage);
 var
-  SSDInfo: TSSDInfo;
+  PhysicalDrive: IPhysicalDrive;
 begin
   fSetting := TfSetting.Create(self);
   fSetting.ShowModal;
@@ -444,14 +410,16 @@ begin
 
   FSaveFilePath := fSetting.SavePath;
 
-  SSDInfo := TSSDInfo.Create;
-  SSDInfo.SetDeviceName(FDiskNum);
+  PhysicalDrive :=
+    TPhysicalDrive.Create(
+      TPhysicalDrive.BuildFileAddressByNumber(FDiskNum));
   FDestTBW := StrToInt(fSetting.eDestTBW.Text);
   FRetentionTBW := StrToInt(fSetting.eRetentionTBW.Text);
-  FDestDriveModel := SSDInfo.Model;
-  FDestDriveSerial := SSDInfo.Serial;
-  FDestDriveCapacity := floor(SSDInfo.UserSize
-                              / 2 / 1024 / 1000 / 1000 * 1024 * 1.024); //In GB
+  FDestDriveModel := PhysicalDrive.IdentifyDeviceResult.Model;
+  FDestDriveSerial := PhysicalDrive.IdentifyDeviceResult.Serial;
+  FDestDriveCapacity :=
+    Round(ChangeDatasizeUnit(
+      PhysicalDrive.IdentifyDeviceResult.UserSizeInKB, DenaryKBtoGB));
   FMaxFFR := StrToInt(fSetting.eFFR.Text);
 
   sDestPath.Caption := '\\.\PhysicalDrive' + IntToStr(FDiskNum);
@@ -467,8 +435,9 @@ begin
 
   Application.ProcessMessages;
 
-  TestThread := TGSTestThread.Create(fSetting.TracePath,
-                                     true, SSDInfo.UserSize shr 9);
+  TestThread :=
+    TGSTestThread.Create(fSetting.TracePath, true,
+      PhysicalDrive.IdentifyDeviceResult.UserSizeInKB shr 9);
   FRepeatRetention := false;
   if fSetting.LoadedFromFile then
   begin
@@ -513,7 +482,7 @@ begin
   end;
   TestThread.SetDisk(FDiskNum);
 
-  TestThread.MaxLBA := SSDInfo.UserSize;
+  TestThread.MaxLBA := PhysicalDrive.IdentifyDeviceResult.UserSizeInKB * 512;
   TestThread.OrigLBA := CapacityOf128GB;
   TestThread.Align := 512;
   TestThread.MaxFFR := FMaxFFR;
@@ -525,7 +494,6 @@ begin
   TestThread.AssignBufferSetting(16 shl 10, 100);
   TestThread.AssignAlertPath(FSaveFilePath + 'alert.txt');
 
-  FreeAndNil(SSDInfo);
   if FRepeatRetention then
   begin
     Close;

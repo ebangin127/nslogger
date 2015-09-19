@@ -6,8 +6,9 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Vcl.ComCtrls, Generics.Collections,
-  uSSDInfo, uDiskFunctions, uStrFunctions,
-  uCopyThread, uVerifyThread, uPreCondThread;
+  uStrFunctions,
+  uCopyThread, uVerifyThread, uPreCondThread, uPhysicalDrive,
+  uPartitionListGetter;
 
 type
   TRetSelMode = (rsmVerify, rsmCopy, rsmPreCond);
@@ -159,37 +160,35 @@ end;
 
 procedure TfRetSel.RefreshDrives;
 var
-  TempSSDInfo: TSSDInfo;
+  PhysicalDrive: IPhysicalDrive;
   CurrDrv: Integer;
-  hdrive: Integer;
-  DRVLetters: TDriveLetters;
+  PartitionList: TPartitionList;
 begin
-  TempSSDInfo := TSSDInfo.Create;
   for CurrDrv := 0 to 99 do
   begin
-    if FOrigPath = '\\.\PhysicalDrive' + IntToStr(CurrDrv) then
+    try
+      PhysicalDrive := TPhysicalDrive.Create(
+        TPhysicalDrive.BuildFileAddressByNumber(CurrDrv));
+
+      if not PhysicalDrive.IsDriveAvailable then
+        Continue;
+    except
       Continue;
-
-    hdrive := CreateFile(PChar('\\.\PhysicalDrive' + IntToStr(CurrDrv)),
-                                GENERIC_READ or GENERIC_WRITE,
-                                FILE_SHARE_READ or FILE_SHARE_WRITE,
-                                nil, OPEN_EXISTING, 0, 0);
-
-    if (GetLastError = 0) and (GetIsDriveAccessible('', hdrive)) then
-    begin
-      TempSSDInfo.SetDeviceName(CurrDrv);
-
-      DRVLetters := GetPartitionList(IntToStr(CurrDrv));
-      if DRVLetters.LetterCount = 0 then //드라이브가 있으면 OS 보호로
-      begin                              //인해 쓰기 테스트 불가.
-        FDriveList.Add(CurrDrv);
-        cDestination.Items.Add(IntToStr(CurrDrv) + ' - ' + TempSSDInfo.Model);
-      end;
     end;
 
-    CloseHandle(hdrive);
+    PartitionList := PhysicalDrive.GetPartitionList;
+    if PartitionList.Count > 0 then
+    begin
+      FreeAndNil(PartitionList);
+      Continue;
+    end;
+
+    FDriveList.Add(CurrDrv);
+    cDestination.Items.Add(IntToStr(CurrDrv) + ' - ' +
+      PhysicalDrive.IdentifyDeviceResult.Model);
+
+    FreeAndNil(PartitionList);
   end;
-  FreeAndNil(TempSSDInfo);
 
   cDestination.Items.Add('파일로 저장');
 end;

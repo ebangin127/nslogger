@@ -3,7 +3,8 @@ unit uGSTestThread;
 interface
 
 uses Classes, SysUtils, ComCtrls, Math, Windows, DateUtils, Dialogs,
-     uGSTester, uGSList, uRandomBuffer, uSaveFile, uDiskFunctions, uParser;
+     uGSTester, uGSList, uRandomBuffer, uSaveFile, uParser,
+     uLegacyDiskFunctions;
 
 const
   ByteToTB = 40;

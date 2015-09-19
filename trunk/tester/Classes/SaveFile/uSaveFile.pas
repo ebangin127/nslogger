@@ -2,8 +2,7 @@ unit uSaveFile;
 
 interface
 
-uses SysUtils, IniFiles,
-      uIntFunctions;
+uses SysUtils, IniFiles;
 
 type
   TIniFile64 = class(TIniFile)
