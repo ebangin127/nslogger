@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, SysUtils,
-  uIoControlFile, uCommandSet, uBufferInterpreter, uSMARTValueList,
+  uIoControlFile, uCommandSet, uBufferInterpreter, Device.SMARTValueList,
   uATABufferInterpreter;
 
 type

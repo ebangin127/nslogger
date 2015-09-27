@@ -43,12 +43,9 @@ begin
   if not IsHandleValid(GetFileHandle) then
     exit(false);
 
-  try
-    IoControl(TIoControlCode.StorageCheckVerify, GetNullBuffer);
-    result := true;
-  except
-    result := false;
-  end;
+  result :=
+    ExceptionFreeIoControl(TIoControlCode.StorageCheckVerify, GetNullBuffer) =
+    ERROR_SUCCESS;
 end;
 
 function TDriveAvailabilityGetter.GetMinimumPrivilege: TCreateFileDesiredAccess;

@@ -4,7 +4,8 @@ interface
 
 uses
   SysUtils,
-  uOSFileWithHandle, uIoControlFile, uSMARTValueList, uBufferInterpreter;
+  uOSFileWithHandle, uIoControlFile,
+  Device.SMARTValueList, uBufferInterpreter;
 
 type
   TCommandSet = class abstract(TIoControlFile)

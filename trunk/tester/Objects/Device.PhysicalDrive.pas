@@ -1,12 +1,13 @@
-unit uPhysicalDrive;
+unit Device.PhysicalDrive;
 
 interface
 
 uses
-  Windows, SysUtils, uBusPhysicalDrive, uOSPhysicalDrive, uOSFile,
-  uInterfacedOSFile,
+  Windows, SysUtils,
+  Device.BusPhysicalDrive, Device.OSPhysicalDrive,
+  uOSFile, uInterfacedOSFile,
   uDiskGeometryGetter, uPartitionListGetter, uDriveAvailabilityGetter,
-  uBufferInterpreter, uSMARTValueList, uNCQAvailabilityGetter;
+  uBufferInterpreter, Device.SMARTValueList, uNCQAvailabilityGetter;
 
 type
   IPhysicalDrive = interface

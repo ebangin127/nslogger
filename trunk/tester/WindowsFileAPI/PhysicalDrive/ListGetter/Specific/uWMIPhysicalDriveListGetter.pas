@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, ActiveX, ComObj, Variants, SysUtils,
-  uOSFile, uPhysicalDriveListGetter, uPhysicalDrive, uPhysicalDriveList;
+  uOSFile, uPhysicalDriveListGetter, Device.PhysicalDrive, uPhysicalDriveList;
 
 type
   TWMIPhysicalDriveListGetter = class sealed(TPhysicalDriveListGetter)

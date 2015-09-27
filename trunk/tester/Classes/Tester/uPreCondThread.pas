@@ -4,7 +4,7 @@ interface
 
 uses
   StdCtrls, ComCtrls, Classes, SysUtils, Windows, Dialogs,
-  uPhysicalDrive, uRandomBuffer, uStrFunctions;
+  Device.PhysicalDrive, uRandomBuffer, uStrFunctions;
 
 const
   LinearRead = 16 shl 20; // 16MB
@@ -32,7 +32,7 @@ type
 implementation
 
 uses
-  uRetSel;
+  Form.Retention;
 
 { TPreCondThread }
 

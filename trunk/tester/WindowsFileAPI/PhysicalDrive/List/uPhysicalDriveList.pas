@@ -4,7 +4,7 @@ interface
 
 uses
   SysUtils, Generics.Collections,
-  uPhysicalDrive;
+  Device.PhysicalDrive;
 
 type
   TPhysicalDriveList = class sealed(TList<IPhysicalDrive>)

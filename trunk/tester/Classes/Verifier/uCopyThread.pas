@@ -5,7 +5,7 @@ interface
 uses
   Vcl.ComCtrls, Vcl.StdCtrls, Classes, Dialogs, SysUtils, Windows,
   System.UITypes,
-  uStrFunctions, uPhysicalDrive, uLegacyTrimCommand;
+  uStrFunctions, Device.PhysicalDrive, uLegacyTrimCommand;
 
 const
   LinearRead = 1 shl 10 shl 10; // 1MB - The max native read
@@ -29,7 +29,7 @@ type
 
 implementation
 
-uses uRetSel;
+uses Form.Retention;
 
 type
   TBuffer = Array of Byte;

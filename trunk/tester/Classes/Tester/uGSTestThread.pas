@@ -79,6 +79,7 @@ type
     property AvgLatency: Double read GetAvgLatency;
 
     property FFR: Double read GetFFR;
+    property Path: String read FSavePath write FSavePath;
 
     constructor Create(TracePath: String; Capacity: UINT64); overload;
     constructor Create(TracePath: String; RandomSeed: Int64;
@@ -104,7 +105,6 @@ type
 
     procedure StartThread;
 
-    procedure AssignSavePath(const Path: String);
     function AssignBufferSetting(BufSize: Integer;
               RandomnessInInteger: Integer): Boolean; overload;
     function AssignBufferSetting(BufSize: Integer;
@@ -122,7 +122,7 @@ type
 
 implementation
 
-uses uMain;
+uses Form.Main;
 
 constructor TGSTestThread.Create(TracePath: String; RandomSeed: Int64;
                                  Capacity: UINT64);
@@ -499,8 +499,8 @@ end;
 procedure TGSTestThread.GetMainInfo;
 begin
   FMainNeedReten := fMain.NeedRetention;
-  FMainDriveModel := fMain.DriveModel;
-  FMainDriveSerial := fMain.DriveSerial;
+  FMainDriveModel := fMain.TestSetting.Model;
+  FMainDriveSerial := fMain.TestSetting.Serial;
 end;
 
 function TGSTestThread.Save(SaveFilePath: String): Boolean;
@@ -602,11 +602,6 @@ end;
 procedure TGSTestThread.WriteRetTest(const Value: UInt64);
 begin
   FRetentionTest := Value shl ByteToTB;
-end;
-
-procedure TGSTestThread.AssignSavePath(const Path: String);
-begin
-  FSavePath := Path;
 end;
 
 procedure TGSTestThread.AssignAlertPath(const Path: String);

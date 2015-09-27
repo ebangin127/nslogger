@@ -1,4 +1,4 @@
-unit uSecurityDescriptor;
+unit OS.SecurityDescriptor;
 
 interface
 

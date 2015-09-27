@@ -1,4 +1,4 @@
-unit uOSPhysicalDrive;
+unit Device.OSPhysicalDrive;
 
 interface
 
@@ -66,11 +66,8 @@ var
 begin
   DriveAvailabilityGetter :=
     TDriveAvailabilityGetter.Create(GetPathOfFileAccessing);
-  try
-    result := DriveAvailabilityGetter.GetAvailability;
-  finally
-    FreeAndNil(DriveAvailabilityGetter);
-  end;
+  result := DriveAvailabilityGetter.GetAvailability;
+  FreeAndNil(DriveAvailabilityGetter);
 end;
 
 function TOSPhysicalDrive.GetPartitionList: TPartitionList;

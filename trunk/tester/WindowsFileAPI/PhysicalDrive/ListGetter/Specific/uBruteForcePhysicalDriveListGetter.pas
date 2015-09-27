@@ -4,7 +4,7 @@ interface
 
 uses
   SysUtils,
-  uOSFile, uPhysicalDrive, uPhysicalDriveListGetter, uPhysicalDriveList;
+  uOSFile, Device.PhysicalDrive, uPhysicalDriveListGetter, uPhysicalDriveList;
 
 type
   TBruteForcePhysicalDriveListGetter = class sealed(TPhysicalDriveListGetter)

@@ -2,11 +2,11 @@ program nslogger;
 
 uses
   Vcl.Forms,
-  uMain in 'uMain.pas' {fMain},
+  Form.Main in 'Form.Main.pas' {fMain},
   uStrFunctions in 'Modules\Etc\uStrFunctions.pas',
   uFileFunctions in 'Modules\Windows\uFileFunctions.pas',
-  uSetting in 'uSetting.pas' {fSetting},
-  uRetSel in 'uRetSel.pas' {fRetSel},
+  Form.Setting in 'Form.Setting.pas' {fSetting},
+  Form.Retention in 'Form.Retention.pas' {fRetSel},
   uGSList in 'Classes\Tester\uGSList.pas',
   uGSTester in 'Classes\Tester\uGSTester.pas',
   uGSTestThread in 'Classes\Tester\uGSTestThread.pas',
@@ -31,15 +31,15 @@ uses
   uDiskGeometryGetter in 'WindowsFileAPI\PhysicalDrive\Getter\uDiskGeometryGetter.pas',
   uDriveAvailabilityGetter in 'WindowsFileAPI\PhysicalDrive\Getter\uDriveAvailabilityGetter.pas',
   uNCQAvailabilityGetter in 'WindowsFileAPI\PhysicalDrive\Getter\uNCQAvailabilityGetter.pas',
-  uBusPhysicalDrive in 'WindowsFileAPI\PhysicalDrive\Part\uBusPhysicalDrive.pas',
-  uOSPhysicalDrive in 'WindowsFileAPI\PhysicalDrive\Part\uOSPhysicalDrive.pas',
+  Device.BusPhysicalDrive in 'WindowsFileAPI\PhysicalDrive\Part\Device.BusPhysicalDrive.pas',
+  Device.OSPhysicalDrive in 'WindowsFileAPI\PhysicalDrive\Part\Device.OSPhysicalDrive.pas',
   uBufferInterpreter in 'WindowsFileAPI\Abstraction\uBufferInterpreter.pas',
-  uSMARTValueList in 'Objects\uSMARTValueList.pas',
-  uPhysicalDrive in 'Objects\uPhysicalDrive.pas',
-  uDatasizeUnit in 'Modules\uDatasizeUnit.pas',
-  uTimeUnit in 'Modules\uTimeUnit.pas',
+  Device.SMARTValueList in 'Objects\Device.SMARTValueList.pas',
+  Device.PhysicalDrive in 'Objects\Device.PhysicalDrive.pas',
+  MeasureUnit.DataSize in 'Modules\MeasureUnit.DataSize.pas',
+  MeasureUnit.Time in 'Modules\MeasureUnit.Time.pas',
   uSizeStrings in 'Modules\uSizeStrings.pas',
-  uSecurityDescriptor in 'Objects\uSecurityDescriptor.pas',
+  OS.SecurityDescriptor in 'Objects\OS.SecurityDescriptor.pas',
   uLegacyTrimCommand in 'Legacy\uLegacyTrimCommand.pas',
   uLegacyDiskFunctions in 'Legacy\uLegacyDiskFunctions.pas',
   uPhysicalDriveList in 'WindowsFileAPI\PhysicalDrive\List\uPhysicalDriveList.pas',
@@ -51,7 +51,10 @@ uses
   uDriveListGetter in 'WindowsFileAPI\Abstraction\uDriveListGetter.pas',
   uPartitionExtentGetter in 'WindowsFileAPI\Partition\Getter\uPartitionExtentGetter.pas',
   uFixedDriveListGetter in 'WindowsFileAPI\Partition\Getter\uFixedDriveListGetter.pas',
-  uLanguageSettings in 'Resource\uLanguageSettings.pas';
+  uLanguageSettings in 'Resource\uLanguageSettings.pas',
+  Setting.Test in 'Classes\Setting.Test.pas',
+  Setting.Test.ParamGetter in 'Classes\Setting.Test.ParamGetter.pas',
+  Pattern.Singleton in 'Objects\Pattern.Singleton.pas';
 
 {$R *.res}
 

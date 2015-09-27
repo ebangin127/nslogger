@@ -1,4 +1,4 @@
-unit uRetSel;
+unit Form.Retention;
 
 interface
 
@@ -7,7 +7,7 @@ uses
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Vcl.ComCtrls, Generics.Collections,
   uStrFunctions,
-  uCopyThread, uVerifyThread, uPreCondThread, uPhysicalDrive,
+  uCopyThread, uVerifyThread, uPreCondThread, Device.PhysicalDrive,
   uPartitionListGetter;
 
 type
@@ -56,7 +56,7 @@ implementation
 
 {$R *.dfm}
 
-uses uMain;
+uses Form.Main;
 
 procedure TfRetSel.bStartClick(Sender: TObject);
 var

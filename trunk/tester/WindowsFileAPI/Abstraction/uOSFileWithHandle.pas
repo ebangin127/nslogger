@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, SysUtils, Dialogs, uOSFile,
-  uSecurityDescriptor;
+  OS.SecurityDescriptor;
 
 type
   TCreateFileDesiredAccess =

@@ -3,7 +3,7 @@ unit uBufferInterpreter;
 interface
 
 uses
-  uSMARTValueList;
+  Device.SMARTValueList;
 
 type
   T512Buffer = Array[0..511] of Byte;

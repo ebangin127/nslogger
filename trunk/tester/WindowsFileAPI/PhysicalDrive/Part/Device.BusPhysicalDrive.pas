@@ -1,10 +1,11 @@
-unit uBusPhysicalDrive;
+unit Device.BusPhysicalDrive;
 
 interface
 
 uses
   Windows, SysUtils,
-  uOSFile, uSMARTValueList, uBufferInterpreter, uCommandSet, uCommandSetFactory;
+  uOSFile, Device.SMARTValueList, uBufferInterpreter,
+  uCommandSet, uCommandSetFactory;
 
 type
   TBusPhysicalDrive = class(TOSFile)
