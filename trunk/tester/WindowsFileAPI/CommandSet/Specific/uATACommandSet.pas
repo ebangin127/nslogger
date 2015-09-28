@@ -13,6 +13,7 @@ type
     function IdentifyDevice: TIdentifyDeviceResult; override;
     function SMARTReadData: TSMARTValueList; override;
     function DataSetManagement(StartLBA, LBACount: Int64): Cardinal; override;
+    procedure Flush; override;
 
     function IsDataSetManagementSupported: Boolean; override;
 
@@ -51,6 +52,7 @@ type
       end;
 
     const
+      ATA_FLAGS_NON_DATA = 0;
       ATA_FLAGS_DRDY_REQUIRED = 1;
       ATA_FLAGS_DATA_IN = 1 shl 1;
       ATA_FLAGS_DATA_OUT = 1 shl 2;
@@ -77,6 +79,7 @@ type
     procedure SetBufferAndIdentifyDevice;
     function InterpretSMARTReadDataBuffer: TSMARTValueList;
     procedure SetBufferAndSMARTReadData;
+    procedure SetInnerBufferToFlush;
   end;
 
 implementation
@@ -254,6 +257,24 @@ begin
   SetOSBufferByInnerBuffer;
   result := ExceptionFreeIoControl
     (TIoControlCode.ATAPassThroughDirect, IoOSBuffer);
+end;
+
+procedure TATACommandSet.SetInnerBufferToFlush;
+const
+  FlushCommand = $E7;
+var
+  IoTaskFile: ATA_TASK_FILES;
+begin
+  IoTaskFile := GetCommonTaskFile;
+  IoTaskFile.CurrentTaskFile.Command := FlushCommand;
+  SetInnerBufferAsFlagsAndTaskFile(ATA_FLAGS_NON_DATA, IoTaskFile);
+end;
+
+procedure TATACommandSet.Flush;
+begin
+  SetInnerBufferToFlush;
+  SetOSBufferByInnerBuffer;
+  IoControl(TIoControlCode.ATAPassThroughDirect, IoOSBuffer);
 end;
 
 end.

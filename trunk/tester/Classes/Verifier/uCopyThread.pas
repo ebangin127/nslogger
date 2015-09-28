@@ -5,7 +5,7 @@ interface
 uses
   Vcl.ComCtrls, Vcl.StdCtrls, Classes, Dialogs, SysUtils, Windows,
   System.UITypes,
-  uStrFunctions, Device.PhysicalDrive, uLegacyTrimCommand;
+  uStrFunctions, uLegacyReadCommand, Device.PhysicalDrive;
 
 const
   LinearRead = 1 shl 10 shl 10; // 1MB - The max native read
@@ -92,8 +92,8 @@ begin
   FSrcPath := SrcPath;
   FDestPath := DestPath;
 
-  FProgressBar := fRetSel.pProgress;
-  FStaticText := fRetSel.sProgress;
+  FProgressBar := fRetention.pProgress;
+  FStaticText := fRetention.sProgress;
 end;
 
 procedure TCopyThread.EndCopy;
@@ -102,8 +102,8 @@ begin
     MessageDlg('오류가 발생하여 작업을 중단하였습니다',
                mtError, [mbOK], 0);
 
-  fRetSel.EndTask := true;
-  fRetSel.Close;
+  fRetention.EndTask := true;
+  fRetention.Close;
 end;
 
 procedure TCopyThread.Execute;

@@ -442,9 +442,9 @@ begin
     end;
     OleDrivesVar :=  Unassigned;
   except
-    on e: Exception do
+    on E: Exception do
     begin
-      ATAList.Add(e.Message);
+      ATAList.Add(E.Message);
       ATAList.SaveToFile('C:\NSTwmierror.txt');
       ATAList.Clear;
       result.WMIEnabled := false;

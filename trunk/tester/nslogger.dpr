@@ -6,7 +6,7 @@ uses
   uStrFunctions in 'Modules\Etc\uStrFunctions.pas',
   uFileFunctions in 'Modules\Windows\uFileFunctions.pas',
   Form.Setting in 'Form.Setting.pas' {fSetting},
-  Form.Retention in 'Form.Retention.pas' {fRetSel},
+  Form.Retention in 'Form.Retention.pas' {fRetention},
   uGSList in 'Classes\Tester\uGSList.pas',
   uGSTester in 'Classes\Tester\uGSTester.pas',
   uGSTestThread in 'Classes\Tester\uGSTestThread.pas',
@@ -40,7 +40,6 @@ uses
   MeasureUnit.Time in 'Modules\MeasureUnit.Time.pas',
   uSizeStrings in 'Modules\uSizeStrings.pas',
   OS.SecurityDescriptor in 'Objects\OS.SecurityDescriptor.pas',
-  uLegacyTrimCommand in 'Legacy\uLegacyTrimCommand.pas',
   uLegacyDiskFunctions in 'Legacy\uLegacyDiskFunctions.pas',
   uPhysicalDriveList in 'WindowsFileAPI\PhysicalDrive\List\uPhysicalDriveList.pas',
   uPhysicalDriveListGetter in 'WindowsFileAPI\PhysicalDrive\ListGetter\Abstraction\uPhysicalDriveListGetter.pas',
@@ -54,7 +53,9 @@ uses
   uLanguageSettings in 'Resource\uLanguageSettings.pas',
   Setting.Test in 'Classes\Setting.Test.pas',
   Setting.Test.ParamGetter in 'Classes\Setting.Test.ParamGetter.pas',
-  Pattern.Singleton in 'Objects\Pattern.Singleton.pas';
+  Pattern.Singleton in 'Objects\Pattern.Singleton.pas',
+  uGSNode in 'Classes\Tester\uGSNode.pas',
+  uLegacyReadCommand in 'Legacy\uLegacyReadCommand.pas';
 
 {$R *.res}
 

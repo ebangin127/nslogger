@@ -1,4 +1,4 @@
-object fRetSel: TfRetSel
+object fRetention: TfRetention
   Left = 0
   Top = 0
   BorderIcons = [biSystemMenu, biMinimize]

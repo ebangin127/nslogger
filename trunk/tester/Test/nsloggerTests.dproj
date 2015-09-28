@@ -1,16 +1,21 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{FECE5550-59F1-422B-BB59-4D54E9667820}</ProjectGuid>
+        <ProjectGuid>{B7802107-D808-42D6-B6B7-2482DDC235FB}</ProjectGuid>
         <ProjectVersion>16.1</ProjectVersion>
-        <FrameworkType>VCL</FrameworkType>
-        <MainSource>nslogger.dpr</MainSource>
+        <FrameworkType>None</FrameworkType>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win64</Platform>
         <TargetedPlatforms>3</TargetedPlatforms>
-        <AppType>Application</AppType>
+        <AppType>Console</AppType>
+        <MainSource>nsloggerTests.dpr</MainSource>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='OSX32' and '$(Base)'=='true') or '$(Base_OSX32)'!=''">
+        <Base_OSX32>true</Base_OSX32>
+        <CfgParent>Base</CfgParent>
         <Base>true</Base>
     </PropertyGroup>
     <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Base)'=='true') or '$(Base_Win32)'!=''">
@@ -34,67 +39,39 @@
         <Cfg_1>true</Cfg_1>
         <Base>true</Base>
     </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Cfg_1)'=='true') or '$(Cfg_1_Win64)'!=''">
-        <Cfg_1_Win64>true</Cfg_1_Win64>
-        <CfgParent>Cfg_1</CfgParent>
-        <Cfg_1>true</Cfg_1>
-        <Base>true</Base>
-    </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_2)'!=''">
         <Cfg_2>true</Cfg_2>
         <CfgParent>Base</CfgParent>
         <Base>true</Base>
     </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win32)'!=''">
-        <Cfg_2_Win32>true</Cfg_2_Win32>
-        <CfgParent>Cfg_2</CfgParent>
-        <Cfg_2>true</Cfg_2>
-        <Base>true</Base>
-    </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win64)'!=''">
-        <Cfg_2_Win64>true</Cfg_2_Win64>
-        <CfgParent>Cfg_2</CfgParent>
-        <Cfg_2>true</Cfg_2>
-        <Base>true</Base>
-    </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
-        <DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
-        <DCC_OutputDRCFile>true</DCC_OutputDRCFile>
-        <SanitizedProjectName>nslogger</SanitizedProjectName>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
-        <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
-        <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
-        <DCC_ExeOutput>..\exe\bin\</DCC_ExeOutput>
+        <DCC_Define>CONSOLE_TESTRUNNER;$(DCC_Define)</DCC_Define>
+        <DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_DcuOutput>.</DCC_DcuOutput>
+        <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
         <DCC_E>false</DCC_E>
         <DCC_N>false</DCC_N>
         <DCC_S>false</DCC_S>
         <DCC_F>false</DCC_F>
         <DCC_K>false</DCC_K>
     </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_OSX32)'!=''">
+        <DCC_UsePackage>FireDACASADriver;FireDACSqliteDriver;bindcompfmx;DBXSqliteDriver;FireDACPgDriver;FireDACODBCDriver;RESTBackendComponents;emsclientfiredac;fmx;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;inetdb;tethering;DBXInterBaseDriver;xmlrtl;ibxpress;DbxCommonDriver;IndyProtocols;dbxcds;DBXMySQLDriver;FireDACCommonDriver;bindcompdbx;bindengine;soaprtl;FMXTee;fmxFireDAC;emsclient;CustomIPTransport;FireDAC;dsnap;fmxase;IndyCore;IndyIPServer;IndyIPCommon;CloudService;FireDACIBDriver;FmxTeeUI;inet;fmxobj;FireDACMySQLDriver;soapmidas;soapserver;inetdbxpress;dsnapxml;fmxdae;RESTComponents;dbexpress;IndyIPClient;$(DCC_UsePackage)</DCC_UsePackage>
+    </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
-        <DCC_SYMBOL_PLATFORM>false</DCC_SYMBOL_PLATFORM>
-        <DCC_UNIT_PLATFORM>false</DCC_UNIT_PLATFORM>
-        <Icon_MainIcon>lifelog.ico</Icon_MainIcon>
-        <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
-        <Manifest_File>GetAdmin.manifest</Manifest_File>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <DCC_UsePackage>FireDACASADriver;FireDACSqliteDriver;bindcompfmx;DBXSqliteDriver;FireDACPgDriver;FireDACODBCDriver;RESTBackendComponents;emsclientfiredac;fmx;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;inetdb;tethering;TeeDB;vclib;DBXInterBaseDriver;Tee;JclContainers;vclFireDAC;xmlrtl;svnui;ibxpress;DbxCommonDriver;vclimg;IndyProtocols;dbxcds;DBXMySQLDriver;FireDACCommonDriver;MetropolisUILiveTile;bindcompdbx;bindengine;vclactnband;vcldb;soaprtl;vcldsnap;bindcompvcl;FMXTee;TeeUI;Jcl;vclie;fmxFireDAC;FireDACADSDriver;vcltouch;emsclient;CustomIPTransport;vclribbon;VCLRESTComponents;FireDAC;VclSmp;dsnap;Intraweb;fmxase;vcl;IndyCore;IndyIPServer;IndyIPCommon;CloudService;CodeSiteExpressPkg;dsnapcon;FireDACIBDriver;FmxTeeUI;inet;fmxobj;JclVcl;FireDACMySQLDriver;soapmidas;vclx;soapserver;inetdbxpress;svn;dsnapxml;fmxdae;JclDeveloperTools;RESTComponents;FireDACMSAccDriver;dbexpress;adortl;IndyIPClient;$(DCC_UsePackage)</DCC_UsePackage>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
-        <DCC_UsePackage>bindcompfmx;vcldbx;fmx;rtl;IndySystem;dbrtl;TeeDB;bindcomp;inetdb;vclib;inetdbbde;DBXInterBaseDriver;Tee;DataSnapCommon;xmlrtl;svnui;ibxpress;DbxCommonDriver;vclimg;IndyProtocols;dbxcds;MetropolisUILiveTile;bindcompdbx;vclactnband;bindengine;vcldb;soaprtl;vcldsnap;bindcompvcl;FMXTee;TeeUI;vclie;vcltouch;websnap;CustomIPTransport;VclSmp;dsnap;IndyIPServer;IndyCore;vcl;IndyIPCommon;dsnapcon;FmxTeeUI;inet;vclx;inetdbxpress;webdsnap;svn;bdertl;dbexpress;adortl;IndyIPClient;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
-        <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;$(DCC_Namespace)</DCC_Namespace>
-        <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <DCC_UsePackage>FireDACASADriver;FireDACSqliteDriver;bindcompfmx;DBXSqliteDriver;FireDACPgDriver;FireDACODBCDriver;RESTBackendComponents;emsclientfiredac;fmx;rtl;dbrtl;DbxClientDriver;IndySystem;FireDACCommon;bindcomp;inetdb;tethering;TeeDB;vclib;DBXInterBaseDriver;Tee;vclFireDAC;xmlrtl;ibxpress;DbxCommonDriver;vclimg;IndyProtocols;dbxcds;DBXMySQLDriver;FireDACCommonDriver;MetropolisUILiveTile;bindcompdbx;bindengine;vclactnband;vcldb;soaprtl;vcldsnap;bindcompvcl;FMXTee;TeeUI;vclie;fmxFireDAC;FireDACADSDriver;vcltouch;emsclient;CustomIPTransport;vclribbon;VCLRESTComponents;FireDAC;VclSmp;dsnap;Intraweb;fmxase;vcl;IndyCore;IndyIPServer;IndyIPCommon;CloudService;dsnapcon;FireDACIBDriver;FmxTeeUI;inet;fmxobj;FireDACMySQLDriver;soapmidas;vclx;soapserver;inetdbxpress;dsnapxml;fmxdae;RESTComponents;FireDACMSAccDriver;dbexpress;adortl;IndyIPClient;$(DCC_UsePackage)</DCC_UsePackage>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
-        <DCC_UsePackage>bindcompfmx;fmx;rtl;IndySystem;dbrtl;bindcomp;inetdb;DBXInterBaseDriver;DataSnapCommon;xmlrtl;DbxCommonDriver;vclimg;IndyProtocols;dbxcds;bindcompdbx;vclactnband;bindengine;vcldb;soaprtl;vcldsnap;bindcompvcl;vclie;vcltouch;websnap;CustomIPTransport;VclSmp;dsnap;IndyIPServer;IndyCore;vcl;IndyIPCommon;dsnapcon;inet;vclx;inetdbxpress;webdsnap;dbexpress;IndyIPClient;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;$(DCC_Namespace)</DCC_Namespace>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1)'!=''">
-        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
-        <DCC_ExeOutput>..\exe\bin\</DCC_ExeOutput>
-        <VerInfo_Locale>1042</VerInfo_Locale>
-        <Manifest_File>None</Manifest_File>
         <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
         <DCC_DebugDCUs>true</DCC_DebugDCUs>
         <DCC_Optimize>false</DCC_Optimize>
@@ -103,105 +80,21 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <Icon_MainIcon>lifelog.ico</Icon_MainIcon>
-        <Manifest_File>GetAdmin.manifest</Manifest_File>
-        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
     </PropertyGroup>
-    <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
-        <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
-        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-    </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
-        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
-        <VerInfo_Locale>1042</VerInfo_Locale>
-        <Manifest_File>None</Manifest_File>
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
         <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
         <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
         <DCC_DebugInformation>0</DCC_DebugInformation>
     </PropertyGroup>
-    <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
-        <VerInfo_MinorVer>1</VerInfo_MinorVer>
-        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=0.1.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=0.1.0.0;Comments=</VerInfo_Keys>
-        <VerInfo_MajorVer>0</VerInfo_MajorVer>
-        <Icon_MainIcon>lifelog.ico</Icon_MainIcon>
-        <Manifest_File>GetAdmin.manifest</Manifest_File>
-        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Locale>1033</VerInfo_Locale>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Cfg_2_Win64)'!=''">
-        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
-    </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="Form.Main.pas">
-            <Form>fMain</Form>
-            <FormType>dfm</FormType>
-        </DCCReference>
-        <DCCReference Include="Modules\Etc\uStrFunctions.pas"/>
-        <DCCReference Include="Modules\Windows\uFileFunctions.pas"/>
-        <DCCReference Include="Form.Setting.pas">
-            <Form>fSetting</Form>
-            <FormType>dfm</FormType>
-        </DCCReference>
-        <DCCReference Include="Form.Retention.pas">
-            <Form>fRetention</Form>
-            <FormType>dfm</FormType>
-        </DCCReference>
-        <DCCReference Include="Classes\Tester\uGSList.pas"/>
-        <DCCReference Include="Classes\Tester\uGSTester.pas"/>
-        <DCCReference Include="Classes\Tester\uGSTestThread.pas"/>
-        <DCCReference Include="Classes\SaveFile\uErrorList.pas"/>
-        <DCCReference Include="Classes\SaveFile\uSaveFile.pas"/>
-        <DCCReference Include="Classes\RandomBuffer\uMTforDel.pas"/>
-        <DCCReference Include="Classes\RandomBuffer\uRandomBuffer.pas"/>
-        <DCCReference Include="Classes\Verifier\uCopyThread.pas"/>
-        <DCCReference Include="Classes\Verifier\uVerifyThread.pas"/>
-        <DCCReference Include="Classes\Parser\uParser.pas"/>
-        <DCCReference Include="Classes\Tester\uPreCondThread.pas"/>
-        <DCCReference Include="WindowsFileAPI\Abstraction\uInterfacedOSFile.pas"/>
-        <DCCReference Include="WindowsFileAPI\Abstraction\uIoControlFile.pas"/>
-        <DCCReference Include="WindowsFileAPI\Abstraction\uOSFile.pas"/>
-        <DCCReference Include="WindowsFileAPI\Abstraction\uOSFileWithHandle.pas"/>
-        <DCCReference Include="WindowsFileAPI\CommandSet\Abstraction\uCommandSet.pas"/>
-        <DCCReference Include="WindowsFileAPI\CommandSet\Factory\uCommandSetFactory.pas"/>
-        <DCCReference Include="WindowsFileAPI\CommandSet\Specific\uATACommandSet.pas"/>
-        <DCCReference Include="WindowsFileAPI\CommandSet\Specific\uLegacyATACommandSet.pas"/>
-        <DCCReference Include="WindowsFileAPI\CommandSet\Specific\uSATCommandSet.pas"/>
-        <DCCReference Include="WindowsFileAPI\Interpreter\uATABufferInterpreter.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\Getter\uDiskGeometryGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\Getter\uDriveAvailabilityGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\Getter\uNCQAvailabilityGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\Part\Device.BusPhysicalDrive.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\Part\Device.OSPhysicalDrive.pas"/>
-        <DCCReference Include="WindowsFileAPI\Abstraction\uBufferInterpreter.pas"/>
-        <DCCReference Include="Objects\Device.SMARTValueList.pas"/>
-        <DCCReference Include="Objects\Device.PhysicalDrive.pas"/>
-        <DCCReference Include="Modules\MeasureUnit.DataSize.pas"/>
-        <DCCReference Include="Modules\MeasureUnit.Time.pas"/>
-        <DCCReference Include="Modules\uSizeStrings.pas"/>
-        <DCCReference Include="Objects\OS.SecurityDescriptor.pas"/>
-        <DCCReference Include="Legacy\uLegacyDiskFunctions.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\List\uPhysicalDriveList.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\ListGetter\Abstraction\uPhysicalDriveListGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\ListGetter\Auto\uAutoPhysicalDriveListGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\ListGetter\Specific\uBruteForcePhysicalDriveListGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\ListGetter\Specific\uWMIPhysicalDriveListGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\Getter\uPartitionListGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\Abstraction\uDriveListGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\Partition\Getter\uPartitionExtentGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\Partition\Getter\uFixedDriveListGetter.pas"/>
-        <DCCReference Include="Resource\uLanguageSettings.pas"/>
-        <DCCReference Include="Classes\Setting.Test.pas"/>
-        <DCCReference Include="Classes\Setting.Test.ParamGetter.pas"/>
-        <DCCReference Include="Objects\Pattern.Singleton.pas"/>
-        <DCCReference Include="Classes\Tester\uGSNode.pas"/>
-        <DCCReference Include="Legacy\uLegacyReadCommand.pas"/>
+        <DCCReference Include="TestuGSList.pas"/>
+        <DCCReference Include="..\Classes\Tester\uGSList.pas"/>
+        <DCCReference Include="..\Classes\Tester\uGSNode.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -216,87 +109,25 @@
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Delphi.Personality.12</Borland.Personality>
-        <Borland.ProjectType/>
+        <Borland.ProjectType>Application</Borland.ProjectType>
         <BorlandProject>
             <Delphi.Personality>
-                <VersionInfo>
-                    <VersionInfo Name="IncludeVerInfo">False</VersionInfo>
-                    <VersionInfo Name="AutoIncBuild">False</VersionInfo>
-                    <VersionInfo Name="MajorVer">1</VersionInfo>
-                    <VersionInfo Name="MinorVer">0</VersionInfo>
-                    <VersionInfo Name="Release">0</VersionInfo>
-                    <VersionInfo Name="Build">0</VersionInfo>
-                    <VersionInfo Name="Debug">False</VersionInfo>
-                    <VersionInfo Name="PreRelease">False</VersionInfo>
-                    <VersionInfo Name="Special">False</VersionInfo>
-                    <VersionInfo Name="Private">False</VersionInfo>
-                    <VersionInfo Name="DLL">False</VersionInfo>
-                    <VersionInfo Name="Locale">1042</VersionInfo>
-                    <VersionInfo Name="CodePage">949</VersionInfo>
-                </VersionInfo>
-                <VersionInfoKeys>
-                    <VersionInfoKeys Name="CompanyName"/>
-                    <VersionInfoKeys Name="FileDescription"/>
-                    <VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
-                    <VersionInfoKeys Name="InternalName"/>
-                    <VersionInfoKeys Name="LegalCopyright"/>
-                    <VersionInfoKeys Name="LegalTrademarks"/>
-                    <VersionInfoKeys Name="OriginalFilename"/>
-                    <VersionInfoKeys Name="ProductName"/>
-                    <VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
-                    <VersionInfoKeys Name="Comments"/>
-                    <VersionInfoKeys Name="CFBundleName"/>
-                    <VersionInfoKeys Name="CFBundleDisplayName"/>
-                    <VersionInfoKeys Name="CFBundleIdentifier"/>
-                    <VersionInfoKeys Name="CFBundleVersion"/>
-                    <VersionInfoKeys Name="CFBundlePackageType"/>
-                    <VersionInfoKeys Name="CFBundleSignature"/>
-                    <VersionInfoKeys Name="CFBundleAllowMixedLocalizations"/>
-                    <VersionInfoKeys Name="CFBundleExecutable"/>
-                </VersionInfoKeys>
                 <Source>
-                    <Source Name="MainSource">nslogger.dpr</Source>
+                    <Source Name="MainSource">nsloggerTests.dpr</Source>
                 </Source>
-                <Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k210.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp210.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
-                </Excluded_Packages>
-                <Language>
-                    <Language Name="ProjectLang">$00000412</Language>
-                </Language>
-                <Resource_DLL_Projects>
-                    <Resource_DLL_Projects Name="Item0">영어(미국)*$00000409*ENU*ENU</Resource_DLL_Projects>
-                    <Resource_DLL_Projects Name="Item1">한국어(대한민국)*$00000412*KOR*KOR</Resource_DLL_Projects>
-                </Resource_DLL_Projects>
-                <RDP_Source_Files>
-                    <RDP_Source_Files Name="Item0">uMain.dfm</RDP_Source_Files>
-                    <RDP_Source_Files Name="Item1">uSetting.dfm</RDP_Source_Files>
-                    <RDP_Source_Files Name="Item2">uRetSel.dfm</RDP_Source_Files>
-                    <RDP_Source_Files Name="Item3">..\exe\bin\nslogger.drc</RDP_Source_Files>
-                </RDP_Source_Files>
             </Delphi.Personality>
             <Deployment>
-                <DeployFile LocalName="..\exe\bin\nslogger.rsm" Configuration="Debug" Class="DebugSymbols">
-                    <Platform Name="Win64">
-                        <RemoteName>nslogger.rsm</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="..\exe\bin\nslogger.exe" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="Win32\Debug\nsloggerTests.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
-                        <RemoteName>nslogger.exe</RemoteName>
+                        <RemoteName>nsloggerTests.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="..\exe\bin\nslogger.exe" Configuration="Debug" Class="ProjectOutput">
-                    <Platform Name="Win64">
-                        <RemoteName>nslogger.exe</RemoteName>
+                <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
+                    <Platform Name="OSX32">
                         <Overwrite>true</Overwrite>
                     </Platform>
-                </DeployFile>
-                <DeployFile LocalName="..\exe\bin\nslogger.exe" Configuration="Release" Class="ProjectOutput">
-                    <Platform Name="Win32">
-                        <RemoteName>nslogger.exe</RemoteName>
+                    <Platform Name="iOSSimulator">
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
@@ -632,11 +463,14 @@
                 <ProjectRoot Platform="Win64" Name="$(PROJECTNAME)"/>
             </Deployment>
             <Platforms>
+                <Platform value="OSX32">False</Platform>
                 <Platform value="Win32">True</Platform>
                 <Platform value="Win64">True</Platform>
             </Platforms>
             <UnitTesting>
-                <TestProjectName>E:\UnivProject\nslogger\trunk\tester\Test\nsloggerTests.dproj</TestProjectName>
+                <TestFramework>DUnit / Delphi Win32</TestFramework>
+                <TestRunner>Console</TestRunner>
+                <SourceProjectName>E:\UnivProject\nslogger\trunk\tester\nslogger.dproj</SourceProjectName>
             </UnitTesting>
         </BorlandProject>
         <ProjectFileVersion>12</ProjectFileVersion>

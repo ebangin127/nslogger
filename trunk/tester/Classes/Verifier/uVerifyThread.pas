@@ -4,7 +4,7 @@ interface
 
 uses
   Vcl.ComCtrls, Vcl.StdCtrls, Classes, SysUtils, Windows,
-  uStrFunctions, Device.PhysicalDrive, uLegacyTrimCommand;
+  uStrFunctions, uLegacyReadCommand, Device.PhysicalDrive;
 
 const
   LinearRead = 1 shl 10 shl 10; // 1MB - The max native read
@@ -102,15 +102,15 @@ begin
   FSrcPath := SrcPath;
   FDestPath := DestPath;
 
-  FProgressBar := fRetSel.pProgress;
-  FStaticText := fRetSel.sProgress;
+  FProgressBar := fRetention.pProgress;
+  FStaticText := fRetention.sProgress;
 end;
 
 procedure TVerifyThread.EndVerify;
 begin
-  fRetSel.EndTask := true;
-  fRetSel.UBER := FUBER;
-  fRetSel.Close;
+  fRetention.EndTask := true;
+  fRetention.UBER := FUBER;
+  fRetention.Close;
 end;
 
 procedure TVerifyThread.Execute;

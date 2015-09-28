@@ -13,6 +13,7 @@ type
     function IdentifyDevice: TIdentifyDeviceResult; override;
     function SMARTReadData: TSMARTValueList; override;
     function DataSetManagement(StartLBA, LBACount: Int64): Cardinal; override;
+    procedure Flush; override;
 
     function IsDataSetManagementSupported: Boolean; override;
 
@@ -235,6 +236,19 @@ function TSATCommandSet.SMARTReadData: TSMARTValueList;
 begin
   SetBufferAndSMARTReadData;
   result := InterpretSMARTReadDataBuffer;
+end;
+
+procedure TSATCommandSet.Flush;
+const
+  FlushCommand = $E7;
+var
+  CommandDescriptorBlock: SCSI_COMMAND_DESCRIPTOR_BLOCK;
+begin
+  CommandDescriptorBlock := GetCommonCommandDescriptorBlock;
+  CommandDescriptorBlock.ATACommand := FlushCommand;
+  CommandDescriptorBlock.SectorCount := 1;
+  SetInnerBufferAsFlagsAndCdb(SCSI_IOCTL_DATA_UNSPECIFIED,
+    CommandDescriptorBlock);
 end;
 
 function TSATCommandSet.IsDataSetManagementSupported: Boolean;

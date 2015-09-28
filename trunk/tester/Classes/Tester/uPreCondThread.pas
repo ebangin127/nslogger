@@ -38,9 +38,9 @@ uses
 
 procedure TPreCondThread.EndCopy;
 begin
-  fRetSel.EndTask := true;
-  fRetSel.Written := CurrWritten;
-  fRetSel.Close;
+  fRetention.EndTask := true;
+  fRetention.Written := CurrWritten;
+  fRetention.Close;
 end;
 
 procedure TPreCondThread.ApplyProgress;

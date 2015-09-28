@@ -7,6 +7,8 @@ uses
   Pattern.Singleton, Form.Setting, MeasureUnit.DataSize, Device.PhysicalDrive;
 
 type
+  ENoDriveSelectedException = class(EArgumentNilException);
+
   TTestSettingParamFromForm = record
     FDiskNumber: Integer;
     FLogSavePath: String;
@@ -56,7 +58,7 @@ var
   PhysicalDrive: IPhysicalDrive;
 begin
   if DiskNumber = -1 then
-    raise EArgumentNilException.Create('No Drive Selected');
+    raise ENoDriveSelectedException.Create('No Drive Selected');
 
   PhysicalDrive := TPhysicalDrive.Create(
     TPhysicalDrive.BuildFileAddressByNumber(DiskNumber));

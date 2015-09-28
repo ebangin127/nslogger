@@ -109,7 +109,6 @@ type
     procedure AlignTBWToWrite(const CurrBasicTop: Integer);
     procedure AlignTBWToRetention(const CurrBasicTop: Integer);
     procedure AlignMaxFFR(const CurrBasicTop: Integer);
-    procedure RealignTestProgress(const CurrBasicTop: Integer);
     procedure RealignGroupboxHorizontal;
     procedure RealignGroupboxVertical;
     procedure RealignComponentsInGroupbox;
@@ -119,6 +118,9 @@ type
     procedure RealignButtonTop(const MiddlePoint: Integer);
     procedure RealignButtonLeft;
     procedure SetButtonFont(const NewFontSize: Integer);
+    procedure AskForRepeatRetention;
+    procedure AddVerifyResultToLog;
+    procedure AddTestClosedNormallyToLog;
 
   public
     property TestSetting: TTestSetting read FTestSetting;
@@ -153,11 +155,7 @@ procedure TfMain.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   if (FTestThread <> nil) and
      (FRepeatRetention = false) then
-    FTestThread.AddToAlert(
-      GetLogLine('테스트 정상 종료',
-        '쓰기량 - ' + GetByte2TBWStr(FTestThread.HostWrite) +
-        ' / 평균 지연 - ' + Format('%.2f%s', [FTestThread.AvgLatency, 'ms']) +
-        ' / 최대 지연 - ' + Format('%.2f%s', [FTestThread.MaxLatency, 'ms'])));
+    AddTestClosedNormallyToLog;
 end;
 
 procedure TfMain.FormCreate(Sender: TObject);
@@ -171,8 +169,8 @@ end;
 
 procedure TfMain.FormDestroy(Sender: TObject);
 begin
-  FreeAndNil(FTestSetting);
   StopTestThread;
+  FreeAndNil(FTestSetting);
 end;
 
 procedure TfMain.FormResize(Sender: TObject);
@@ -198,11 +196,11 @@ procedure TfMain.gStatusRealign;
   end;
   function GetAverageLatencyResizeUnit: TResizeUnit;
   begin
-    result.Name := lTestProgress;
-    result.DynamicText := sTestProgress;
-    result.Progressbar := pTestProgress;
-    result.LeftLabel := nil;
-    result.RightLabel := nil;
+    result.Name := lAvgLatency;
+    result.DynamicText := sAvgLatency;
+    result.Progressbar := pAvgLatency;
+    result.LeftLabel := lAvgAlertL;
+    result.RightLabel := lAvgAlertR;
   end;
   function GetMaxLatencyResizeUnit: TResizeUnit;
   begin
@@ -228,7 +226,6 @@ begin
     (OuterPadding shl 1);
 
   CurrBasicTop := OuterPadding;
-  RealignTestProgress(CurrBasicTop);
   RealignStatusComponents(CurrBasicTop, GetTestProgressResizeUnit);
   Inc(CurrBasicTop, UnitSize);
   RealignStatusComponents(CurrBasicTop, GetAverageLatencyResizeUnit);
@@ -313,6 +310,33 @@ begin
   result := FormatDateTime('[yyyy/mm/dd hh:nn:ss] ', Now) + Name;
   if Contents <> '' then
     result := result + ': ' + Contents;
+end;
+
+procedure TfMain.AddTestClosedNormallyToLog;
+begin
+  FTestThread.AddToAlert(GetLogLine('테스트 정상 종료',
+    '쓰기량 - ' + GetByte2TBWStr(FTestThread.HostWrite) +
+    ' / 평균 지연 - ' + Format('%.2f%s', [FTestThread.AvgLatency, 'ms']) +
+    ' / 최대 지연 - ' + Format('%.2f%s', [FTestThread.MaxLatency, 'ms'])));
+end;
+
+procedure TfMain.AddVerifyResultToLog;
+begin
+  if fRetention.bStart.Visible = false then
+    FTestThread.AddToAlert(GetLogLine('리텐션 테스트 종료',
+      'UBER - ' + FloatToStr(fRetention.UBER)))
+  else
+    FTestThread.AddToAlert(GetLogLine('리텐션 테스트 검증 취소'));
+end;
+
+procedure TfMain.AskForRepeatRetention;
+begin
+  if MessageDlg('리텐션 테스트를 반복하시겠습니까?', mtWarning, mbOKCancel, 0) =
+    mrOK then
+  begin
+    FNeedRetention := true;
+    FRepeatRetention := true;
+  end;
 end;
 
 procedure TfMain.SetButtonFont(const NewFontSize: Integer);
@@ -409,14 +433,6 @@ begin
   gAlert.Width := ClientWidth - (OuterPadding shl 1);
 end;
 
-procedure TfMain.RealignTestProgress(const CurrBasicTop: Integer);
-begin
-  lTestProgress.Top := CurrBasicTop;
-  sTestProgress.Top := CurrBasicTop;
-  pTestProgress.Top := sTestProgress.Top + sTestProgress.Height + InnerPadding;
-  pTestProgress.Width := gStatus.Width - pTestProgress.Left;
-end;
-
 procedure TfMain.AlignMaxFFR(const CurrBasicTop: Integer);
 begin
   lMaxFFR.Left := lDest.Left;
@@ -464,7 +480,7 @@ end;
 procedure TfMain.SetTestThreadProperties(const PhysicalDrive: IPhysicalDrive);
 begin
   FTestThread.SetDisk(TestSetting.DiskNumber);
-  FTestThread.MaxLBA := PhysicalDrive.IdentifyDeviceResult.UserSizeInKB * 512;
+  FTestThread.MaxLBA := PhysicalDrive.IdentifyDeviceResult.UserSizeInKB * 2;
   FTestThread.OrigLBA := CapacityOf128GB;
   FTestThread.Align := 512;
   FTestThread.MaxFFR := TestSetting.MaxFFR;
@@ -481,8 +497,8 @@ begin
   begin
     FTestThread.Terminate;
     WaitForSingleObject(FTestThread.Handle, 60);
-    FreeAndNil(FTestThread);
     FNeedRetention := FNeedRetention or (FTestThread.ExitCode = EXIT_RETENTION);
+    FreeAndNil(FTestThread);
     OpenRetentionSaveFormIfNeeded;
   end;
 end;
@@ -491,9 +507,9 @@ procedure TfMain.OpenRetentionSaveFormIfNeeded;
 begin
   if FNeedRetention then
   begin
-    fRetSel := TfRetSel.Create(self,
+    fRetention := TfRetention.Create(self,
       TPhysicalDrive.BuildFileAddressByNumber(FTestSetting.DiskNumber));
-    fRetSel.ShowModal;
+    fRetention.ShowModal;
   end;
 end;
 
@@ -543,43 +559,31 @@ end;
 
 procedure TfMain.VerifyRetention;
 begin
-  fRetSel := TfRetSel.Create(self,
+  fRetention := TfRetention.Create(self,
     TPhysicalDrive.BuildFileAddressByNumber(TestSetting.DiskNumber));
-  fRetSel.SetMode(rsmVerify, fSetting.SavePath + 'compare_error_log.txt');
-  fRetSel.ShowModal;
-
-  if fRetSel.bStart.Visible = false then
-    FTestThread.AddToAlert(
-      GetLogLine('리텐션 테스트 종료','UBER - ' + FloatToStr(fRetSel.UBER)))
-  else
-    FTestThread.AddToAlert(GetLogLine('리텐션 테스트 검증 취소'));
-
-  FreeAndNil(fRetSel);
-
-  if MessageDlg('리텐션 테스트를 반복하시겠습니까?',
-                mtWarning, mbOKCancel, 0) = mrOK then
-  begin
-    FNeedRetention := true;
-    FRepeatRetention := true;
-  end;
+  fRetention.SetAsMode(rsmVerify, fSetting.SavePath + 'compare_error_log.txt');
+  fRetention.ShowModal;
+  AddVerifyResultToLog;
+  FreeAndNil(fRetention);
+  AskForRepeatRetention;
 end;
 
 procedure TfMain.Precondition;
 begin
-  fRetSel := TfRetSel.Create(self,
+  fRetention := TfRetention.Create(self,
     TPhysicalDrive.BuildFileAddressByNumber(TestSetting.DiskNumber));
-  fRetSel.SetMode(rsmPreCond, fSetting.SavePath);
-  fRetSel.ShowModal;
+  fRetention.SetAsMode(rsmPreCond, fSetting.SavePath);
+  fRetention.ShowModal;
 end;
 
 procedure TfMain.PrepareNewTest;
 begin
   Precondition;
-  FTestThread.SetHostWrite(fRetSel.Written);
+  FTestThread.SetHostWrite(fRetention.Written);
   FTestThread.AddToAlert(
     GetLogLine('테스트 사전 준비 완료',
-      '쓰기량 - ' + GetByte2TBWStr(fRetSel.Written)));
-  FreeAndNil(fRetSel);
+      '쓰기량 - ' + GetByte2TBWStr(fRetention.Written)));
+  FreeAndNil(fRetention);
 end;
 
 procedure TfMain.PrepareTestThread(const PhysicalDrive: IPhysicalDrive);
@@ -621,8 +625,10 @@ begin
     FTestSetting := GetTestSettingFromForm;
     StartTestWithSetting;
   except
-    on E: EArgumentNilException do
-      Close;
+    on E: ENoDriveSelectedException do
+      Close
+    else
+      raise;
   end;
   FreeAndNil(fSetting);
 end;

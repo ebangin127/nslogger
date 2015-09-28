@@ -18,6 +18,7 @@ type
     function IsDataSetManagementSupported: Boolean; virtual; abstract;
     function DataSetManagement(StartLBA, LBACount: Int64): Cardinal;
       virtual; abstract;
+    procedure Flush; virtual; abstract;
 
   protected
     function GetMinimumPrivilege: TCreateFileDesiredAccess; override;

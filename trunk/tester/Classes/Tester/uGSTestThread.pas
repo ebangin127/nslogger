@@ -4,7 +4,7 @@ interface
 
 uses Classes, SysUtils, ComCtrls, Math, Windows, DateUtils, Dialogs,
      uGSTester, uGSList, uRandomBuffer, uSaveFile, uParser,
-     uLegacyDiskFunctions;
+     uLegacyDiskFunctions, uGSNode;
 
 const
   ByteToTB = 40;
@@ -36,7 +36,7 @@ type
     FSecCounter: Integer;
     FLastSyncCount: Integer;
 
-    ClassPTR: TGSList;
+    GSList: TGSList;
 
     FMaxLBA: UInt64;
     FOrigLBA: UInt64;
@@ -357,7 +357,7 @@ procedure TGSTestThread.ApplyState_WriteError(TBWStr, DayStr: String);
 var
   ErrorName: String;
   ErrorContents: String;
-  CurrNode: PTGSNode;
+  CurrNode: TGSNode;
   UpdateStarted: Boolean;
 begin
   with fMain do
@@ -374,26 +374,26 @@ begin
 
     for CurrNode in FTester.ErrorBuf do
     begin
-      case CurrNode.FIOType of
-      0{ioRead}:
+      case CurrNode.GetIOType of
+      TIOType.ioRead:
         ErrorName := '읽기 오류';
-      1{ioWrite}:
+      TIOType.ioWrite:
         ErrorName := '쓰기 오류';
-      2{ioTrim}:
+      TIOType.ioTrim:
         ErrorName := '트림 오류';
-      3{ioFlush}:
+      TIOType.ioFlush:
         ErrorName := '플러시 오류';
       end;
 
       ErrorContents := '';
-      case CurrNode.FIOType of
-      0..2:
+      case CurrNode.GetIOType of
+      TIOType.ioRead..TIOType.ioTrim:
       begin
         ErrorContents := '위치 '
-                          + IntToStr(CurrNode.FLBA)
+                          + IntToStr(CurrNode.GetLBA)
                           + ', ';
         ErrorContents := ErrorContents + '길이 '
-                          + IntToStr(CurrNode.FLength);
+                          + IntToStr(CurrNode.GetLength);
       end;
       end;
 
@@ -422,10 +422,9 @@ begin
   FLastSync := 0;
   FSecCounter := 0;
 
-  ClassPTR := TGSList.Create;
-
-  FTester.AssignListHeader(makeJEDECListAndFix(ClassPTR, PChar(FTracePath),
-                                               MaxLBA / OrigLBA));
+  GSList := TGSList.Create;
+  makeJEDECListAndFix(GSList, PChar(FTracePath), MaxLBA / OrigLBA);
+  FTester.AssignList(GSList);
 
   Synchronize(ApplyStart);
   Synchronize(ApplyState);

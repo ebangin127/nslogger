@@ -4,7 +4,7 @@ interface
 
 uses
   Classes, Windows, SysUtils,
-  uGSList;
+  uGSList, uGSNode;
 
 const
   LinearRead = 16 shl 20; // 16MB
@@ -34,8 +34,8 @@ type
     procedure PutBuf(InBuffer: TMTBuffer; CurrSize: Integer; NeedClose: Boolean);
   end;
 
-function makeJEDECListAndFix(TraceList: Pointer; Path: PChar; MultiConst: Double):
-                        PTGListHeader; cdecl; export;
+procedure makeJEDECListAndFix(TraceList: TGSList; Path: PChar;
+  MultiConst: Double);
 
 implementation
 
@@ -84,24 +84,22 @@ begin
   case CurrLine[2] of
   'w':
   begin
-    result.FIOType := TIOTypeInt[TIOType.ioWrite];
+    result.FIOType := TIOType.ioWrite;
     LBAStartIdx := 8;
   end;
   'f':
   begin
-    result.FIOType := TIOTypeInt[TIOType.ioFlush];
-    result.FLBA := 0;
-    result.FLength := 0;
+    result := TGSNode.CreateByValues(TIOType.ioFlush, 0, 0);
     exit;
   end;
   'r':
   begin
-    result.FIOType := TIOTypeInt[TIOType.ioRead];
+    result.FIOType := TIOType.ioRead;
     LBAStartIdx := 7;
   end;
   't':
   begin
-    result.FIOType := TIOTypeInt[TIOType.ioTrim];
+    result.FIOType := TIOType.ioTrim;
     LBAStartIdx := 8;
   end;
   end;
@@ -111,21 +109,27 @@ begin
 
   try
     result.FLBA := StrToInt64(Copy(CurrLine, LBAStartIdx, LBALength));
-    result.FLength := StrToInt(Copy(CurrLine, LBAEndIdx + 1, Length(CurrLine)));
+    result.FLength :=
+      StrToInt(Copy(CurrLine, LBAEndIdx + 1, Length(CurrLine)));
   except
     Assert(false, CurrLine);
   end;
 end;
 
-function DivideIntoNode(const CurrLine: String;
-                        const MultiConst: Double): TGSNode; inline; overload;
+function DivideIntoNode(const CurrLine: String; const MultiConst: Double):
+  TGSNode; overload;
+var
+  OriginalNode: TGSNode;
 begin
-  result := DivideIntoNode(CurrLine);
-  result.FLBA := Round(result.FLBA * MultiConst);
+  OriginalNode := DivideIntoNode(CurrLine);
+  result := TGSNode(TGSNode.CreateByValues(
+    OriginalNode.GetIOType,
+    OriginalNode.GetLength,
+    Round(OriginalNode.GetLBA * MultiConst)));
 end;
 
-function makeJEDECListAndFix(TraceList: Pointer; Path: PChar; MultiConst: Double):
-                        PTGListHeader; cdecl; export;
+procedure makeJEDECListAndFix(TraceList: TGSList; Path: PChar;
+  MultiConst: Double);
 var
   BufStor: TBufferStorage;
   Producer: TProducer;
@@ -141,27 +145,7 @@ begin
   FreeAndNil(Consumer);
   FreeAndNil(Producer);
   FreeAndNil(BufStor);
-
-  exit(TGSList(TraceList).GetListHeader);
 end;
-
-function makeJEDECList(TraceList: Pointer; Path: PChar): PTGListHeader; cdecl;
-         export;
-begin
-  result := makeJEDECListAndFix(TraceList, Path, 1);
-end;
-
-function makeJedecClass: Pointer; cdecl; export;
-begin
-  exit(Pointer(TGSList.Create));
-end;
-
-procedure deleteJedecClass(delClass: Pointer); cdecl; export;
-begin
-  FreeAndNil(TGSList(delClass));
-end;
-
-exports makeJEDECList, makeJEDECListAndFix, makeJedecClass, deleteJedecClass;
 
 { BufferStorage }
 

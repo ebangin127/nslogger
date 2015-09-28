@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{9F21181B-ED3E-4797-9E42-5E9480C2FB9D}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="nslogger.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Test\nsloggerTests.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="nslogger">
+        <MSBuild Projects="nslogger.dproj"/>
+    </Target>
+    <Target Name="nslogger:Clean">
+        <MSBuild Projects="nslogger.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="nslogger:Make">
+        <MSBuild Projects="nslogger.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="nsloggerTests">
+        <MSBuild Projects="Test\nsloggerTests.dproj"/>
+    </Target>
+    <Target Name="nsloggerTests:Clean">
+        <MSBuild Projects="Test\nsloggerTests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="nsloggerTests:Make">
+        <MSBuild Projects="Test\nsloggerTests.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="nslogger;nsloggerTests"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="nslogger:Clean;nsloggerTests:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="nslogger:Make;nsloggerTests:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

@@ -4,7 +4,8 @@ interface
 
 uses
   SysUtils,
-  uOSFile, Device.PhysicalDrive, uPhysicalDriveListGetter, uPhysicalDriveList;
+  uOSFile, Device.PhysicalDrive, uPhysicalDriveListGetter, uPhysicalDriveList,
+  Threading;
 
 type
   TBruteForcePhysicalDriveListGetter = class sealed(TPhysicalDriveListGetter)
@@ -65,8 +66,10 @@ const
 var
   CurrentDrive: Integer;
 begin
-  for CurrentDrive := 0 to PHYSICALDRIVE_MAX do
-    IfThisDriveAccessibleAddToList(CurrentDrive);
+  TParallel.For(0, PHYSICALDRIVE_MAX, procedure (CurrentDrive: Integer)
+  begin
+    IfThisDriveAccessibleAddToList(CurrentDrive)
+  end);
 end;
 
 function TBruteForcePhysicalDriveListGetter.GetPhysicalDriveList:
