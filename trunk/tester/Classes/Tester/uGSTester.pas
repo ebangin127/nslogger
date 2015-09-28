@@ -439,6 +439,6 @@ begin
     FreeAndNil(FMasterTrace);
   FMasterTrace := NewList;
   FListIterator := FMasterTrace.GetIterator;
-  FIterator := 0;
+  FListIterator.SetIndex(FIterator);
 end;
 end.
