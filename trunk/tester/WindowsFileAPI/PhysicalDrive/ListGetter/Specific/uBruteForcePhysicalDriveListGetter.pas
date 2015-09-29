@@ -63,8 +63,6 @@ end;
 procedure TBruteForcePhysicalDriveListGetter.TryToGetPhysicalDriveList;
 const
   PHYSICALDRIVE_MAX = 99;
-var
-  CurrentDrive: Integer;
 begin
   TParallel.For(0, PHYSICALDRIVE_MAX, procedure (CurrentDrive: Integer)
   begin

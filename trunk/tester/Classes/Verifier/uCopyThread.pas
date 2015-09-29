@@ -5,7 +5,7 @@ interface
 uses
   Vcl.ComCtrls, Vcl.StdCtrls, Classes, Dialogs, SysUtils, Windows,
   System.UITypes,
-  uStrFunctions, uLegacyReadCommand, Device.PhysicalDrive;
+  DeviceNumberExtractor, Device.PhysicalDrive;
 
 const
   LinearRead = 1 shl 10 shl 10; // 1MB - The max native read
@@ -136,7 +136,7 @@ begin
   FreeAndNil(CopyConsumer);
 
   FreeAndNil(BufStor);
-  Synchronize(EndCopy);
+  Queue(EndCopy);
 end;
 
 { BufferStorage }
@@ -178,10 +178,6 @@ begin
     if Length(InBuffer) = 0 then
     begin
       FClosed := true;
-      FEmpty := false;
-
-      TMonitor.PulseAll(Self);
-      TMonitor.Exit(Self);
 
       exit;
     end
@@ -240,13 +236,9 @@ constructor TCopyProducer.Create(BufStor: TBufferStorage; Path: String;
 begin
   inherited Create(false);
   FBufStor := BufStor;
-  FFileHandle := CreateFile(PChar(Path),
-                            GENERIC_READ or GENERIC_WRITE,
-                            FILE_SHARE_READ or FILE_SHARE_WRITE,
-                            nil,
-                            OPEN_EXISTING,
-                            FILE_FLAG_NO_BUFFERING,
-                            0);
+  FFileHandle := CreateFile(PChar(Path), GENERIC_READ or GENERIC_WRITE,
+    FILE_SHARE_READ or FILE_SHARE_WRITE, nil, OPEN_EXISTING,
+    FILE_FLAG_NO_BUFFERING, 0);
   FMaxLength := MaxLength;
 end;
 
@@ -259,40 +251,36 @@ end;
 procedure TCopyProducer.Execute;
 var
   Buffer: TBuffer;
-  ReadLength: Integer;
-  CurrPos: Int64;
-  OvlpResult: Boolean;
+  ReadLength: DWORD;
+  CurrPos: LARGE_INTEGER;
+  Result: Boolean;
 begin
   inherited;
   FBufStor.SetInnerBufLength(LinearRead);
   SetLength(Buffer, LinearRead);
-  CurrPos := 0;
+  CurrPos.QuadPart := 0;
 
   repeat
-    OvlpResult := true;
-    ReadLength := ReadSector(FFileHandle, CurrPos shr 9, @Buffer[0]);
-    if ReadLength = -1 then
-    begin
-      OvlpResult := false;
-      ReadLength := 0;
-    end;
+    SetFilePointer(FFileHandle, CurrPos.LowPart, @CurrPos.HighPart, FILE_BEGIN);
+    Result :=
+      ReadFile(FFileHandle, Buffer[0], LinearRead, ReadLength, nil);
 
-    if CurrPos + ReadLength >= FMaxLength then
+    if CurrPos.QuadPart + ReadLength >= FMaxLength then
     begin
-      ReadLength := FMaxLength - CurrPos;
+      ReadLength := FMaxLength - CurrPos.QuadPart;
       SetLength(Buffer, ReadLength);
     end
-    else if (OvlpResult) and (LinearRead > ReadLength) then
+    else if (Result) and (LinearRead > ReadLength) then
       SetLength(Buffer, ReadLength);
 
-    if OvlpResult = false then
+    if Result = false then
     begin
       SetLength(Buffer, 0);
     end;
 
-    Inc(CurrPos, ReadLength);
-    FBufStor.PutBuf(Buffer, CurrPos >= FMaxLength);
-  until CurrPos >= FMaxLength;
+    Inc(CurrPos.QuadPart, ReadLength);
+    FBufStor.PutBuf(Buffer, CurrPos.QuadPart >= FMaxLength);
+  until CurrPos.QuadPart >= FMaxLength;
 end;
 
 
@@ -359,7 +347,7 @@ begin
 
     if CurrNum = 0 then
     begin
-      Synchronize(ApplyProgress);
+      Queue(ApplyProgress);
       CurrNum := Period;
     end
     else

@@ -143,7 +143,6 @@
             <Form>fMain</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="Modules\Etc\uStrFunctions.pas"/>
         <DCCReference Include="Modules\Windows\uFileFunctions.pas"/>
         <DCCReference Include="Form.Setting.pas">
             <Form>fSetting</Form>
@@ -162,7 +161,7 @@
         <DCCReference Include="Classes\RandomBuffer\uRandomBuffer.pas"/>
         <DCCReference Include="Classes\Verifier\uCopyThread.pas"/>
         <DCCReference Include="Classes\Verifier\uVerifyThread.pas"/>
-        <DCCReference Include="Classes\Parser\uParser.pas"/>
+        <DCCReference Include="Classes\Parser\Parser.pas"/>
         <DCCReference Include="Classes\Tester\uPreCondThread.pas"/>
         <DCCReference Include="WindowsFileAPI\Abstraction\uInterfacedOSFile.pas"/>
         <DCCReference Include="WindowsFileAPI\Abstraction\uIoControlFile.pas"/>
@@ -186,7 +185,6 @@
         <DCCReference Include="Modules\MeasureUnit.Time.pas"/>
         <DCCReference Include="Modules\uSizeStrings.pas"/>
         <DCCReference Include="Objects\OS.SecurityDescriptor.pas"/>
-        <DCCReference Include="Legacy\uLegacyDiskFunctions.pas"/>
         <DCCReference Include="WindowsFileAPI\PhysicalDrive\List\uPhysicalDriveList.pas"/>
         <DCCReference Include="WindowsFileAPI\PhysicalDrive\ListGetter\Abstraction\uPhysicalDriveListGetter.pas"/>
         <DCCReference Include="WindowsFileAPI\PhysicalDrive\ListGetter\Auto\uAutoPhysicalDriveListGetter.pas"/>
@@ -201,7 +199,13 @@
         <DCCReference Include="Classes\Setting.Test.ParamGetter.pas"/>
         <DCCReference Include="Objects\Pattern.Singleton.pas"/>
         <DCCReference Include="Classes\Tester\uGSNode.pas"/>
-        <DCCReference Include="Legacy\uLegacyReadCommand.pas"/>
+        <DCCReference Include="Classes\Parser\Parser.Producer.pas"/>
+        <DCCReference Include="Classes\Parser\Parser.Consumer.pas"/>
+        <DCCReference Include="Classes\Parser\Parser.BufferStorage.pas"/>
+        <DCCReference Include="Classes\Parser\Parser.Divider.pas"/>
+        <DCCReference Include="Modules\DeviceNumberExtractor.pas">
+            <Form>$IFNDEF PROFILE</Form>
+        </DCCReference>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

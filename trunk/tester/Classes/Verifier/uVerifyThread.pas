@@ -4,7 +4,7 @@ interface
 
 uses
   Vcl.ComCtrls, Vcl.StdCtrls, Classes, SysUtils, Windows,
-  uStrFunctions, uLegacyReadCommand, Device.PhysicalDrive;
+  DeviceNumberExtractor, Device.PhysicalDrive;
 
 const
   LinearRead = 1 shl 10 shl 10; // 1MB - The max native read
@@ -61,12 +61,10 @@ type
   private
     FBufStor: TBufferStorage;
 
-    FFileStream: TFileStream;
     FFileHandle: THandle;
     FMaxLength: Int64;
 
     FIsSrc: Boolean;
-    FIsDrive: Boolean;
   public
     constructor Create(IsSrc: Boolean; BufStor: TBufferStorage; Path: String;
                        MaxLength: Int64);
@@ -159,36 +157,20 @@ begin
   FreeAndNil(VerifyProducer_Src);
 
   FreeAndNil(BufStor);
-  Synchronize(EndVerify);
+  Queue(EndVerify);
 end;
 
 { TVerifyProducer }
 
 constructor TVerifyProducer.Create(IsSrc: Boolean; BufStor: TBufferStorage;
                                    Path: String; MaxLength: Int64);
-const
-  PhyDrv = '\\.\PhysicalDrive';
 begin
   inherited Create(false);
   FBufStor := BufStor;
 
-  FIsDrive := Copy(Path, 0, Length(PhyDrv)) = PhyDrv;
-  if FIsDrive then
-  begin
-    FFileHandle := CreateFile(PChar(Path),
-                              GENERIC_READ or GENERIC_WRITE,
-                              FILE_SHARE_READ or FILE_SHARE_WRITE,
-                              nil,
-                              OPEN_EXISTING,
-                              FILE_FLAG_NO_BUFFERING,
-                              0);
-    FFileStream := nil;
-  end
-  else
-  begin
-    FFileStream := TFileStream.Create(Path, fmOpenRead or fmShareDenyNone);
-    FFileHandle := 0;
-  end;
+  FFileHandle := CreateFile(PChar(Path), GENERIC_READ or GENERIC_WRITE,
+    FILE_SHARE_READ or FILE_SHARE_WRITE, nil, OPEN_EXISTING,
+    FILE_FLAG_NO_BUFFERING, 0);
   FIsSrc := IsSrc;
   FMaxLength := MaxLength;
 end;
@@ -197,63 +179,42 @@ destructor TVerifyProducer.Destroy;
 begin
   if FFileHandle <> 0 then
     CloseHandle(FFileHandle);
-  if FFileStream <> nil then
-    FreeAndNil(FFileStream);
   inherited;
 end;
 
 procedure TVerifyProducer.Execute;
 var
   Buffer: TBuffer;
-  ReadLength: Integer;
-  CurrPos: Int64;
-  OvlpResult: Boolean;
-  IsEnd: Boolean;
+  ReadLength: DWORD;
+  CurrPos: LARGE_INTEGER;
+  Result: Boolean;
 begin
   inherited;
   FBufStor.SetInnerBufLength(LinearRead div SizeOf(UInt32));
   SetLength(Buffer, LinearRead div SizeOf(UInt32));
-  CurrPos := 0;
+  CurrPos.QuadPart := 0;
 
   repeat
-    if FIsDrive then
+    SetFilePointer(FFileHandle, CurrPos.LowPart, @CurrPos.HighPart, FILE_BEGIN);
+    Result :=
+      ReadFile(FFileHandle, Buffer[0], LinearRead, ReadLength, nil);
+
+    if CurrPos.QuadPart + ReadLength >= FMaxLength then
     begin
-      OvlpResult := true;
-      ReadLength := ReadSector(FFileHandle, CurrPos shr 9, @Buffer[0]);
-      if ReadLength = -1 then
-      begin
-        OvlpResult := false;
-        ReadLength := 0;
-      end;
-
-      if CurrPos + ReadLength > FMaxLength then
-      begin
-        ReadLength := FMaxLength - CurrPos;
-        SetLength(Buffer, ReadLength div SizeOf(UInt32));
-      end
-      else if (OvlpResult) and (LinearRead > ReadLength)then
-        SetLength(Buffer, ReadLength div SizeOf(UInt32));
-
-      if OvlpResult = false then
-      begin
-        SetLength(Buffer, 0);
-      end;
-
-      Inc(CurrPos, ReadLength);
-      FBufStor.PutBuf(FIsSrc, Buffer, CurrPos >= FMaxLength);
-      IsEnd := CurrPos >= FMaxLength;
+      ReadLength := FMaxLength - CurrPos.QuadPart;
+      SetLength(Buffer, ReadLength);
     end
-    else
+    else if (Result) and (LinearRead > ReadLength) then
+      SetLength(Buffer, ReadLength);
+
+    if Result = false then
     begin
-      ReadLength := FFileStream.Read(Buffer[0], LinearRead);
-
-      if FFileStream.Position = FFileStream.Size then
-        SetLength(Buffer, ReadLength div SizeOf(UInt32));
-
-      FBufStor.PutBuf(FIsSrc, Buffer, FFileStream.Position = FFileStream.Size);
-      IsEnd := FFileStream.Position = FFileStream.Size;
+      SetLength(Buffer, 0);
     end;
-  until IsEnd;
+
+    Inc(CurrPos.QuadPart, ReadLength);
+    FBufStor.PutBuf(FIsSrc, Buffer, CurrPos.QuadPart >= FMaxLength);
+  until CurrPos.QuadPart >= FMaxLength;
 end;
 
 { BufferStorage }
@@ -381,9 +342,6 @@ begin
   end;
 end;
 
-{
-
-
 { TVerifyConsumer }
 
 procedure TVerifyConsumer.ApplyProgress;
@@ -449,7 +407,7 @@ begin
 
     if CurrNum = 0 then
     begin
-      Synchronize(ApplyProgress);
+      Queue(ApplyProgress);
       CurrNum := Period;
     end
     else

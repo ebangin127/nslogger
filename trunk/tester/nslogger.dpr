@@ -3,7 +3,6 @@ program nslogger;
 uses
   Vcl.Forms,
   Form.Main in 'Form.Main.pas' {fMain},
-  uStrFunctions in 'Modules\Etc\uStrFunctions.pas',
   uFileFunctions in 'Modules\Windows\uFileFunctions.pas',
   Form.Setting in 'Form.Setting.pas' {fSetting},
   Form.Retention in 'Form.Retention.pas' {fRetention},
@@ -16,7 +15,7 @@ uses
   uRandomBuffer in 'Classes\RandomBuffer\uRandomBuffer.pas',
   uCopyThread in 'Classes\Verifier\uCopyThread.pas',
   uVerifyThread in 'Classes\Verifier\uVerifyThread.pas',
-  uParser in 'Classes\Parser\uParser.pas',
+  Parser in 'Classes\Parser\Parser.pas',
   uPreCondThread in 'Classes\Tester\uPreCondThread.pas',
   uInterfacedOSFile in 'WindowsFileAPI\Abstraction\uInterfacedOSFile.pas',
   uIoControlFile in 'WindowsFileAPI\Abstraction\uIoControlFile.pas',
@@ -40,7 +39,6 @@ uses
   MeasureUnit.Time in 'Modules\MeasureUnit.Time.pas',
   uSizeStrings in 'Modules\uSizeStrings.pas',
   OS.SecurityDescriptor in 'Objects\OS.SecurityDescriptor.pas',
-  uLegacyDiskFunctions in 'Legacy\uLegacyDiskFunctions.pas',
   uPhysicalDriveList in 'WindowsFileAPI\PhysicalDrive\List\uPhysicalDriveList.pas',
   uPhysicalDriveListGetter in 'WindowsFileAPI\PhysicalDrive\ListGetter\Abstraction\uPhysicalDriveListGetter.pas',
   uAutoPhysicalDriveListGetter in 'WindowsFileAPI\PhysicalDrive\ListGetter\Auto\uAutoPhysicalDriveListGetter.pas',
@@ -55,7 +53,11 @@ uses
   Setting.Test.ParamGetter in 'Classes\Setting.Test.ParamGetter.pas',
   Pattern.Singleton in 'Objects\Pattern.Singleton.pas',
   uGSNode in 'Classes\Tester\uGSNode.pas',
-  uLegacyReadCommand in 'Legacy\uLegacyReadCommand.pas';
+  Parser.Producer in 'Classes\Parser\Parser.Producer.pas',
+  Parser.Consumer in 'Classes\Parser\Parser.Consumer.pas',
+  Parser.BufferStorage in 'Classes\Parser\Parser.BufferStorage.pas',
+  Parser.Divider in 'Classes\Parser\Parser.Divider.pas',
+  DeviceNumberExtractor in 'Modules\DeviceNumberExtractor.pas';
 
 {$R *.res}
 

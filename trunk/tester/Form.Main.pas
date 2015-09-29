@@ -156,6 +156,7 @@ begin
   if (FTestThread <> nil) and
      (FRepeatRetention = false) then
     AddTestClosedNormallyToLog;
+  StopTestThread;
 end;
 
 procedure TfMain.FormCreate(Sender: TObject);
@@ -169,7 +170,6 @@ end;
 
 procedure TfMain.FormDestroy(Sender: TObject);
 begin
-  StopTestThread;
   FreeAndNil(FTestSetting);
 end;
 

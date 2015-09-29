@@ -6,9 +6,9 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Vcl.ComCtrls, Generics.Collections,
-  uStrFunctions, uCopyThread, uVerifyThread, uPreCondThread,
+  uCopyThread, uVerifyThread, uPreCondThread,
   Device.PhysicalDrive, uPartitionListGetter, uPhysicalDriveList,
-  uAutoPhysicalDriveListGetter;
+  uAutoPhysicalDriveListGetter, DeviceNumberExtractor;
 
 type
   TRetentionMode = (rsmVerify, rsmCopy, rsmPreCond);
@@ -24,7 +24,7 @@ type
   end;
 
   TfRetention = class(TForm)
-    Label5: TLabel;
+    lDestination: TLabel;
     cDestination: TComboBox;
     bStart: TButton;
     FileSave: TSaveDialog;
@@ -79,7 +79,7 @@ end;
 function TfRetention.GetDestination: String;
   function IsFileOpenNotNeeded: Boolean;
   begin
-    result := cDestination.ItemIndex = cDestination.Items.Count - 1;
+    result := cDestination.ItemIndex < cDestination.Items.Count - 1;
   end;
   function IsSourceNeeded: Boolean;
   begin
@@ -146,6 +146,8 @@ procedure TfRetention.FormClose(Sender: TObject; var Action: TCloseAction);
         result := FSelectedThread.FCopyThrd <> nil;
       rsmPreCond:
         result := FSelectedThread.FPreCondThrd <> nil;
+      else
+        raise EArgumentOutOfRangeException.Create('Invalid Thread Mode');
     end;
   end;
 begin
@@ -237,7 +239,7 @@ begin
   cDestination.Clear;
   cDestination.Items.Add(FSavedFilePath);
   FDriveList.Clear;
-  FDriveList.Add(StrToInt(ExtractDeviceNum(FSavedFilePath)));
+  FDriveList.Add(StrToInt(ExtractDeviceNumber(FSavedFilePath)));
   bStart.Caption := '테스트 사전 준비 시작';
   Caption := '테스트 사전 준비';
 end;

@@ -5,8 +5,7 @@ interface
 uses Dialogs, SysUtils, ShellAPI, FileCtrl;
 
 function DeleteDirectory(const DirPath: String): Boolean;
-function SelectDirectory(DialogTitle: String; DefaultDir: String):
-          String;
+function SelectDirectory(DialogTitle: String; DefaultDir: String): String;
 
 implementation
 
@@ -44,8 +43,7 @@ begin
   FindClose(srSchRec);
 end;
 
-function SelectDirectory(DialogTitle: String; DefaultDir: String):
-          String;
+function SelectDirectory(DialogTitle: String; DefaultDir: String): String;
 begin
    if Win32MajorVersion >= 6 then
     with TFileOpenDialog.Create(nil) do

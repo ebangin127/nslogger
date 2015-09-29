@@ -3,8 +3,8 @@ unit uGSTestThread;
 interface
 
 uses Classes, SysUtils, ComCtrls, Math, Windows, DateUtils, Dialogs,
-     uGSTester, uGSList, uRandomBuffer, uSaveFile, uParser,
-     uLegacyDiskFunctions, uGSNode;
+     uGSTester, uGSList, uRandomBuffer, uSaveFile, Parser,
+     uSizeStrings, uGSNode;
 
 const
   ByteToTB = 40;
@@ -169,12 +169,12 @@ begin
   if fMain <> nil then
   begin
     if fMain.RepeatRetention = false then
-      Synchronize(ApplyState)
+      Queue(ApplyState)
     else
       FExitCode := EXIT_EXT_RETENTION;
   end;
 
-  Synchronize(GetMainInfo);
+  Queue(GetMainInfo);
   Save(FSavePath);
 
   FreeAndNil(FTester);
@@ -423,11 +423,11 @@ begin
   FSecCounter := 0;
 
   GSList := TGSList.Create;
-  makeJEDECListAndFix(GSList, PChar(FTracePath), MaxLBA / OrigLBA);
+  ImportTrace(GSList, PChar(FTracePath), MaxLBA / OrigLBA);
   FTester.AssignList(GSList);
 
-  Synchronize(ApplyStart);
-  Synchronize(ApplyState);
+  Queue(ApplyStart);
+  Queue(ApplyState);
 
   while not Terminated do
   begin
@@ -444,7 +444,7 @@ begin
       else
          FExitCode := EXIT_HOSTWRITE;
 
-      Synchronize(ApplyEnd);
+      Queue(ApplyEnd);
 
       break;
     end;
@@ -455,7 +455,7 @@ begin
     if ((CurrTime - FLastSync) > 1000) and (not Terminated) then
     begin
       try
-        Synchronize(ApplyState);
+        Queue(ApplyState);
       except
         ShowMessage('ApplyState ¿¡·¯');
       end;

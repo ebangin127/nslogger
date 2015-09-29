@@ -18,7 +18,7 @@ object fRetention: TfRetention
   OnDestroy = FormDestroy
   PixelsPerInch = 120
   TextHeight = 17
-  object Label5: TLabel
+  object lDestination: TLabel
     Left = 22
     Top = 14
     Width = 84
@@ -45,7 +45,6 @@ object fRetention: TfRetention
     Margins.Right = 4
     Margins.Bottom = 4
     AutoSize = False
-    Caption = 'sdfasdfasvasdf'
     TabOrder = 3
   end
   object pProgress: TProgressBar
@@ -105,7 +104,7 @@ object fRetention: TfRetention
     Top = 40
   end
   object FileOpen: TOpenDialog
-    FileName = 'E:\M6S.raw'
+    FileName = 'RetentionTest.raw'
     Filter = 'RAW Image File|*.raw'
     Options = [ofEnableSizing]
     Left = 176

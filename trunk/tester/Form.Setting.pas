@@ -128,7 +128,7 @@ end;
 
 function TfSetting.IsMaxTBWBiggerThanRetentionTBW: Boolean;
 begin
-  result := StrToInt(eDestTBW.Text) < StrToInt(eRetentionTBW.Text);
+  result := StrToInt(eDestTBW.Text) >= StrToInt(eRetentionTBW.Text);
   if not result then
     ShowMessage('목표 TBW는 리텐션 테스트 주기보다 작을 수 없습니다');
 end;
@@ -183,6 +183,9 @@ end;
 
 procedure TfSetting.bStartNewClick(Sender: TObject);
 begin
+  if not IsAllOptionSet then
+    exit;
+
   SetTracePath;
   if FTracePath = '' then
     exit;

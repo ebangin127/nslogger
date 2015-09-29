@@ -4,7 +4,7 @@ interface
 
 uses
   StdCtrls, ComCtrls, Classes, SysUtils, Windows, Dialogs,
-  Device.PhysicalDrive, uRandomBuffer, uStrFunctions;
+  Device.PhysicalDrive, uRandomBuffer, DeviceNumberExtractor;
 
 const
   LinearRead = 16 shl 20; // 16MB
@@ -119,7 +119,7 @@ begin
 
     if CurrNum = 0 then
     begin
-      Synchronize(ApplyProgress);
+      Queue(ApplyProgress);
       CurrNum := Period;
     end
     else
@@ -127,7 +127,7 @@ begin
   until FFileStream.Position = FMaxLength;
   FreeAndNil(FFileStream);
 
-  Synchronize(EndCopy);
+  Queue(EndCopy);
 end;
 
 end.
