@@ -4,14 +4,14 @@ interface
 
 uses
   Classes, Windows, SysUtils,
-  uGSList, uGSNode, Parser.BufferStorage, Parser.Divider;
+  uGSList, uGSNode, Parser.BufferStorage, Parser.Divider, Parser.ReadBuffer;
 
 type
   TProducer = class(TThread)
   private
     FBufStor: IBufferStorage;
     FFileStream: TFileStream;
-    FBuffer: TMTBuffer;
+    FBuffer: IManagedReadBuffer;
     FLimiter: TDividedArea;
     function IsEnter(const CharToCheck: Char): Boolean; inline;
     function FindEnterInWindow(const LastLength, ReadWindow: Integer): Integer;
@@ -35,11 +35,9 @@ constructor TProducer.Create(const BufStor: IBufferStorage; const Path: String;
 begin
   inherited Create(false);
   FBufStor := BufStor;
-  FBufStor.SetInnerBufLength(LinearRead * 2);
   FLimiter := Limiter;
   FFileStream := TFileStream.Create(Path, fmOpenRead or fmShareDenyNone);
   FFileStream.Seek(FLimiter.FStart, TSeekOrigin.soBeginning);
-  SetLength(FBuffer, LinearRead shl 1);
 end;
 
 destructor TProducer.Destroy;
@@ -80,13 +78,14 @@ var
 begin
   inherited;
   repeat
+    FBuffer := TManagedReadBuffer.Create(LinearRead shl 1);
     PrevPosition := FFileStream.Position;
-    CurrLength := FFileStream.Read(FBuffer[0], LinearRead) shr 1;
+    CurrLength := FFileStream.Read(FBuffer.GetBuffer[0], LinearRead) shr 1;
     CurrChar := FBuffer[CurrLength - 1];
     while (not IsEnter(CurrChar)) and (FFileStream.Position < FLimiter.FEnd) do
     begin
-      ReadLength :=
-        FFileStream.Read(FBuffer[CurrLength], SizeOf(Char) * ReadWindow);
+      ReadLength := FFileStream.Read(
+        FBuffer.GetBuffer[CurrLength], SizeOf(Char) * ReadWindow);
       Offset := FindEnterInWindow(CurrLength, ReadLength);
       Inc(CurrLength, Offset);
       FFileStream.Seek((Offset - ReadWindow) * SizeOf(Char),

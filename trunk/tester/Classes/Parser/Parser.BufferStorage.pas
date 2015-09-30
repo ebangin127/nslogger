@@ -3,40 +3,35 @@ unit Parser.BufferStorage;
 interface
 
 uses
-  SysUtils, Windows;
+  SysUtils, Windows,
+  Parser.ReadBuffer;
 
 const
   LinearRead = 16 shl 20;
 
 type
-  TMTBuffer = Array of Char;
-
   IBufferStorage = interface
     function IsClosed: Boolean;
-    procedure SetInnerBufLength(NewLength: Integer);
     procedure ReadyToClose;
-    function TakeBuf: TMTBuffer;
-    procedure PutBuf(InBuffer: TMTBuffer; CurrSize: Integer;
+    function TakeBuf: IManagedReadBuffer;
+    procedure PutBuf(InBuffer: IManagedReadBuffer; CurrSize: Integer;
       NeedClose: Boolean);
   end;
 
   TBufferStorage = class(TInterfacedObject, IBufferStorage)
   private
-    FBuffer, FOutputBuffer: TMTBuffer;
+    FBuffer: IManagedReadBuffer;
     FEmpty: Boolean;
     FClosed: Boolean;
     FToBeClosed: Boolean;
-    FHalfInByte, FHalfInArray: Integer;
 
     FCurrSize: Integer;
-    FFirstCopy: Boolean;
   public
     function IsClosed: Boolean;
     constructor Create;
-    procedure SetInnerBufLength(NewLength: Integer);
     procedure ReadyToClose;
-    function TakeBuf: TMTBuffer;
-    procedure PutBuf(InBuffer: TMTBuffer; CurrSize: Integer;
+    function TakeBuf: IManagedReadBuffer;
+    procedure PutBuf(InBuffer: IManagedReadBuffer; CurrSize: Integer;
       NeedClose: Boolean);
   end;
 
@@ -52,15 +47,7 @@ end;
 constructor TBufferStorage.Create;
 begin
   FEmpty := true;
-  FFirstCopy := true;
   FClosed := false;
-end;
-
-procedure TBufferStorage.SetInnerBufLength(NewLength: Integer);
-begin
-  SetLength(FBuffer, NewLength);
-  FHalfInByte := SizeOf(Char) * (Length(FBuffer) shr 1);
-  FHalfInArray := FHalfInByte shr 1;
 end;
 
 function TBufferStorage.IsClosed: Boolean;
@@ -68,7 +55,7 @@ begin
   result := FClosed;
 end;
 
-procedure TBufferStorage.PutBuf(InBuffer: TMTBuffer; CurrSize: Integer;
+procedure TBufferStorage.PutBuf(InBuffer: IManagedReadBuffer; CurrSize: Integer;
   NeedClose: Boolean);
 begin
   if CurrSize = 0 then
@@ -86,10 +73,10 @@ begin
     if NeedClose then
     begin
       ReadyToClose;
-      SetLength(FBuffer, CurrSize);
+      FBuffer.SetBufferLength(CurrSize);
     end;
 
-    CopyMemory(@FBuffer[0], @InBuffer[0], CurrSize * SizeOf(Char));
+    FBuffer := InBuffer;
     FCurrSize := CurrSize;
   finally
     FEmpty := false;
@@ -99,13 +86,11 @@ begin
   end;
 end;
 
-function TBufferStorage.TakeBuf: TMTBuffer;
-var
-  NewLength: Integer;
+function TBufferStorage.TakeBuf: IManagedReadBuffer;
 begin
   if FClosed then
   begin
-    SetLength(result, 0);
+    result := TManagedReadBuffer.Create(0);
     exit;
   end;
 
@@ -113,14 +98,10 @@ begin
   try
     while FEmpty do
       TMonitor.Wait(Self, INFINITE);
-    NewLength := FCurrSize * SizeOf(Char);
 
-    if Length(FOutputBuffer) <> FCurrSize + 1 then
-      SetLength(FOutputBuffer, FCurrSize + 1);
-    CopyMemory(@FOutputBuffer[0], @FBuffer[0], NewLength);
-    FOutputBuffer[FCurrSize] := #0;
     FClosed := FToBeClosed;
-    result := FOutputBuffer;
+    result := FBuffer;
+    result[FCurrSize] := #0;
   finally
     FEmpty := true;
 

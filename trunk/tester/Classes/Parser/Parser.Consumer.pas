@@ -12,7 +12,7 @@ type
     FBufStor: IBufferStorage;
     FGSList: TGSList;
     FMultiplier: Double;
-    procedure InterpretCurrentBuffer(const Buffer: TMTBuffer;
+    procedure InterpretCurrentBuffer(const Buffer: IManagedReadBuffer;
       const BufEnd: Integer);
     function ParseToNode(var CurrLine: PChar;
       const CurrLineLength: Integer): TGSNode;
@@ -95,7 +95,7 @@ end;
 
 procedure TConsumer.Execute;
 var
-  Buffer: TMTBuffer;
+  Buffer: IManagedReadBuffer;
   BufEnd: Integer;
 begin
   inherited;
@@ -107,7 +107,7 @@ begin
   until FBufStor.IsClosed;
 end;
 
-procedure TConsumer.InterpretCurrentBuffer(const Buffer: TMTBuffer;
+procedure TConsumer.InterpretCurrentBuffer(const Buffer: IManagedReadBuffer;
   const BufEnd: Integer);
 var
   PStrBuffer: PChar;
@@ -117,7 +117,7 @@ var
   CurrLineLength: Cardinal;
   LastCharOfThisLine: Char;
 begin
-  StrBuffer := PChar(Buffer);
+  StrBuffer := PChar(Buffer.GetBuffer);
   PStrBuffer := Pointer(StrBuffer);
 
   CurrChar := 0;
