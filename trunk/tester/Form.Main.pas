@@ -8,7 +8,8 @@ uses
   Vcl.ComCtrls, Vcl.StdCtrls, Vcl.ExtCtrls, Math, DateUtils,
   Vcl.Imaging.pngimage, System.UITypes, Device.PhysicalDrive,
   uSizeStrings, MeasureUnit.DataSize, uRandomBuffer, uGSTestThread,
-  Setting.Test.ParamGetter, Setting.Test, uGSList, Form.Setting, Form.Retention;
+  Setting.Test.ParamGetter, Setting.Test, Trace.List, Form.Setting,
+  Form.Retention;
 
 const
   WM_AFTER_SHOW = WM_USER + 300;
@@ -139,14 +140,14 @@ implementation
 
 procedure TfMain.bForceRetenClick(Sender: TObject);
 begin
-  lAlert.Items.Add(GetLogLine('ÀÓÀÇ ¸®ÅÙ¼Ç Å×½ºÆ®'));
+  lAlert.Items.Add(GetLogLine('ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ù¼ï¿½ ï¿½×½ï¿½Æ®'));
   FNeedRetention := true;
   Close;
 end;
 
 procedure TfMain.bSaveClick(Sender: TObject);
 begin
-  lAlert.Items.Add(GetLogLine('ÀúÀå ÈÄ Á¾·á'));
+  lAlert.Items.Add(GetLogLine('ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½'));
   FNeedRetention := false;
   Close;
 end;
@@ -314,25 +315,25 @@ end;
 
 procedure TfMain.AddTestClosedNormallyToLog;
 begin
-  FTestThread.AddToAlert(GetLogLine('Å×½ºÆ® Á¤»ó Á¾·á',
-    '¾²±â·® - ' + GetByte2TBWStr(FTestThread.HostWrite) +
-    ' / Æò±Õ Áö¿¬ - ' + Format('%.2f%s', [FTestThread.AvgLatency, 'ms']) +
-    ' / ÃÖ´ë Áö¿¬ - ' + Format('%.2f%s', [FTestThread.MaxLatency, 'ms'])));
+  FTestThread.AddToAlert(GetLogLine('ï¿½×½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½',
+    'ï¿½ï¿½ï¿½â·® - ' + GetByte2TBWStr(FTestThread.HostWrite) +
+    ' / ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ - ' + Format('%.2f%s', [FTestThread.AvgLatency, 'ms']) +
+    ' / ï¿½Ö´ï¿½ ï¿½ï¿½ï¿½ï¿½ - ' + Format('%.2f%s', [FTestThread.MaxLatency, 'ms'])));
 end;
 
 procedure TfMain.AddVerifyResultToLog;
 begin
   if fRetention.bStart.Visible = false then
-    FTestThread.AddToAlert(GetLogLine('¸®ÅÙ¼Ç Å×½ºÆ® Á¾·á',
+    FTestThread.AddToAlert(GetLogLine('ï¿½ï¿½ï¿½Ù¼ï¿½ ï¿½×½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½',
       'UBER - ' + FloatToStr(fRetention.UBER)))
   else
-    FTestThread.AddToAlert(GetLogLine('¸®ÅÙ¼Ç Å×½ºÆ® °ËÁõ Ãë¼Ò'));
+    FTestThread.AddToAlert(GetLogLine('ï¿½ï¿½ï¿½Ù¼ï¿½ ï¿½×½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½'));
 end;
 
 procedure TfMain.AskForRepeatRetention;
 begin
-  if MessageDlg('¸®ÅÙ¼Ç Å×½ºÆ®¸¦ ¹Ýº¹ÇÏ½Ã°Ú½À´Ï±î?', mtWarning, mbOKCancel, 0) =
-    mrOK then
+  if MessageDlg('ï¿½ï¿½ï¿½Ù¼ï¿½ ï¿½×½ï¿½Æ®ï¿½ï¿½ ï¿½Ýºï¿½ï¿½Ï½Ã°Ú½ï¿½ï¿½Ï±ï¿½?', mtWarning, mbOKCancel, 
+    0) = mrOK then
   begin
     FNeedRetention := true;
     FRepeatRetention := true;
@@ -581,8 +582,8 @@ begin
   Precondition;
   FTestThread.SetHostWrite(fRetention.Written);
   FTestThread.AddToAlert(
-    GetLogLine('Å×½ºÆ® »çÀü ÁØºñ ¿Ï·á',
-      '¾²±â·® - ' + GetByte2TBWStr(fRetention.Written)));
+    GetLogLine('ï¿½×½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½ ï¿½Øºï¿½ ï¿½Ï·ï¿½',
+      'ï¿½ï¿½ï¿½â·® - ' + GetByte2TBWStr(fRetention.Written)));
   FreeAndNil(fRetention);
 end;
 

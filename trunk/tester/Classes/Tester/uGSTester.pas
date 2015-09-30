@@ -4,7 +4,7 @@ interface
 
 uses Windows, SysUtils, Generics.Collections, MMSystem, Math, Dialogs,
      Classes,
-     uGSList, uRandomBuffer, uErrorList, uGSNode,
+     Trace.List, uRandomBuffer, uErrorList, Trace.Node,
      uCommandSet, uCommandSetFactory, Device.PhysicalDrive;
 
 const
@@ -16,7 +16,7 @@ type
   TTestStage = (stReady, stLatencyTest, stCount);
   TGSTester = class
   private
-    FMasterTrace: TGSList;
+    FMasterTrace: TTraceMultiList;
 
     FOverlapped: TList<POVERLAPPED>;
 
@@ -24,7 +24,7 @@ type
     FDriveHandle: THandle;
     FCommandSet: TCommandSet;
     FIterator: Integer;
-    FListIterator: IGSListIterator;
+    FListIterator: ITraceListIterator;
     FFrequency: Double;
     FOverallTestCount: Integer;
 
@@ -43,9 +43,9 @@ type
 
     FCleared: Boolean;
 
-    function DiskWrite(const Contents: TGSNode): Boolean;
-    function DiskRead(const Contents: TGSNode): Boolean;
-    function DiskTrim(const Contents: TGSNode): Boolean;
+    function DiskWrite(const Contents: TTraceNode): Boolean;
+    function DiskRead(const Contents: TTraceNode): Boolean;
+    function DiskTrim(const Contents: TTraceNode): Boolean;
     function DiskFlush: Boolean;
     procedure SetIterator(const Value: Integer);
     procedure ClearAvgLatency;
@@ -81,7 +81,7 @@ type
     function ProcessNextOperation: Boolean;
 
     function AssignBuffer(RandBuf: PTRandomBuffer): Boolean;
-    procedure AssignList(const NewList: TGSList);
+    procedure AssignList(const NewList: TTraceMultiList);
   end;
 
 const
@@ -89,7 +89,7 @@ const
 
 implementation
 
-function TGSTester.DiskWrite(const Contents: TGSNode): Boolean;
+function TGSTester.DiskWrite(const Contents: TTraceNode): Boolean;
 var
   BytesWritten: Cardinal;
   BufferPoint: Pointer;
@@ -138,7 +138,7 @@ begin
     Inc(FHostWrite, Contents.GetLength shl 9);
 end;
 
-function TGSTester.DiskRead(const Contents: TGSNode): Boolean;
+function TGSTester.DiskRead(const Contents: TTraceNode): Boolean;
 var
   BytesRead: Cardinal;
   BufferPoint: Pointer;
@@ -182,7 +182,7 @@ begin
   end;
 end;
 
-function TGSTester.DiskTrim(const Contents: TGSNode): Boolean;
+function TGSTester.DiskTrim(const Contents: TTraceNode): Boolean;
 var
   TrimResult: Cardinal;
 begin
@@ -239,7 +239,7 @@ constructor TGSTester.Create(Capacity: UINT64);
 var
   Frequency: Int64;
 begin
-  FMasterTrace := TGSList.Create;
+  FMasterTrace := TTraceMultiList.Create;
   FListIterator := FMasterTrace.GetIterator;
 
   QueryPerformanceFrequency(Frequency);
@@ -347,7 +347,7 @@ end;
 
 function TGSTester.ProcessNextOperation: Boolean;
 var
-  NextOperation: TGSNode;
+  NextOperation: TTraceNode;
   OverallTime: Int64;
   EndTime: Int64;
 begin
@@ -433,7 +433,7 @@ begin
   FRandomBuffer := RandBuf;
 end;
 
-procedure TGSTester.AssignList(const NewList: TGSList);
+procedure TGSTester.AssignList(const NewList: TTraceMultiList);
 begin
   if FMasterTrace <> nil then
     FreeAndNil(FMasterTrace);

@@ -3,8 +3,8 @@ unit uGSTestThread;
 interface
 
 uses Classes, SysUtils, ComCtrls, Math, Windows, DateUtils, Dialogs,
-     uGSTester, uGSList, uRandomBuffer, uSaveFile, Parser,
-     uSizeStrings, uGSNode;
+     uGSTester, Trace.List, uRandomBuffer, uSaveFile, Parser,
+     uSizeStrings, Trace.Node;
 
 const
   ByteToTB = 40;
@@ -36,7 +36,7 @@ type
     FSecCounter: Integer;
     FLastSyncCount: Integer;
 
-    GSList: TGSList;
+    TraceMultiList: TTraceMultiList;
 
     FMaxLBA: UInt64;
     FOrigLBA: UInt64;
@@ -190,23 +190,23 @@ begin
     case FExitCode of
       EXIT_HOSTWRITE:
       begin
-        AddToAlert(GetLogLine('¾²±â Á¾·á'));
+        AddToAlert(GetLogLine('ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½'));
       end;
       EXIT_RETENTION:
       begin
-        AddToAlert(GetLogLine('ÁÖ±âÀû ¸®ÅÙ¼Ç Å×½ºÆ®'));
+        AddToAlert(GetLogLine('ï¿½Ö±ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ù¼ï¿½ ï¿½×½ï¿½Æ®'));
       end;
       EXIT_EXT_RETENTION:
       begin
-        AddToAlert(GetLogLine('¸®ÅÙ¼Ç Å×½ºÆ® ¿¬Àå ÁøÇà'));
+        AddToAlert(GetLogLine('ï¿½ï¿½ï¿½Ù¼ï¿½ ï¿½×½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½'));
       end;
       EXIT_ERROR:
       begin
-        AddToAlert(GetLogLine('±â´É ½ÇÆÐÀ² ºñÁ¤»ó'));
+        AddToAlert(GetLogLine('ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½'));
       end;
       EXIT_NORMAL:
       begin
-        AddToAlert(GetLogLine('»ç¿ëÀÚ Á¾·á'));
+        AddToAlert(GetLogLine('ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½'));
       end;
     end;
   end;
@@ -231,8 +231,8 @@ begin
     if FLastSyncCount <> FTester.GetOverallTestCount + 1 then
     begin
       FLastSyncCount := FTester.GetOverallTestCount + 1;
-      AddToAlert(GetLogLine(IntToStr(FLastSyncCount) + 'È¸ ½ÃÀÛ',
-                            '¹Ýº¹ÀÚ À§Ä¡ - ' + IntToStr(FTester.Iterator)));
+      AddToAlert(GetLogLine(IntToStr(FLastSyncCount) + 'È¸ ï¿½ï¿½ï¿½ï¿½',
+                            'ï¿½Ýºï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡ - ' + IntToStr(FTester.Iterator)));
     end;
 
     TBWStr := GetByte2TBWStr(FTester.GetHostWrite);
@@ -273,33 +273,33 @@ begin
   begin
     if AvgLatency < ABNORMAL_VALUE then
     begin
-      sAvgLatency.Caption := '¾çÈ£(';
+      sAvgLatency.Caption := 'ï¿½ï¿½È£(';
       pAvgLatency.State := pbsNormal;
     end
     else if AvgLatency < ERROR_VALUE then
     begin
-      sAvgLatency.Caption := 'À§Çè(';
+      sAvgLatency.Caption := 'ï¿½ï¿½ï¿½ï¿½(';
       pAvgLatency.State := pbsPaused;
     end
     else if AvgLatency >= ERROR_VALUE then
     begin
-      sAvgLatency.Caption := 'ºÒ·®(';
+      sAvgLatency.Caption := 'ï¿½Ò·ï¿½(';
       pAvgLatency.State := pbsError;
     end;
 
     if MaxLatency < ABNORMAL_VALUE then
     begin
-      sMaxLatency.Caption := '¾çÈ£(';
+      sMaxLatency.Caption := 'ï¿½ï¿½È£(';
       pMaxLatency.State := pbsNormal;
     end
     else if MaxLatency < ERROR_VALUE then
     begin
-      sMaxLatency.Caption := 'º¸Åë(';
+      sMaxLatency.Caption := 'ï¿½ï¿½ï¿½ï¿½(';
       pMaxLatency.State := pbsPaused;
     end
     else if MaxLatency >= ERROR_VALUE then
     begin
-      sMaxLatency.Caption := 'À§Çè(';
+      sMaxLatency.Caption := 'ï¿½ï¿½ï¿½ï¿½(';
       pMaxLatency.State := pbsError;
     end;
 
@@ -357,7 +357,7 @@ procedure TGSTestThread.ApplyState_WriteError(TBWStr, DayStr: String);
 var
   ErrorName: String;
   ErrorContents: String;
-  CurrNode: TGSNode;
+  CurrNode: TTraceNode;
   UpdateStarted: Boolean;
 begin
   with fMain do
@@ -368,7 +368,7 @@ begin
     if FTester.ErrorBuf.Count > 0 then
     begin
       lAlert.Items.BeginUpdate;
-      AddToAlert('---' + TBWStr + '(' + DayStr + ') ÁöÁ¡ÀÇ ¿À·ù ---');
+      AddToAlert('---' + TBWStr + '(' + DayStr + ') ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ---');
       UpdateStarted := true;
     end;
 
@@ -376,23 +376,23 @@ begin
     begin
       case CurrNode.GetIOType of
       TIOType.ioRead:
-        ErrorName := 'ÀÐ±â ¿À·ù';
+        ErrorName := 'ï¿½Ð±ï¿½ ï¿½ï¿½ï¿½ï¿½';
       TIOType.ioWrite:
-        ErrorName := '¾²±â ¿À·ù';
+        ErrorName := 'ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½';
       TIOType.ioTrim:
-        ErrorName := 'Æ®¸² ¿À·ù';
+        ErrorName := 'Æ®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½';
       TIOType.ioFlush:
-        ErrorName := 'ÇÃ·¯½Ã ¿À·ù';
+        ErrorName := 'ï¿½Ã·ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½';
       end;
 
       ErrorContents := '';
       case CurrNode.GetIOType of
       TIOType.ioRead..TIOType.ioTrim:
       begin
-        ErrorContents := 'À§Ä¡ '
+        ErrorContents := 'ï¿½ï¿½Ä¡ '
                           + IntToStr(CurrNode.GetLBA)
                           + ', ';
-        ErrorContents := ErrorContents + '±æÀÌ '
+        ErrorContents := ErrorContents + 'ï¿½ï¿½ï¿½ï¿½ '
                           + IntToStr(CurrNode.GetLength);
       end;
       end;
@@ -402,7 +402,7 @@ begin
 
     if UpdateStarted then
     begin
-      AddToAlert('---' + TBWStr + '(' + DayStr + ') ÁöÁ¡ÀÇ ¿À·ù ³¡---');
+      AddToAlert('---' + TBWStr + '(' + DayStr + ') ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½---');
       lAlert.Items.EndUpdate;
       FTester.ErrorBuf.Clear;
     end;
@@ -422,9 +422,9 @@ begin
   FLastSync := 0;
   FSecCounter := 0;
 
-  GSList := TGSList.Create;
-  ImportTrace(GSList, PChar(FTracePath), MaxLBA / OrigLBA);
-  FTester.AssignList(GSList);
+  TraceMultiList := TTraceList.Create;
+  ImportTrace(TraceMultiList, PChar(FTracePath), MaxLBA / OrigLBA);
+  FTester.AssignList(TraceMultiList);
 
   Queue(ApplyStart);
   Queue(ApplyState);
@@ -457,7 +457,7 @@ begin
       try
         Queue(ApplyState);
       except
-        ShowMessage('ApplyState ¿¡·¯');
+        ShowMessage('ApplyState ï¿½ï¿½ï¿½ï¿½');
       end;
 
       FSecCounter := FSecCounter + 1;

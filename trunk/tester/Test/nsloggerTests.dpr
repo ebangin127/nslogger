@@ -16,9 +16,9 @@ program nsloggerTests;
 
 uses
   DUnitTestRunner,
-  TestuGSList in 'TestuGSList.pas',
-  uGSList in '..\Classes\Tester\uGSList.pas',
-  uGSNode in '..\Classes\Tester\uGSNode.pas';
+  TestuTraceList in 'TestuTraceList.pas',
+  uTraceList in '..\Classes\Tester\uTraceList.pas',
+  Trace.Node in '..\Classes\Tester\Trace.Node.pas';
 
 {$R *.RES}
 

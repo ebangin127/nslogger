@@ -152,7 +152,7 @@
             <Form>fRetention</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="Classes\Tester\uGSList.pas"/>
+        <DCCReference Include="Classes\Tester\Trace.List.pas"/>
         <DCCReference Include="Classes\Tester\uGSTester.pas"/>
         <DCCReference Include="Classes\Tester\uGSTestThread.pas"/>
         <DCCReference Include="Classes\SaveFile\uErrorList.pas"/>
@@ -198,7 +198,7 @@
         <DCCReference Include="Classes\Setting.Test.pas"/>
         <DCCReference Include="Classes\Setting.Test.ParamGetter.pas"/>
         <DCCReference Include="Objects\Pattern.Singleton.pas"/>
-        <DCCReference Include="Classes\Tester\uGSNode.pas"/>
+        <DCCReference Include="Classes\Tester\Trace.Node.pas"/>
         <DCCReference Include="Classes\Parser\Parser.Producer.pas"/>
         <DCCReference Include="Classes\Parser\Parser.Consumer.pas"/>
         <DCCReference Include="Classes\Parser\Parser.BufferStorage.pas"/>

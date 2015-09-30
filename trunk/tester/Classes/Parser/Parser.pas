@@ -4,14 +4,14 @@ interface
 
 uses
   Classes, Windows, SysUtils, Dialogs,
-  uGSList, uGSNode, Parser.Producer, Parser.Consumer, Parser.BufferStorage,
-  Parser.Divider, Threading, MMSystem;
+  Trace.List, Trace.Node, Parser.Producer, Parser.Consumer,
+  Parser.BufferStorage, Parser.Divider, Threading, MMSystem;
 
-procedure ImportTrace(TraceList: TGSList; Path: PChar; MultiConst: Double);
+procedure ImportTrace(TraceList: TTraceList; Path: PChar; MultiConst: Double);
 
 implementation
 
-procedure ImportTrace(TraceList: TGSList; Path: PChar; MultiConst: Double);
+procedure ImportTrace(TraceList: TTraceList; Path: PChar; MultiConst: Double);
 const
   DivideCount = 4;
 var
@@ -19,7 +19,7 @@ var
   DivResult: TDividedResult;
   Producer: Array[0..DivideCount - 1] of TProducer;
   Consumer: Array[0..DivideCount - 1] of TConsumer;
-  CommitList: Array[0..DivideCount - 1] of TGSList;
+  CommitList: Array[0..DivideCount - 1] of TTraceList;
   StartTime, EndTime: Cardinal;
   CurrentIndex: Integer;
   ResultCount: Integer;
@@ -31,10 +31,10 @@ begin
 
   TParallel.For(0, DivideCount - 1, procedure (CurrentIndex: Integer)
   var
-    LocalList: TGSList;
+    LocalList: TTraceList;
     LocalBufStor: TBufferStorage;
   begin
-    LocalList := TGSList.Create;
+    LocalList := TTraceList.Create;
     LocalBufStor := TBufferStorage.Create;
     Producer[CurrentIndex] :=
       TProducer.Create(LocalBufStor, Path, DivResult[CurrentIndex]);

@@ -4,21 +4,21 @@ interface
 
 uses
   Classes, Windows, SysUtils,
-  uGSList, uGSNode, Parser.BufferStorage;
+  Trace.List, Trace.Node, Parser.BufferStorage;
 
 type
   TConsumer = class(TThread)
   private
     FBufStor: IBufferStorage;
-    FGSList: TGSList;
+    FTraceList: TTraceList;
     FMultiplier: Double;
     procedure InterpretBuffer(const Buffer: IManagedReadBuffer;
       const BufferLastIndex: Integer);
     function ParseToNode(var CurrLine: PChar; const CurrLineLength: Integer):
-      TGSNode;
+      TTraceNode;
     function AppendNilAndGetLineLength(const CurrLine: PChar): Integer;
   public
-    constructor Create(const BufStor: IBufferStorage; const GSList: TGSList;
+    constructor Create(const BufStor: IBufferStorage; const TraceList: TTraceList;
       const Multiplier: Double);
     procedure Execute; override;
   end;
@@ -38,9 +38,9 @@ begin
 end;
 
 function TConsumer.ParseToNode(var CurrLine: PChar;
-  const CurrLineLength: Integer): TGSNode;
+  const CurrLineLength: Integer): TTraceNode;
 const
-  FlushNode: TGSNode = (FIOType: TIOType.ioFlush; FLength: 0; FLBA: 0);
+  FlushNode: TTraceNode = (FIOType: TIOType.ioFlush; FLength: 0; FLBA: 0);
 var
   LBAStartIdx: Integer;
   LBALength: Integer;
@@ -81,11 +81,11 @@ begin
 end;
 
 constructor TConsumer.Create(const BufStor: IBufferStorage;
-  const GSList: TGSList; const Multiplier: Double);
+  const TraceList: TTraceList; const Multiplier: Double);
 begin
   inherited Create(false);
   FBufStor := BufStor;
-  FGSList := GSList;
+  FTraceList := TraceList;
   FMultiplier := Multiplier;
 end;
 
@@ -140,7 +140,7 @@ begin
     Inc(CurrChar, Ord(PBuffer[CurrChar] = #0));
 
     if CurrLineLength > 0 then
-      FGSList.AddNode(ParseToNode(CurrLine, CurrLineLength));
+      FTraceList.AddNode(ParseToNode(CurrLine, CurrLineLength));
   end;
 end;
 

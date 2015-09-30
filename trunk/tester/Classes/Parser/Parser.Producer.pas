@@ -4,7 +4,8 @@ interface
 
 uses
   Classes, Windows, SysUtils,
-  uGSList, uGSNode, Parser.BufferStorage, Parser.Divider, Parser.ReadBuffer;
+  Trace.List, Trace.Node, Parser.BufferStorage, Parser.Divider,
+  Parser.ReadBuffer;
 
 type
   TProducer = class(TThread)
@@ -15,6 +16,7 @@ type
     FLimiter: TDividedArea;
     function IsEnter(const CharToCheck: Char): Boolean; inline;
     function FindEnterInWindow(const LastLength, ReadWindow: Integer): Integer;
+    function GetLengthEndWithEnter(const CurrLength: Integer): Integer;
   public
     constructor Create(const BufStor: IBufferStorage; const Path: String;
       const Limiter: TDividedArea);
@@ -24,9 +26,6 @@ type
   end;
 
 implementation
-
-const
-  ReadWindow = 512;
 
 { TProducer }
 
@@ -67,12 +66,32 @@ begin
   Inc(result);
 end;
 
-procedure TProducer.Execute;
+function TProducer.GetLengthEndWithEnter(const CurrLength: Integer): Integer;
+const
+  ReadWindow = 512;
 var
   CurrChar: Char;
-  CurrLength: Integer;
   ReadLength: Integer;
   Offset: Integer;
+begin
+  result := CurrLength;
+  CurrChar := FBuffer[result - 1];
+  while (not IsEnter(CurrChar)) and (FFileStream.Position < FLimiter.FEnd) do
+  begin
+    ReadLength := FFileStream.Read(
+      FBuffer.GetBuffer[result], SizeOf(Char) * ReadWindow);
+    Offset := FindEnterInWindow(result, ReadLength);
+    Inc(result, Offset);
+    FFileStream.Seek((Offset - ReadWindow) * SizeOf(Char),
+      TSeekOrigin.soCurrent);
+    CurrChar := FBuffer[result - 1];
+  end;
+end;
+    
+
+procedure TProducer.Execute;
+var
+  LengthOfBuffer: Integer;
   PrevPosition: Int64;
   IsEnd: Boolean;
 begin
@@ -80,24 +99,14 @@ begin
   repeat
     FBuffer := TManagedReadBuffer.Create(LinearRead shl 1);
     PrevPosition := FFileStream.Position;
-    CurrLength := FFileStream.Read(FBuffer.GetBuffer[0], LinearRead) shr 1;
-    CurrChar := FBuffer[CurrLength - 1];
-    while (not IsEnter(CurrChar)) and (FFileStream.Position < FLimiter.FEnd) do
-    begin
-      ReadLength := FFileStream.Read(
-        FBuffer.GetBuffer[CurrLength], SizeOf(Char) * ReadWindow);
-      Offset := FindEnterInWindow(CurrLength, ReadLength);
-      Inc(CurrLength, Offset);
-      FFileStream.Seek((Offset - ReadWindow) * SizeOf(Char),
-        TSeekOrigin.soCurrent);
-      CurrChar := FBuffer[CurrLength - 1];
-    end;
+    LengthOfBuffer := GetLengthEndWithEnter(
+      FFileStream.Read(FBuffer.GetBuffer[0], LinearRead) shr 1);
 
     if FFileStream.Position > FLimiter.FEnd then
-      CurrLength := (FLimiter.FEnd - PrevPosition + 2) shr 1;
+      LengthOfBuffer := (FLimiter.FEnd - PrevPosition + 2) shr 1;
 
     IsEnd := FFileStream.Position >= FLimiter.FEnd;
-    FBufStor.PutBuf(FBuffer, CurrLength, IsEnd);
+    FBufStor.PutBuf(FBuffer, LengthOfBuffer, IsEnd);
   until IsEnd;
 end;
 

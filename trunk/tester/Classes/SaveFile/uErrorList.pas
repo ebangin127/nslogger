@@ -1,8 +1,9 @@
 unit uErrorList;
 
 interface
-uses Classes, SysUtils, DateUtils, Math, Generics.Collections,
-     uGSList, uGSNode;
+uses
+  Classes, SysUtils, DateUtils, Math, Generics.Collections,
+  Trace.List, Trace.Node;
 
 const
   SaveLine = 10000;
@@ -10,7 +11,7 @@ const
 type
   time_t = Int64;
 
-  TErrorList = class(TList<TGSNode>)
+  TErrorList = class(TList<TTraceNode>)
   private
     FToSaveList: TStringList;
     FSavePath: String;

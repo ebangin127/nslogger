@@ -92,8 +92,8 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="TestuGSList.pas"/>
-        <DCCReference Include="..\Classes\Tester\uGSList.pas"/>
+        <DCCReference Include="TestuTraceList.pas"/>
+        <DCCReference Include="..\Classes\Tester\uTraceList.pas"/>
         <DCCReference Include="..\Classes\Tester\uGSNode.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

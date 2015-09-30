@@ -5,7 +5,7 @@ interface
 type
   TIOType = (ioRead, ioWrite, ioTrim, ioFlush);
 
-  TGSNode = record
+  TTraceNode = record
     FIOType: TIOType;
     FLength: Word;
     FLBA: UInt64;
@@ -17,9 +17,9 @@ type
 
 implementation
 
-{ TGSNode }
+{ TTraceNode }
 
-constructor TGSNode.CreateByValues(IOType: TIOType; LBALength: Word;
+constructor TTraceNode.CreateByValues(IOType: TIOType; LBALength: Word;
   LBA: UInt64);
 begin
   self.FIOType := IOType;
@@ -27,17 +27,17 @@ begin
   self.FLBA := LBA;
 end;
 
-function TGSNode.GetIOType: TIOType;
+function TTraceNode.GetIOType: TIOType;
 begin
   result := FIOType;
 end;
 
-function TGSNode.GetLBA: UInt64;
+function TTraceNode.GetLBA: UInt64;
 begin
   result := FLBA;
 end;
 
-function TGSNode.GetLength: Word;
+function TTraceNode.GetLength: Word;
 begin
   result := FLength;
 end;

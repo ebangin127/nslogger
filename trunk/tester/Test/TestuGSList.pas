@@ -1,4 +1,4 @@
-unit TestuGSList;
+unit TestuTraceList;
 {
 
   Delphi DUnit Test Case
@@ -12,15 +12,15 @@ unit TestuGSList;
 interface
 
 uses
-  TestFramework, uGSNode, Windows, Generics.Collections, uGSList, SysUtils, Threading,
+  TestFramework, uGSNode, Windows, Generics.Collections, uTraceList, SysUtils, Threading,
   Math;
 
 type
-  // Test methods for class TGSList
+  // Test methods for class TTraceList
 
-  TestTGSList = class(TTestCase)
+  TestTTraceList = class(TTestCase)
   strict private
-    FGSList: TGSList;
+    FTraceList: TTraceList;
   public
     procedure SetUp; override;
     procedure TearDown; override;
@@ -30,31 +30,31 @@ type
 
 implementation
 
-procedure TestTGSList.SetUp;
+procedure TestTTraceList.SetUp;
 begin
-  FGSList := TGSList.Create;
+  FTraceList := TTraceList.Create;
 end;
 
-procedure TestTGSList.TearDown;
+procedure TestTTraceList.TearDown;
 begin
-  FGSList.Free;
-  FGSList := nil;
+  FTraceList.Free;
+  FTraceList := nil;
 end;
 
-procedure TestTGSList.TestBigList;
+procedure TestTTraceList.TestBigList;
 var
   CurrItem: Integer;
-  Iterator: IGSListIterator;
+  Iterator: ITraceListIterator;
 begin
   try
     for CurrItem := 0 to 39923531 do
     begin
-      FGSList.AddNode(
-        TGSNode.CreateByValues(TIOType.ioWrite, CurrItem, CurrItem));
+      FTraceList.AddNode(
+        TTraceNode.CreateByValues(TIOType.ioWrite, CurrItem, CurrItem));
     end;
 
-    Iterator := FGSList.GetIterator;
-    for CurrItem := 0 to FGSList.Count - 1 do
+    Iterator := FTraceList.GetIterator;
+    for CurrItem := 0 to FTraceList.Count - 1 do
     begin
       if CurrItem = 39923531 then
         CheckEquals(Iterator.GetNextItem.GetLBA, 39923531)
@@ -69,6 +69,6 @@ end;
 
 initialization
   // Register any test cases with the test runner
-  RegisterTest(TestTGSList.Suite);
+  RegisterTest(TestTTraceList.Suite);
 end.
 
