@@ -12,12 +12,11 @@ type
     FBufStor: IBufferStorage;
     FGSList: TGSList;
     FMultiplier: Double;
-    procedure InterpretCurrentBuffer(const Buffer: IManagedReadBuffer;
-      const BufEnd: Integer);
-    function ParseToNode(var CurrLine: PChar;
-      const CurrLineLength: Integer): TGSNode;
-    function ParseToNodeWithMultiplier(var CurrLine: PChar;
-      const CurrLineLength: Integer; const Multiplier: Double): TGSNode;
+    procedure InterpretBuffer(const Buffer: IManagedReadBuffer;
+      const BufferLastIndex: Integer);
+    function ParseToNode(var CurrLine: PChar; const CurrLineLength: Integer):
+      TGSNode;
+    function AppendNilAndGetLineLength(const CurrLine: PChar): Integer;
   public
     constructor Create(const BufStor: IBufferStorage; const GSList: TGSList;
       const Multiplier: Double);
@@ -28,10 +27,11 @@ implementation
 
 { TConsumer }
 
-function FastPos(const ToFind: Char; const S: PChar): Integer; inline;
+function FindSpace(const AtString: PChar; const LengthOfAtString: Integer):
+  Integer; inline;
 begin
-  for Result := length(S) downto 1 do begin
-    if (S[Result] = ToFind) then exit;
+  for Result := LengthOfAtString - 1 downto 0 do begin
+    if (AtString[Result] = ' ') then exit;
   end;
 
   Result := 0;
@@ -46,7 +46,6 @@ var
   LBALength: Integer;
   LBAEndIdx: Integer;
 begin
-  LBAStartIdx := 0;
   case CurrLine[1] of
   'w':
   begin
@@ -68,20 +67,17 @@ begin
     result.FIOType := TIOType.ioTrim;
     LBAStartIdx := 8;
   end;
+  else
+    LBAStartIdx := 0;
   end;
 
-  LBAEndIdx := FastPos(' ', CurrLine);
+  LBAEndIdx := FindSpace(CurrLine, CurrLineLength);
   LBALength := LBAEndIdx - LBAStartIdx;
   result.FLength := StrToInt(PChar(@CurrLine[LBAEndIdx + 1]));
+  
   CurrLine[LBAStartIdx + LBALength] := #0;
   result.FLBA := StrToInt64(PChar(@CurrLine[LBAStartIdx]));
-end;
-
-function TConsumer.ParseToNodeWithMultiplier(var CurrLine: PChar;
-  const CurrLineLength: Integer; const Multiplier: Double): TGSNode;
-begin
-  result := ParseToNode(CurrLine, CurrLineLength);
-  result.FLBA := Round(result.GetLBA * Multiplier);
+  result.FLBA := Round(result.FLBA * FMultiplier);
 end;
 
 constructor TConsumer.Create(const BufStor: IBufferStorage;
@@ -96,54 +92,55 @@ end;
 procedure TConsumer.Execute;
 var
   Buffer: IManagedReadBuffer;
-  BufEnd: Integer;
+  BufferLastIndex: Integer;
 begin
   inherited;
   repeat
     Buffer := FBufStor.TakeBuf;
-    BufEnd := Length(Buffer) - 1;
+    BufferLastIndex := Length(Buffer) - 1;
     if Length(Buffer) > 0 then
-      InterpretCurrentBuffer(Buffer, BufEnd);
+      InterpretBuffer(Buffer, BufferLastIndex);
   until FBufStor.IsClosed;
 end;
 
-procedure TConsumer.InterpretCurrentBuffer(const Buffer: IManagedReadBuffer;
-  const BufEnd: Integer);
+function TConsumer.AppendNilAndGetLineLength(const CurrLine: PChar): Integer;
+begin
+  result := 0;
+  LastCharOfThisLine := CurrLine[result];
+  while (LastCharOfThisLine <> #0) and
+        (LastCharOfThisLine <> #10) and
+        (LastCharOfThisLine <> #13) do
+  begin
+    Inc(result);
+    LastCharOfThisLine := CurrLine[result];
+  end;
+  CurrLine[result] := #0;
+end;
+
+procedure TConsumer.InterpretBuffer(const Buffer: IManagedReadBuffer;
+  const BufferLastIndex: Integer);
 var
-  PStrBuffer: PChar;
-  StrBuffer: String;
+  PBuffer: PChar;
   CurrLine: PChar;
   CurrChar: Integer;
   CurrLineLength: Cardinal;
   LastCharOfThisLine: Char;
 begin
-  StrBuffer := PChar(Buffer.GetBuffer);
-  PStrBuffer := Pointer(StrBuffer);
+  PBuffer := PChar(Buffer.GetBuffer);
 
   CurrChar := 0;
-  while CurrChar < BufEnd do
+  while CurrChar < BufferLastIndex do
   begin
-    CurrLineLength := 0;
-    CurrLine := @PStrBuffer[CurrChar];
-
-    LastCharOfThisLine := CurrLine[CurrLineLength];
-    while (LastCharOfThisLine <> #0) and
-          (LastCharOfThisLine <> #10) and
-          (LastCharOfThisLine <> #13) do
-    begin
-      Inc(CurrLineLength);
-      LastCharOfThisLine := CurrLine[CurrLineLength];
-    end;
-
+    CurrLine := @PBuffer[CurrChar];
+    CurrLineLength := AppendNilAndGetLineLength(CurrLine);
+    
     Inc(CurrChar, CurrLineLength);
-    if PStrBuffer[CurrChar] = #13 then Inc(CurrChar);
-    if PStrBuffer[CurrChar] = #10 then Inc(CurrChar);
-    CurrLine[CurrLineLength] := #0;
-    if PStrBuffer[CurrChar] = #0 then Inc(CurrChar);
+    Inc(CurrChar, Ord(PBuffer[CurrChar] = #13));
+    Inc(CurrChar, Ord(PBuffer[CurrChar] = #10));
+    Inc(CurrChar, Ord(PBuffer[CurrChar] = #0));
 
     if CurrLineLength > 0 then
-      FGSList.AddNode(
-        ParseToNodeWithMultiplier(CurrLine, CurrLineLength, FMultiplier));
+      FGSList.AddNode(ParseToNode(CurrLine, CurrLineLength));
   end;
 end;
 
