@@ -56,6 +56,7 @@ uses
   Parser.Producer in 'Classes\Parser\Parser.Producer.pas',
   Parser.Consumer in 'Classes\Parser\Parser.Consumer.pas',
   Parser.BufferStorage in 'Classes\Parser\Parser.BufferStorage.pas',
+  Parser.ReadBuffer in 'Classes\Parser\Parser.ReadBuffer.pas',
   Parser.Divider in 'Classes\Parser\Parser.Divider.pas',
   DeviceNumberExtractor in 'Modules\DeviceNumberExtractor.pas';
 

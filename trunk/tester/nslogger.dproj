@@ -203,6 +203,7 @@
         <DCCReference Include="Classes\Parser\Parser.Consumer.pas"/>
         <DCCReference Include="Classes\Parser\Parser.BufferStorage.pas"/>
         <DCCReference Include="Classes\Parser\Parser.Divider.pas"/>
+        <DCCReference Include="Classes\Parser\Parser.ReadBuffer.pas"/>
         <DCCReference Include="Modules\DeviceNumberExtractor.pas">
             <Form>$IFNDEF PROFILE</Form>
         </DCCReference>
