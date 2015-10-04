@@ -12,13 +12,15 @@ type
     procedure SetItem(Index: Integer; NewChar: Char);
     function GetItem(Index: Integer): Char;
     function GetBuffer: TReadBuffer; 
-    procedure SetLength(NewLength: Integer);
+    procedure SetBufferLength(NewLength: Integer);
+    function GetLength: Integer;
     property Items[Index: Integer]: Char read GetItem write SetItem; default;
   end;
 
   TManagedReadBuffer = class(TInterfacedObject, IManagedReadBuffer)
   private
     FReadBuffer: TReadBuffer;
+    FLength: Integer;
     procedure SetItem(Index: Integer; NewChar: Char);
     function GetItem(Index: Integer): Char;
   public
@@ -38,19 +40,21 @@ begin
   SetBufferLength(BufferLength);
 end;
 
-function TManagedReadBuffer.GetBuffer: TReadBuffer; 
+function TManagedReadBuffer.GetBuffer: TReadBuffer;
 begin
   result := FReadBuffer;
 end;
 
 procedure TManagedReadBuffer.SetBufferLength(NewLength: Integer);
 begin
-  SetLength(FReadBuffer, BufferLength);
+  if Length(FReadBuffer) < NewLength then
+    SetLength(FReadBuffer, NewLength);
+  FLength := NewLength;
 end;
 
 function TManagedReadBuffer.GetLength: Integer;
 begin
-  result := Length(FReadBuffer);
+  result := FLength;
 end;
 
 procedure TManagedReadBuffer.SetItem(Index: Integer; NewChar: Char);

@@ -1,11 +1,11 @@
-unit Trace.List;
+unit Trace.MultiList;
 
 interface
 
 uses
   Windows, Math, SysUtils,
   Generics.Collections, Threading,
-  Trace.List;
+  Trace.List, Trace.Node;
 
 const
   UnitListShlValue = 24;
@@ -17,7 +17,7 @@ type
   TTraceMultiList = class
   private
     Lists: TList<TTraceList>;
-    function GetItem(Index: Integer): TTraceList;
+    function GetItem(Index: Integer): TTraceNode;
 
   public
     constructor Create;
@@ -27,7 +27,7 @@ type
     function Count: Integer;
     function GetIterator: ITraceListIterator;
 
-    property Items[Index: Integer]: TTraceList read GetItem; default;
+    property Items[Index: Integer]: TTraceNode read GetItem; default;
   end;
 
   TTraceMultiListIterator = class(TInterfacedObject, ITraceListIterator)
@@ -73,7 +73,7 @@ begin
     result := result + CurrentList.Count;
 end;
 
-function TTraceList.GetItem(Index: Integer): TTraceNode;
+function TTraceMultiList.GetItem(Index: Integer): TTraceNode;
 var
   CurrentList: TTraceList;
   CurrentCount: Integer;
@@ -84,15 +84,15 @@ begin
   CurrentCount := 0;
   for CurrentList in Lists do
   begin
-    CurrentCount := CurrentCount + CurrentList.Count;
-    if CurrentCount > Index do
+    if CurrentCount + CurrentList.Count > Index then
       exit(CurrentList[Index - CurrentCount]);
+    CurrentCount := CurrentCount + CurrentList.Count;
   end;
 end;
 
-function TTraceList.GetIterator: ITraceListIterator;
+function TTraceMultiList.GetIterator: ITraceListIterator;
 begin
-  result := TTraceListIterator.Create(self);
+  result := TTraceMultiListIterator.Create(self);
 end;
 
 { TTraceMultiListIterator }

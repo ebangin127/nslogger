@@ -3,12 +3,12 @@ program nslogger;
 uses
   Vcl.Forms,
   Form.Main in 'Form.Main.pas' {fMain},
-  uFileFunctions in 'Modules\Windows\uFileFunctions.pas',
+  Windows.Directory in 'Modules\Windows.Directory.pas',
   Form.Setting in 'Form.Setting.pas' {fSetting},
   Form.Retention in 'Form.Retention.pas' {fRetention},
   Trace.List in 'Classes\Tester\Trace.List.pas',
-  uGSTester in 'Classes\Tester\uGSTester.pas',
-  uGSTestThread in 'Classes\Tester\uGSTestThread.pas',
+  Tester.Iterator in 'Classes\Tester\Tester.Iterator.pas',
+  Tester.Thread in 'Classes\Tester\Tester.Thread.pas',
   uErrorList in 'Classes\SaveFile\uErrorList.pas',
   uSaveFile in 'Classes\SaveFile\uSaveFile.pas',
   uMTforDel in 'Classes\RandomBuffer\uMTforDel.pas',
@@ -37,7 +37,6 @@ uses
   Device.PhysicalDrive in 'Objects\Device.PhysicalDrive.pas',
   MeasureUnit.DataSize in 'Modules\MeasureUnit.DataSize.pas',
   MeasureUnit.Time in 'Modules\MeasureUnit.Time.pas',
-  uSizeStrings in 'Modules\uSizeStrings.pas',
   OS.SecurityDescriptor in 'Objects\OS.SecurityDescriptor.pas',
   uPhysicalDriveList in 'WindowsFileAPI\PhysicalDrive\List\uPhysicalDriveList.pas',
   uPhysicalDriveListGetter in 'WindowsFileAPI\PhysicalDrive\ListGetter\Abstraction\uPhysicalDriveListGetter.pas',
@@ -58,7 +57,13 @@ uses
   Parser.BufferStorage in 'Classes\Parser\Parser.BufferStorage.pas',
   Parser.ReadBuffer in 'Classes\Parser\Parser.ReadBuffer.pas',
   Parser.Divider in 'Classes\Parser\Parser.Divider.pas',
-  DeviceNumberExtractor in 'Modules\DeviceNumberExtractor.pas';
+  Trace.MultiList in 'Classes\Tester\Trace.MultiList.pas',
+  System.PCharVal in 'Modules\System.PCharVal.pas',
+  Tester.CommandIssuer in 'Classes\Tester\Tester.CommandIssuer.pas',
+  Tester.ToView in 'Classes\Tester\Tester.ToView.pas',
+  Log.Templates in 'Modules\Log.Templates.pas',
+  Device.NumberExtractor in 'Modules\Device.NumberExtractor.pas',
+  Windows.FilePhysicalLocationGetter in 'WindowsFileAPI\File\Windows.FilePhysicalLocationGetter.pas';
 
 {$R *.res}
 

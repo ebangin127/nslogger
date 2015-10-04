@@ -40,7 +40,7 @@ begin
 
     result := IntToStr(TimeInThisUnit) + UnitName;
     if TimeInThisUnit > 1 then
-      result := result + CapMultiple[CurrLang];
+      result := result + TimeMultiple[CurrLang];
   end;
 end;
 
@@ -49,17 +49,17 @@ var
   CurrStr: String;
 begin
   CurrStr :=
-    GetTimeUnitString(TimeInSecond, HourUnit, CapHour[CurrLang]);
+    GetTimeUnitString(TimeInSecond, HourUnit, TimeHour[CurrLang]);
   if CurrStr <> '' then
     result := CurrStr + ' ';
 
   CurrStr :=
-    GetTimeUnitString(TimeInSecond, MinuteUnit, CapMin[CurrLang]);
+    GetTimeUnitString(TimeInSecond, MinuteUnit, TimeMin[CurrLang]);
   if CurrStr <> '' then
     result := result + CurrStr + ' ';
 
   CurrStr :=
-    GetTimeUnitString(TimeInSecond, SecondUnit, CapSec[CurrLang]);
+    GetTimeUnitString(TimeInSecond, SecondUnit, TimeSec[CurrLang]);
   if CurrStr <> '' then
     result := result + CurrStr + ' ';
 end;

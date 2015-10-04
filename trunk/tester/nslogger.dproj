@@ -143,7 +143,7 @@
             <Form>fMain</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="Modules\Windows\uFileFunctions.pas"/>
+        <DCCReference Include="Modules\Windows.Directory.pas"/>
         <DCCReference Include="Form.Setting.pas">
             <Form>fSetting</Form>
             <FormType>dfm</FormType>
@@ -153,8 +153,8 @@
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="Classes\Tester\Trace.List.pas"/>
-        <DCCReference Include="Classes\Tester\uGSTester.pas"/>
-        <DCCReference Include="Classes\Tester\uGSTestThread.pas"/>
+        <DCCReference Include="Classes\Tester\Tester.Iterator.pas"/>
+        <DCCReference Include="Classes\Tester\Tester.Thread.pas"/>
         <DCCReference Include="Classes\SaveFile\uErrorList.pas"/>
         <DCCReference Include="Classes\SaveFile\uSaveFile.pas"/>
         <DCCReference Include="Classes\RandomBuffer\uMTforDel.pas"/>
@@ -183,7 +183,6 @@
         <DCCReference Include="Objects\Device.PhysicalDrive.pas"/>
         <DCCReference Include="Modules\MeasureUnit.DataSize.pas"/>
         <DCCReference Include="Modules\MeasureUnit.Time.pas"/>
-        <DCCReference Include="Modules\uSizeStrings.pas"/>
         <DCCReference Include="Objects\OS.SecurityDescriptor.pas"/>
         <DCCReference Include="WindowsFileAPI\PhysicalDrive\List\uPhysicalDriveList.pas"/>
         <DCCReference Include="WindowsFileAPI\PhysicalDrive\ListGetter\Abstraction\uPhysicalDriveListGetter.pas"/>
@@ -202,11 +201,15 @@
         <DCCReference Include="Classes\Parser\Parser.Producer.pas"/>
         <DCCReference Include="Classes\Parser\Parser.Consumer.pas"/>
         <DCCReference Include="Classes\Parser\Parser.BufferStorage.pas"/>
-        <DCCReference Include="Classes\Parser\Parser.Divider.pas"/>
         <DCCReference Include="Classes\Parser\Parser.ReadBuffer.pas"/>
-        <DCCReference Include="Modules\DeviceNumberExtractor.pas">
-            <Form>$IFNDEF PROFILE</Form>
-        </DCCReference>
+        <DCCReference Include="Classes\Parser\Parser.Divider.pas"/>
+        <DCCReference Include="Classes\Tester\Trace.MultiList.pas"/>
+        <DCCReference Include="Modules\System.PCharVal.pas"/>
+        <DCCReference Include="Classes\Tester\Tester.CommandIssuer.pas"/>
+        <DCCReference Include="Classes\Tester\Tester.ToView.pas"/>
+        <DCCReference Include="Modules\Log.Templates.pas"/>
+        <DCCReference Include="Modules\Device.NumberExtractor.pas"/>
+        <DCCReference Include="WindowsFileAPI\File\Windows.FilePhysicalLocationGetter.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -281,6 +284,12 @@
                 </RDP_Source_Files>
             </Delphi.Personality>
             <Deployment>
+                <DeployFile LocalName="..\exe\bin\nslogger.exe" Configuration="Release" Class="ProjectOutput">
+                    <Platform Name="Win64">
+                        <RemoteName>nslogger.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="..\exe\bin\nslogger.rsm" Configuration="Debug" Class="DebugSymbols">
                     <Platform Name="Win64">
                         <RemoteName>nslogger.rsm</RemoteName>

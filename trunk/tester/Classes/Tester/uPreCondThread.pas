@@ -4,7 +4,7 @@ interface
 
 uses
   StdCtrls, ComCtrls, Classes, SysUtils, Windows, Dialogs,
-  Device.PhysicalDrive, uRandomBuffer, DeviceNumberExtractor;
+  Device.PhysicalDrive, uRandomBuffer, Device.NumberExtractor;
 
 const
   LinearRead = 16 shl 20; // 16MB

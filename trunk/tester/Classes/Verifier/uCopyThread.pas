@@ -5,7 +5,7 @@ interface
 uses
   Vcl.ComCtrls, Vcl.StdCtrls, Classes, Dialogs, SysUtils, Windows,
   System.UITypes,
-  DeviceNumberExtractor, Device.PhysicalDrive;
+  Device.NumberExtractor, Device.PhysicalDrive;
 
 const
   LinearRead = 1 shl 10 shl 10; // 1MB - The max native read

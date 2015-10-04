@@ -1,4 +1,4 @@
-unit uGSNode;
+unit Trace.Node;
 
 interface
 

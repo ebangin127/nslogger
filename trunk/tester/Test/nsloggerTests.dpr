@@ -16,13 +16,13 @@ program nsloggerTests;
 
 uses
   DUnitTestRunner,
-  TestuTraceList in 'TestuTraceList.pas',
-  uTraceList in '..\Classes\Tester\uTraceList.pas',
-  Trace.Node in '..\Classes\Tester\Trace.Node.pas';
+  System.PCharVal in '..\Modules\System.PCharVal.pas',
+  Test.PCharVal in 'Test.PCharVal.pas';
 
 {$R *.RES}
 
 begin
   DUnitTestRunner.RunRegisteredTests;
+  while true do;
 end.
 

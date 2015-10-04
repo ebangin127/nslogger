@@ -4,7 +4,8 @@ interface
 
 uses
   Classes, Windows, SysUtils,
-  Trace.List, Trace.Node, Parser.BufferStorage;
+  Trace.List, Trace.Node, Parser.BufferStorage, Parser.ReadBuffer,
+  System.PCharVal;
 
 type
   TConsumer = class(TThread)
@@ -18,8 +19,8 @@ type
       TTraceNode;
     function AppendNilAndGetLineLength(const CurrLine: PChar): Integer;
   public
-    constructor Create(const BufStor: IBufferStorage; const TraceList: TTraceList;
-      const Multiplier: Double);
+    constructor Create(const BufStor: IBufferStorage;
+      const TraceList: TTraceList; const Multiplier: Double);
     procedure Execute; override;
   end;
 
@@ -50,7 +51,7 @@ begin
   'w':
   begin
     result.FIOType := TIOType.ioWrite;
-    LBAStartIdx := 8;
+    LBAStartIdx := 7;
   end;
   'f':
   begin
@@ -60,12 +61,12 @@ begin
   'r':
   begin
     result.FIOType := TIOType.ioRead;
-    LBAStartIdx := 7;
+    LBAStartIdx := 6;
   end;
   't':
   begin
     result.FIOType := TIOType.ioTrim;
-    LBAStartIdx := 8;
+    LBAStartIdx := 7;
   end;
   else
     LBAStartIdx := 0;
@@ -73,10 +74,11 @@ begin
 
   LBAEndIdx := FindSpace(CurrLine, CurrLineLength);
   LBALength := LBAEndIdx - LBAStartIdx;
-  result.FLength := StrToInt(PChar(@CurrLine[LBAEndIdx + 1]));
-  
+  result.FLength := PCharToInt(PChar(@CurrLine[LBAEndIdx + 1]),
+    CurrLineLength - (LBAEndIdx + 1));
+
   CurrLine[LBAStartIdx + LBALength] := #0;
-  result.FLBA := StrToInt64(PChar(@CurrLine[LBAStartIdx]));
+  result.FLBA := PCharToInt64(PChar(@CurrLine[LBAStartIdx]), LBALength);
   result.FLBA := Round(result.FLBA * FMultiplier);
 end;
 
@@ -97,19 +99,22 @@ begin
   inherited;
   repeat
     Buffer := FBufStor.TakeBuf;
-    BufferLastIndex := Length(Buffer) - 1;
-    if Length(Buffer) > 0 then
+    BufferLastIndex := Buffer.GetLength - 1;
+    if Buffer.GetLength > 0 then
       InterpretBuffer(Buffer, BufferLastIndex);
   until FBufStor.IsClosed;
 end;
 
 function TConsumer.AppendNilAndGetLineLength(const CurrLine: PChar): Integer;
+var
+  LastCharOfThisLine: Char;
 begin
   result := 0;
   LastCharOfThisLine := CurrLine[result];
-  while (LastCharOfThisLine <> #0) and
-        (LastCharOfThisLine <> #10) and
-        (LastCharOfThisLine <> #13) do
+  while (LastCharOfThisLine > #13) or
+        ((LastCharOfThisLine <> #0) and
+         (LastCharOfThisLine <> #10) and
+         (LastCharOfThisLine <> #13)) do
   begin
     Inc(result);
     LastCharOfThisLine := CurrLine[result];
@@ -124,7 +129,6 @@ var
   CurrLine: PChar;
   CurrChar: Integer;
   CurrLineLength: Cardinal;
-  LastCharOfThisLine: Char;
 begin
   PBuffer := PChar(Buffer.GetBuffer);
 
@@ -135,9 +139,9 @@ begin
     CurrLineLength := AppendNilAndGetLineLength(CurrLine);
     
     Inc(CurrChar, CurrLineLength);
-    Inc(CurrChar, Ord(PBuffer[CurrChar] = #13));
-    Inc(CurrChar, Ord(PBuffer[CurrChar] = #10));
-    Inc(CurrChar, Ord(PBuffer[CurrChar] = #0));
+    Inc(CurrChar, Integer(PBuffer[CurrChar] = #13));
+    Inc(CurrChar, Integer(PBuffer[CurrChar] = #10));
+    Inc(CurrChar, Integer(PBuffer[CurrChar] = #0));
 
     if CurrLineLength > 0 then
       FTraceList.AddNode(ParseToNode(CurrLine, CurrLineLength));

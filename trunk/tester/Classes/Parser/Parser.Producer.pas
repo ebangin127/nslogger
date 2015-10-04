@@ -10,6 +10,9 @@ uses
 type
   TProducer = class(TThread)
   private
+    const
+      ReadWindow = 256;
+  private
     FBufStor: IBufferStorage;
     FFileStream: TFileStream;
     FBuffer: IManagedReadBuffer;
@@ -67,8 +70,6 @@ begin
 end;
 
 function TProducer.GetLengthEndWithEnter(const CurrLength: Integer): Integer;
-const
-  ReadWindow = 512;
 var
   CurrChar: Char;
   ReadLength: Integer;
@@ -97,7 +98,7 @@ var
 begin
   inherited;
   repeat
-    FBuffer := TManagedReadBuffer.Create(LinearRead shl 1);
+    FBuffer := TManagedReadBuffer.Create(LinearRead + ReadWindow shl 3);
     PrevPosition := FFileStream.Position;
     LengthOfBuffer := GetLengthEndWithEnter(
       FFileStream.Read(FBuffer.GetBuffer[0], LinearRead) shr 1);

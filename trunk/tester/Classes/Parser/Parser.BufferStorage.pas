@@ -3,7 +3,7 @@ unit Parser.BufferStorage;
 interface
 
 uses
-  SysUtils, Windows,
+  SysUtils, Windows, Generics.Collections,
   Parser.ReadBuffer;
 
 const
@@ -14,25 +14,23 @@ type
     function IsClosed: Boolean;
     procedure ReadyToClose;
     function TakeBuf: IManagedReadBuffer;
-    procedure PutBuf(InBuffer: IManagedReadBuffer; CurrSize: Integer;
-      NeedClose: Boolean);
+    procedure PutBuf(const InBuffer: IManagedReadBuffer;
+      const CurrSize: Integer; const NeedClose: Boolean);
   end;
 
   TBufferStorage = class(TInterfacedObject, IBufferStorage)
   private
-    FBuffer: IManagedReadBuffer;
-    FEmpty: Boolean;
+    FBuffer: TQueue<IManagedReadBuffer>;
     FClosed: Boolean;
     FToBeClosed: Boolean;
-
-    FCurrSize: Integer;
   public
     function IsClosed: Boolean;
     constructor Create;
+    destructor Destroy; override;
     procedure ReadyToClose;
     function TakeBuf: IManagedReadBuffer;
-    procedure PutBuf(InBuffer: IManagedReadBuffer; CurrSize: Integer;
-      NeedClose: Boolean);
+    procedure PutBuf(const InBuffer: IManagedReadBuffer;
+      const CurrSize: Integer; const NeedClose: Boolean);
   end;
 
 implementation
@@ -46,8 +44,14 @@ end;
 
 constructor TBufferStorage.Create;
 begin
-  FEmpty := true;
+  FBuffer := TQueue<IManagedReadBuffer>.Create;
   FClosed := false;
+end;
+
+destructor TBufferStorage.Destroy;
+begin
+  FreeAndNil(FBuffer);
+  inherited;
 end;
 
 function TBufferStorage.IsClosed: Boolean;
@@ -55,32 +59,27 @@ begin
   result := FClosed;
 end;
 
-procedure TBufferStorage.PutBuf(InBuffer: IManagedReadBuffer; CurrSize: Integer;
-  NeedClose: Boolean);
+procedure TBufferStorage.PutBuf(const InBuffer: IManagedReadBuffer;
+  const CurrSize: Integer; const NeedClose: Boolean);
 begin
   if CurrSize = 0 then
   begin
     FClosed := true;
-    FEmpty := false;
     exit;
   end;
 
   TMonitor.Enter(Self);
   try
-    while not FEmpty do
+    while FBuffer.Count = 1 do
       TMonitor.Wait(Self, INFINITE);
 
     if NeedClose then
-    begin
       ReadyToClose;
-      FBuffer.SetBufferLength(CurrSize);
-    end;
 
-    FBuffer := InBuffer;
-    FCurrSize := CurrSize;
+    InBuffer.SetBufferLength(CurrSize + 1);
+    InBuffer[CurrSize] := #0;
+    FBuffer.Enqueue(InBuffer);
   finally
-    FEmpty := false;
-
     TMonitor.PulseAll(Self);
     TMonitor.Exit(Self);
   end;
@@ -96,15 +95,14 @@ begin
 
   TMonitor.Enter(Self);
   try
-    while FEmpty do
+    while FBuffer.Count = 0 do
       TMonitor.Wait(Self, INFINITE);
 
-    FClosed := FToBeClosed;
-    result := FBuffer;
-    result[FCurrSize] := #0;
-  finally
-    FEmpty := true;
+    result := FBuffer.Dequeue;
 
+    if FBuffer.Count = 0 then
+      FClosed := FToBeClosed;
+  finally
     TMonitor.PulseAll(Self);
     TMonitor.Exit(Self);
   end;

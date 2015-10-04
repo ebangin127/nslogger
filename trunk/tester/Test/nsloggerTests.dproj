@@ -45,6 +45,7 @@
         <Base>true</Base>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
+        <SanitizedProjectName>nsloggerTests</SanitizedProjectName>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
         <DCC_Define>CONSOLE_TESTRUNNER;$(DCC_Define)</DCC_Define>
         <DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
@@ -92,9 +93,8 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="TestuTraceList.pas"/>
-        <DCCReference Include="..\Classes\Tester\uTraceList.pas"/>
-        <DCCReference Include="..\Classes\Tester\uGSNode.pas"/>
+        <DCCReference Include="..\Modules\System.PCharVal.pas"/>
+        <DCCReference Include="Test.PCharVal.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -117,17 +117,29 @@
                 </Source>
             </Delphi.Personality>
             <Deployment>
+                <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
+                    <Platform Name="OSX32">
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="Win32\Debug\nsloggerTests.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>nsloggerTests.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
-                    <Platform Name="OSX32">
+                <DeployFile LocalName="Win64\Debug\nsloggerTests.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win64">
+                        <RemoteName>nsloggerTests.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
-                    <Platform Name="iOSSimulator">
+                </DeployFile>
+                <DeployFile LocalName="Win64\Debug\nsloggerTests.rsm" Configuration="Debug" Class="DebugSymbols">
+                    <Platform Name="Win64">
+                        <RemoteName>nsloggerTests.rsm</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
@@ -471,6 +483,7 @@
                 <TestFramework>DUnit / Delphi Win32</TestFramework>
                 <TestRunner>Console</TestRunner>
                 <SourceProjectName>E:\UnivProject\nslogger\trunk\tester\nslogger.dproj</SourceProjectName>
+                <TestProjectName/>
             </UnitTesting>
         </BorlandProject>
         <ProjectFileVersion>12</ProjectFileVersion>

@@ -1,4 +1,4 @@
-unit Form.Main;
+﻿unit Form.Main;
 
 interface
 
@@ -7,9 +7,9 @@ uses
   System.Classes, Vcl.Graphics,  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.ComCtrls, Vcl.StdCtrls, Vcl.ExtCtrls, Math, DateUtils,
   Vcl.Imaging.pngimage, System.UITypes, Device.PhysicalDrive,
-  uSizeStrings, MeasureUnit.DataSize, uRandomBuffer, uGSTestThread,
+  MeasureUnit.DataSize, uRandomBuffer, Tester.Thread,
   Setting.Test.ParamGetter, Setting.Test, Trace.List, Form.Setting,
-  Form.Retention;
+  Form.Retention, Log.Templates, uLanguageSettings;
 
 const
   WM_AFTER_SHOW = WM_USER + 300;
@@ -82,7 +82,7 @@ type
     FNeedRetention: Boolean;
     FRepeatRetention: Boolean;
     FTestSetting: TTestSetting;
-    FTestThread: TGSTestThread;
+    FTestThread: TTesterThread;
     procedure WmAfterShow(var Msg: TMessage); message WM_AFTER_SHOW;
     procedure RealignStatusComponents(const BasicTop: Integer;
       const ResizeUnit: TResizeUnit);
@@ -127,7 +127,6 @@ type
     property TestSetting: TTestSetting read FTestSetting;
     property RepeatRetention: Boolean read FRepeatRetention;
     property NeedRetention: Boolean read FNeedRetention;
-    function GetLogLine(Name: String; Contents: String = ''): String;
   end;
 
 var
@@ -140,14 +139,14 @@ implementation
 
 procedure TfMain.bForceRetenClick(Sender: TObject);
 begin
-  lAlert.Items.Add(GetLogLine('���� ���ټ� �׽�Ʈ'));
+  lAlert.Items.Add(GetLogLine(MainForceRetentionTest[CurrLang]));
   FNeedRetention := true;
   Close;
 end;
 
 procedure TfMain.bSaveClick(Sender: TObject);
 begin
-  lAlert.Items.Add(GetLogLine('���� �� ����'));
+  lAlert.Items.Add(GetLogLine(MainSaveAndQuit[CurrLang]));
   FNeedRetention := false;
   Close;
 end;
@@ -306,33 +305,29 @@ begin
   RealignButtonLeft;
 end;
 
-function TfMain.GetLogLine(Name, Contents: String): String;
-begin
-  result := FormatDateTime('[yyyy/mm/dd hh:nn:ss] ', Now) + Name;
-  if Contents <> '' then
-    result := result + ': ' + Contents;
-end;
-
 procedure TfMain.AddTestClosedNormallyToLog;
 begin
-  FTestThread.AddToAlert(GetLogLine('�׽�Ʈ ���� ����',
-    '���ⷮ - ' + GetByte2TBWStr(FTestThread.HostWrite) +
-    ' / ���� ���� - ' + Format('%.2f%s', [FTestThread.AvgLatency, 'ms']) +
-    ' / �ִ� ���� - ' + Format('%.2f%s', [FTestThread.MaxLatency, 'ms'])));
+  FTestThread.AddToAlert(GetLogLine(MainTestEndNormally[CurrLang],
+    MainWrittenAmount[CurrLang] + ' - ' +
+    GetByte2TBWStr(FTestThread.HostWrite) + ' / ' +
+    MainAverageLatency[CurrLang] + ' - ' +
+    Format('%.2f%s', [FTestThread.AvgLatency, 'ms']) + ' / ' +
+    MainMaxLatency[CurrLang] + ' - ' +
+    Format('%.2f%s', [FTestThread.MaxLatency, 'ms'])));
 end;
 
 procedure TfMain.AddVerifyResultToLog;
 begin
   if fRetention.bStart.Visible = false then
-    FTestThread.AddToAlert(GetLogLine('���ټ� �׽�Ʈ ����',
+    FTestThread.AddToAlert(GetLogLine(MainRetentionTestEnd[CurrLang],
       'UBER - ' + FloatToStr(fRetention.UBER)))
   else
-    FTestThread.AddToAlert(GetLogLine('���ټ� �׽�Ʈ ���� ����'));
+    FTestThread.AddToAlert(GetLogLine(MainRetentionCanceled[CurrLang]));
 end;
 
 procedure TfMain.AskForRepeatRetention;
 begin
-  if MessageDlg('���ټ� �׽�Ʈ�� �ݺ��Ͻðڽ��ϱ�?', mtWarning, mbOKCancel, 
+  if MessageDlg(MainWantRepeatTest[CurrLang], mtWarning, mbOKCancel,
     0) = mrOK then
   begin
     FNeedRetention := true;
@@ -375,17 +370,17 @@ end;
 
 function TfMain.GetGoodFontSize(const UnitSize: Integer): Integer;
 var
-  ForceRetenWidth: Integer;
+  ForceRetenWidthAt9, ForceRetenWidthAt10: Integer;
+  ForceRetenWidthDelta: Integer;
 begin
   result := lForceReten.Font.Size;
-  ForceRetenWidth := lForceReten.Left + lForceReten.Width;
   lForceReten.Font.Size := 9;
-  while ForceRetenWidth < UnitSize do
-  begin
-    result := lForceReten.Font.Size;
-    lForceReten.Font.Size := lForceReten.Font.Size + 1;
-    ForceRetenWidth := lForceReten.Left + lForceReten.Width;
-  end;
+  ForceRetenWidthAt9 := lForceReten.Left + lForceReten.Width;
+  lForceReten.Font.Size := 10;
+  ForceRetenWidthAt10 := lForceReten.Left + lForceReten.Width;
+  ForceRetenWidthDelta := ForceRetenWidthAt10 - ForceRetenWidthAt9;
+  result := 9 +
+    floor((UnitSize - ForceRetenWidthAt9) / ForceRetenWidthDelta);
 end;
 
 procedure TfMain.ResizeImages;
@@ -582,8 +577,8 @@ begin
   Precondition;
   FTestThread.SetHostWrite(fRetention.Written);
   FTestThread.AddToAlert(
-    GetLogLine('�׽�Ʈ ���� �غ� �Ϸ�',
-      '���ⷮ - ' + GetByte2TBWStr(fRetention.Written)));
+    GetLogLine(MainPreconditioningEnd[CurrLang],
+      MainWrittenAmount[CurrLang] + ' - ' + GetByte2TBWStr(fRetention.Written)));
   FreeAndNil(fRetention);
 end;
 
@@ -605,9 +600,7 @@ begin
 
   PhysicalDrive := TPhysicalDrive.Create(
     TPhysicalDrive.BuildFileAddressByNumber(TestSetting.DiskNumber));
-  FTestThread :=
-    TGSTestThread.Create(fSetting.TracePath, true,
-      PhysicalDrive.IdentifyDeviceResult.UserSizeInKB shr 9);
+  FTestThread := TTesterThread.Create(fSetting.TracePath);
   FRepeatRetention := false;
   PrepareTestThread(PhysicalDrive);
   if FRepeatRetention then

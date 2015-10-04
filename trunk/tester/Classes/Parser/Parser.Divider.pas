@@ -49,7 +49,6 @@ begin
   FFileStream.Seek(StartPoint, TSeekOrigin.soBeginning);
   FFileStream.Read(FBuffer[0], LinearRead);
 
-  result := StartPoint;
   CurrentDelta := 0;
   while (FBuffer[CurrentDelta - 1] <> #$A) and
         (CurrentDelta < Length(FBuffer) - 1) do

@@ -8,7 +8,7 @@ uses
   Vcl.StdCtrls, Vcl.ComCtrls, Generics.Collections,
   uCopyThread, uVerifyThread, uPreCondThread,
   Device.PhysicalDrive, uPartitionListGetter, uPhysicalDriveList,
-  uAutoPhysicalDriveListGetter, DeviceNumberExtractor;
+  uAutoPhysicalDriveListGetter, Device.NumberExtractor, uLanguageSettings;
 
 type
   TRetentionMode = (rsmVerify, rsmCopy, rsmPreCond);
@@ -204,7 +204,7 @@ begin
     FreeAndNil(PartitionList);
   end;
   FreeAndNil(DriveList);
-  cDestination.Items.Add('파일로 저장');
+  cDestination.Items.Add(CommonSaveToFile[CurrLang]);
 end;
 
 procedure TfRetention.SetAsMode(Mode: TRetentionMode;
@@ -240,14 +240,15 @@ begin
   cDestination.Items.Add(FSavedFilePath);
   FDriveList.Clear;
   FDriveList.Add(StrToInt(ExtractDeviceNumber(FSavedFilePath)));
-  bStart.Caption := '테스트 사전 준비 시작';
-  Caption := '테스트 사전 준비';
+  bStart.Caption := RetentionStartPreconditioning[CurrLang];
+  Caption := RetentionPreconditioning[CurrLang];
 end;
 
 procedure TfRetention.SetStringsForVerify;
 begin
-  cDestination.Items[cDestination.Items.Count - 1] := '파일에서 불러오기';
-  bStart.Caption := '검증 시작';
+  cDestination.Items[cDestination.Items.Count - 1] :=
+    CommonLoadFromFile[CurrLang];
+  bStart.Caption := RetentionStartVerifying[CurrLang];
 end;
 
 end.

@@ -6,9 +6,9 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, System.UITypes,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Generics.Collections,
-  uFileFunctions, uSaveFile, uGSTestThread, Device.PhysicalDrive,
+  Windows.Directory, uSaveFile, Tester.Thread, Device.PhysicalDrive,
   uPartitionListGetter, Vcl.ComCtrls, uAutoPhysicalDriveListGetter,
-  uPhysicalDriveList;
+  uPhysicalDriveList, uLanguageSettings;
 
 type
   EDriveNotFound = class(EResNotFound);
@@ -80,7 +80,7 @@ begin
     exit;
   if FileExists(FSavePath + 'settings.ini') = false then
   begin
-    ShowMessage('테스트 파일이 없습니다.');
+    ShowMessage(SettingNoTestFileError[CurrLang]);
     exit;
   end;
 
@@ -96,7 +96,7 @@ function TfSetting.IsDestinationSet: Boolean;
 begin
   result := cDestination.ItemIndex <> -1;
   if not result then
-    ShowMessage('대상 위치를 올바르게 입력해주세요');
+    ShowMessage(SettingInvalidDrive[CurrLang]);
 end;
 
 function TfSetting.IsTBWToWriteSet: Boolean;
@@ -105,7 +105,7 @@ var
 begin
   result := TryStrToInt(eDestTBW.Text, Dummy);
   if not result then
-    ShowMessage('목표 TBW를 올바르게 입력해주세요');
+    ShowMessage(SettingInvalidTBWToWrite[CurrLang]);
 end;
 
 function TfSetting.IsTBWToRetentionSet: Boolean;
@@ -114,7 +114,7 @@ var
 begin
   result := TryStrToInt(eRetentionTBW.Text, Dummy);
   if not result then
-    ShowMessage('리텐션 테스트 주기를 올바르게 입력해주세요');
+    ShowMessage(SettingInvalidRetentionTestPeriod[CurrLang]);
 end;
 
 function TfSetting.IsFFRSet: Boolean;
@@ -123,14 +123,14 @@ var
 begin
   result := TryStrToInt(eFFR.Text, Dummy);
   if not result then
-    ShowMessage('기능 실패율을 올바르게 입력해주세요');
+    ShowMessage(SettingInvalidFFR[CurrLang]);
 end;
 
 function TfSetting.IsMaxTBWBiggerThanRetentionTBW: Boolean;
 begin
   result := StrToInt(eDestTBW.Text) >= StrToInt(eRetentionTBW.Text);
   if not result then
-    ShowMessage('목표 TBW는 리텐션 테스트 주기보다 작을 수 없습니다');
+    ShowMessage(SettingTBWToWriteIsLowerThanPeriod[CurrLang]);
 end;
 
 function TfSetting.IsAllOptionSet: Boolean;
@@ -158,13 +158,13 @@ end;
 procedure TfSetting.SetSavePath;
   function IsUserNeedOverwrite: Boolean;
   begin
-    result := MessageDlg(
-      '해당 폴더에 이미 로그가 있습니다. 덮어씌우시겠습니까?', mtWarning,
+    result := MessageDlg(SettingOverwriteLog[CurrLang], mtWarning,
       mbOKCancel, 0) = mrOk;
   end;
 begin
   repeat
-    FSavePath := SelectDirectory('로그가 저장될 폴더를 선택해주세요', AppPath);
+    FSavePath := SelectDirectory(SettingSelectFolderToSaveLog[CurrLang],
+      AppPath);
     if FSavePath = '' then
       exit;
 
@@ -266,7 +266,7 @@ end;
 
 function TfSetting.GetSavePath: Boolean;
 begin
-  FSavePath := SelectDirectory('로그가 저장된 폴더를 선택해주세요', AppPath);
+  FSavePath := SelectDirectory(SettingSelectFolderSavedLog[CurrLang], AppPath);
   result := FSavePath <> '';
 end;
 

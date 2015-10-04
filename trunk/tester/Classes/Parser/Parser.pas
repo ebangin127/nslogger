@@ -4,14 +4,16 @@ interface
 
 uses
   Classes, Windows, SysUtils, Dialogs,
-  Trace.List, Trace.Node, Parser.Producer, Parser.Consumer,
+  Trace.MultiList, Trace.List, Trace.Node, Parser.Producer, Parser.Consumer,
   Parser.BufferStorage, Parser.Divider, Threading, MMSystem;
 
-procedure ImportTrace(TraceList: TTraceList; Path: PChar; MultiConst: Double);
+procedure ImportTrace(const TraceMultiList: TTraceMultiList;
+  const Path: PChar; const MultiConst: Double);
 
 implementation
 
-procedure ImportTrace(TraceList: TTraceList; Path: PChar; MultiConst: Double);
+procedure ImportTrace(const TraceMultiList: TTraceMultiList; const Path: PChar;
+  const MultiConst: Double);
 const
   DivideCount = 4;
 var
@@ -20,11 +22,9 @@ var
   Producer: Array[0..DivideCount - 1] of TProducer;
   Consumer: Array[0..DivideCount - 1] of TConsumer;
   CommitList: Array[0..DivideCount - 1] of TTraceList;
-  StartTime, EndTime: Cardinal;
   CurrentIndex: Integer;
   ResultCount: Integer;
 begin
-  StartTime := TimeGetTime;
   Divider := TDivider.Create(Path);
   DivResult := Divider.Divide(DivideCount);
   FreeAndNil(Divider);
@@ -51,9 +51,7 @@ begin
     WaitForSingleObject(Consumer[CurrentIndex].Handle, INFINITE);
     FreeAndNil(Consumer[CurrentIndex]);
     ResultCount := ResultCount + CommitList[CurrentIndex].Count;
+    TraceMultiList.AddList(CommitList[CurrentIndex]);
   end;
-
-  EndTime := TimeGetTime;
-  ShowMessage('Time: ' + IntToStr(EndTime - StartTime) + 'ms, Count: ' + IntToStr(ResultCount));
 end;
 end.

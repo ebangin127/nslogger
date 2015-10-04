@@ -1,4 +1,4 @@
-unit DeviceNumberExtractor;
+unit Device.NumberExtractor;
 
 interface
 

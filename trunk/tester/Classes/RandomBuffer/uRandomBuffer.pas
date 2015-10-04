@@ -14,32 +14,23 @@ type
     FBuffer: TArrayBuffer;
     FIterator: UINT32;
   public
-    constructor Create(s: Cardinal); overload;
-    constructor Create(init_key: Array of Cardinal; key_length: Integer); overload;
-
-    destructor Delete;
-
+    constructor Create(s: Cardinal);
+    destructor Destroy; override;
     function CreateBuffer(Length: UINT32): Boolean;
     function FillBuffer(RandomnessInString: String): Boolean; overload;
     function FillBuffer(RandomnessInInteger: Integer): Boolean; overload;
     function DeleteCache: Boolean;
-
     procedure SetIteratorToFirst;
     function GetBufferPtr(NeededLength: UINT32): Pointer;
     function GetLength: Integer;
-
     function CompareBuffer(BufOne, BufTwo: TArrayBuffer): Int64;
   end;
 
 implementation
+
 constructor TRandomBuffer.Create(s: Cardinal);
 begin
   inherited Create(s);
-end;
-
-constructor TRandomBuffer.Create(init_key: Array of Cardinal; key_length: Integer);
-begin
-  inherited Create(init_key, key_length);
 end;
 
 // Length = KByte Unit
@@ -97,7 +88,7 @@ begin
   end;
 end;
 
-destructor TRandomBuffer.Delete;
+destructor TRandomBuffer.Destroy;
 begin
   DeleteCache;
   inherited;
