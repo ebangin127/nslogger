@@ -1,4 +1,4 @@
-unit uVerifyThread;
+unit Verifier.Thread.Verify;
 
 interface
 

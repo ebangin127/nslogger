@@ -4,7 +4,8 @@ interface
 
 uses
   SysUtils,
-  Setting.Test.ParamGetter, Device.PhysicalDrive;
+  Setting.Test.ParamGetter, Setting.Test.ParamGetter.InnerStorage,
+  Device.PhysicalDrive;
 
 type
   TTestSetting = class
@@ -23,8 +24,6 @@ type
       FTestSettingParamFromForm.FDiskNumber;
     property LogSavePath: String read
       FTestSettingParamFromForm.FLogSavePath;
-    property TBWToWrite: Integer read
-      FTestSettingParamFromForm.FTBWToWrite;
     property TBWToRetention: Integer read
       FTestSettingParamFromForm.FTBWToRetention;
     property MaxFFR: Integer read

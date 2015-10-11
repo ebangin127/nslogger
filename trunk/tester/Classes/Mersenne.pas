@@ -17,7 +17,7 @@
    email : ebangin127 @ gmail.com (remove space)
 }
 
-unit uMTforDel;
+unit Mersenne;
 
 interface
 
@@ -50,10 +50,8 @@ type
     function genrand_res64(): Extended;
 
     procedure init_genrand(s: Cardinal);
-    procedure init_by_array(init_key: Array of Cardinal; key_length: Integer);
 
     constructor Create(s: Cardinal); overload;
-    constructor Create(init_key: Array of Cardinal; key_length: Integer); overload;
 
     private
       mt: Array[0..N-1] of Cardinal; { the array for the state vector  }
@@ -65,7 +63,7 @@ implementation
 { initializes mt[N] with a seed }
 procedure TMersenne.init_genrand(s: Cardinal);
 var
-  mti_local: Integer;
+  mti_local: Cardinal;
 begin
   mt[0] := s and $ffffffff;
   for mti_local := 1 to (N - 1) do
@@ -81,62 +79,6 @@ begin
     { for >32 bit machines }
   end;
   mti := mti_local;
-end;
-
-{ initialize by an array with array-length }
-{ init_key is the array for initializing keys }
-{ key_length is its length }
-{ slight change for C++, 2004/2/26 }
-procedure TMersenne.init_by_array(init_key: Array of Cardinal; key_length: Integer);
-var
-  i, j, k: Integer;
-begin
-  init_genrand(19650218);
-
-  i := 1;
-  j := 0;
-
-  if N > key_length then
-    k := N
-  else
-    k := key_length;
-
-  while k > 0 do
-  begin
-    mt[i] := (mt[i] xor ((mt[i - 1] xor (mt[i - 1] shr 30)) * 1664525))
-              + init_key[j] + j; { non linear }
-    mt[i] := mt[i] and $ffffffff; { for WORDSIZE > 32 machines }
-
-    i := i + 1;
-    j := j + 1;
-
-    if i >= N then
-    begin
-      mt[0] := mt[N - 1];
-      i := 1;
-    end;
-    if j >= key_length then
-    begin
-      j := 0;
-    end;
-
-    k := k + 1;
-  end;
-
-  for k := N-1 downto 0 do
-  begin
-    mt[i] := (mt[i] xor ((mt[i - 1] xor (mt[i - 1] shr 30)) * 1566083941))
-              - i; { non linear }
-    mt[i] := mt[i] and $ffffffff; { for WORDSIZE > 32 machines }
-    i := i + 1;
-    if i >= N then
-    begin
-      mt[0] := mt[N-1];
-      i := 1;
-    end;
-  end;
-
-  mt[0] := $80000000; { MSB is 1; assuring non-zero initial array }
 end;
 
 { generates a random number on [0,0xffffffff]-interval }
@@ -240,11 +182,5 @@ constructor TMersenne.Create(s: Cardinal);
 begin
   mti :=  N+1;
   init_genrand(s);
-end;
-
-constructor TMersenne.Create(init_key: Array of Cardinal; key_length: Integer);
-begin
-  mti :=  N+1;
-  init_by_array(init_key, key_length);
 end;
 end.

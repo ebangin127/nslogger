@@ -7,7 +7,7 @@ uses
   Parser.ReadBuffer;
 
 const
-  LinearRead = 16 shl 20;
+  LinearRead = 8 shl 20;
 
 type
   IBufferStorage = interface

@@ -2,13 +2,14 @@
 
 interface
 
-uses Classes, SysUtils, ComCtrls, Math, Windows, DateUtils, Dialogs,
-     Tester.Iterator, Trace.List, uRandomBuffer, uSaveFile, Parser,
-     Trace.Node, Trace.MultiList, uErrorList, Tester.ToView,
-     Log.Templates, uLanguageSettings;
+uses
+  Classes, SysUtils, ComCtrls, Math, Windows, DateUtils, Dialogs,
+  Tester.Iterator, Trace.List, RandomBuffer, SaveFile,
+  SaveFile.TesterThread, Parser, Trace.Node, Trace.MultiList,
+  ErrorList, Tester.ToView, Log.Templates, LanguageStrings,
+  Setting.Test, MeasureUnit.Datasize;
 
 const
-  ByteToTB = 40;
   EXIT_NORMAL = 0;
   EXIT_RETENTION = 1;
   EXIT_HOSTWRITE = 2;
@@ -20,120 +21,74 @@ type
   private
     FTester: TTesterIterator;
     FRandomBuffer: TRandomBuffer;
-    FSaveFile: TSaveFile;
-    FErrorList: TErrorList;
-
+    FSaveFile: TSaveFileForTesterThread;
     FSavePath: String;
+    FErrorList: TErrorList;
     FTracePath: String;
-    FAlertPath: String;
-
     FFullyLoaded: Boolean;
     FStarted: Boolean;
-
     FBufSize: Integer;
-
     FLastSync: Cardinal;
+    FLastRetention: Integer;
     FSecCounter: Integer;
     FLastSyncCount: Integer;
-
-    TraceMultiList: TTraceMultiList;
-
+    FTraceMultiList: TTraceMultiList;
     FMaxLBA: UInt64;
     FOrigLBA: UInt64;
-    FAlign: Integer;
-
-    FMaxHostWrite: UInt64;
     FRetentionTest: UInt64;
     FMaxFFR: Integer;
     FExitCode: Byte;
-
-    FMainNeedReten: Boolean;
-    FMainDriveModel, FMainDriveSerial: String;
     FTesterToView: TTesterToView;
+    FNeedRetention: Boolean;
 
     function LBAto48Bit(const NewLBA: UInt64): UInt64;
-
-    procedure SetMaxLBA(const NewLBA: UInt64);
-    procedure SetOrigLBA(const NewLBA: UInt64);
-    function ReadMaxTBW: UInt64;
-    function ReadRetTest: UInt64;
-    procedure WriteMaxTBW(const Value: UInt64);
-    procedure WriteRetTest(const Value: UInt64);
-    function GetFFR: Double;
-    function GetHostWrite: Int64;
     function GetMaxLatency: Double;
     function GetAvgLatency: Double;
+    function IsRetentionTestBoundReached: Boolean;
   public
     property ExitCode: Byte read FExitCode;
-
-    property MaxLBA: UInt64 read FMaxLBA write SetMaxLBA;
-    property OrigLBA: UInt64 read FOrigLBA write SetOrigLBA;
-    property Align: Integer read FAlign write FAlign;
-    property MaxFFR: Integer read FMaxFFR write FMaxFFR;
-
-    property MaxHostWrite: UInt64 read ReadMaxTBW write WriteMaxTBW;
-    property RetentionTest: UInt64 read ReadRetTest write WriteRetTest;
-    property NeedVerify: Boolean read FMainNeedReten write FMainNeedReten;
-
-    property HostWrite: Int64 read GetHostWrite;
-    property MaxLatency: Double read GetMaxLatency;
-    property AvgLatency: Double read GetAvgLatency;
-
-    property FFR: Double read GetFFR;
-    property Path: String read FSavePath write FSavePath;
-
-    constructor Create(TracePath: String);
-
+    constructor Create(const TracePath, SavePath: String);
     destructor Destroy; override;
-
+    procedure Execute; override;
     procedure ApplyState;
     procedure ApplyWriteError(const TBWStr, DayStr: String);
     procedure AddToAlert(const Value: String);
-
     procedure ApplyEnd;
-
-    procedure Execute; override;
-
     procedure StartThread;
-
     function AssignBufferSetting(const BufSize: Integer;
-              const RandomnessInInteger: Integer): Boolean; overload;
-    function AssignBufferSetting(const BufSize: Integer;
-              const RandomnessInString: String): Boolean; overload;
-    procedure AssignAlertPath(const Path: String);
+      const RandomnessInInteger: Integer): Boolean; overload;
     function SetDisk(const DriveNumber: Integer): Boolean;
-    procedure SetHostWrite(const HostWrite: Int64);
-
-    function Save(SaveFilePath: String): Boolean;
-    function Load(SaveFilePath: String): Boolean;
-
-    procedure GetMainInfo;
+    procedure AddToHostWrite(const HostWrite: Int64);
+    procedure Save(const SaveFilePath: String);
+    procedure Load(const SaveFilePath: String);
+    procedure SetMaxLBA(const NewLBA: UInt64);
+    procedure SetTraceMaxLBA(const NewLBA: UInt64);
+    procedure SetTestSetting(const TestSetting: TTestSetting);
+    procedure SetNeedRetention;
+    procedure AddTestClosedNormallyToLog;
   end;
 
 implementation
 
 uses Form.Main;
 
-constructor TTesterThread.Create(TracePath: String);
+constructor TTesterThread.Create(const TracePath, SavePath: String);
 var
   RandomSeed: Int64;
 begin
   inherited Create;
 
-  FSaveFile := TSaveFile.Create;
+  FSavePath := SavePath;
+  FSaveFile := TSaveFileForTesterThread.Create(TSaveFile.Create(
+    FSavePath + 'settings.ini'));
 
   if QueryPerformanceCounter(RandomSeed) = false then
     RandomSeed := GetTickCount;
-  FSaveFile.RandomSeed := RandomSeed;
 
-  FErrorList := TErrorList.Create;
-  FTester := TTesterIterator.Create(FErrorList);
+  FErrorList := TErrorList.Create(FSavePath + 'alert.txt');
+  FTester := TTesterIterator.Create(FErrorList, FSavePath);
   FRandomBuffer := TRandomBuffer.Create(RandomSeed);
   FTesterToView := TTesterToView.Create;
-
-  if QueryPerformanceCounter(RandomSeed) = false then
-    RandomSeed := GetTickCount;
-
   FTracePath := TracePath;
 end;
 
@@ -150,7 +105,6 @@ begin
     end;
   end);
 
-  Queue(GetMainInfo);
   Save(FSavePath);
 
   FreeAndNil(FTesterToView);
@@ -200,16 +154,28 @@ begin
       TesterThreadTestNumPre[CurrLang] + IntToStr(FLastSyncCount) + ' ' +
       TesterThreadTestStarted[CurrLang],
       TesterThreadIteratorPosition[CurrLang] + ' - ' +
-      IntToStr(FTester.Iterator)));
+      IntToStr(FTester.GetIterator)));
   end;
 
   TBWStr := GetByte2TBWStr(FTester.GetHostWrite);
   DayStr := GetDayStr((FTester.GetHostWrite shr 30) / 10); //Unit: 10GB/d
 
   FTesterToView.ApplyLatency(GetAvgLatency, GetMaxLatency);
-  FTesterToView.ApplyProgress(TBWStr, DayStr, GetHostWrite shr 30, ReadMaxTBW);
+  FTesterToView.ApplyProgress(TBWStr, DayStr,
+    FTester.GetHostWrite shr 30, FRetentionTest);
   ApplyWriteError(TBWStr, DayStr);
-  FTesterToView.ApplyFFR(GetFFR, MaxFFR);
+  FTesterToView.ApplyFFR(FTester.GetFFR, FMaxFFR);
+end;
+
+procedure TTesterThread.AddTestClosedNormallyToLog;
+begin
+  AddToAlert(GetLogLine(MainTestEndNormally[CurrLang],
+    MainWrittenAmount[CurrLang] + ' - ' +
+    GetByte2TBWStr(FTester.GetHostWrite) + ' / ' +
+    MainAverageLatency[CurrLang] + ' - ' +
+    Format('%.2f%s', [GetAvgLatency, 'ms']) + ' / ' +
+    MainMaxLatency[CurrLang] + ' - ' +
+    Format('%.2f%s', [GetMaxLatency, 'ms'])));
 end;
 
 procedure TTesterThread.AddToAlert(const Value: String);
@@ -273,6 +239,14 @@ begin
   end;
 end;
 
+function TTesterThread.IsRetentionTestBoundReached: Boolean;
+begin
+  result :=
+    ((FTester.GetHostWrite mod (FRetentionTest shl ByteToTB)) = 0) and
+    (FTester.GetHostWrite > 0) and
+    (FTester.GetHostWrite > FLastRetention);
+end;
+
 procedure TTesterThread.Execute;
 var
   CurrTime: Cardinal;
@@ -283,25 +257,19 @@ begin
     exit;
   FLastSync := 0;
   FSecCounter := 0;
-  TraceMultiList := TTraceMultiList.Create;
-  ImportTrace(TraceMultiList, PChar(FTracePath), MaxLBA / OrigLBA);
-  FTester.AssignList(TraceMultiList);
+  FTraceMultiList := TTraceMultiList.Create;
+  ImportTrace(FTraceMultiList, PChar(FTracePath), FMaxLBA / FOrigLBA);
+  FTester.AssignList(FTraceMultiList);
   FTesterToView.ApplyStart;
   ApplyState;
   while not Terminated do
   begin
-    if (((FTester.GetHostWrite mod FRetentionTest) = 0) and
-        ((FTester.GetHostWrite <> 0) and (FTester.StartLatency <> 0))) or
-       (FTester.GetHostWrite = FMaxHostWrite) or
-       (GetFFR > FMaxFFR) then
+    if (IsRetentionTestBoundReached) or (FTester.GetFFR > FMaxFFR) then
     begin
-      if ((FTester.GetHostWrite mod FRetentionTest) = 0) and
-         ((FTester.GetHostWrite <> 0) and (FTester.StartLatency <> 0)) then
+      if IsRetentionTestBoundReached then
          FExitCode := EXIT_RETENTION
-      else if GetFFR > FMaxFFR then
-         FExitCode := EXIT_ERROR
-      else
-         FExitCode := EXIT_HOSTWRITE;
+      else if FTester.GetFFR > FMaxFFR then
+         FExitCode := EXIT_ERROR;
       Queue(ApplyEnd);
       break;
     end;
@@ -335,85 +303,43 @@ begin
   result := FTester.GetMaximumLatency / 1000;
 end;
 
-function TTesterThread.GetFFR: Double;
+procedure TTesterThread.Save(const SaveFilePath: String);
 begin
-  if FTester.GetLength > 0 then
-    result := (FTester.ErrorCount / FTester.GetLength) * 100
-  else
-    result := 0;
-end;
-
-function TTesterThread.GetHostWrite: Int64;
-begin
-  result := FTester.HostWrite;
-end;
-
-procedure TTesterThread.GetMainInfo;
-begin
-  FMainNeedReten := fMain.NeedRetention;
-  FMainDriveModel := fMain.TestSetting.Model;
-  FMainDriveSerial := fMain.TestSetting.Serial;
-end;
-
-function TTesterThread.Save(SaveFilePath: String): Boolean;
-begin
-  FSaveFile.NeedVerify := FMainNeedReten;
-  FSaveFile.MaxTBW := FMaxHostWrite;
-  FSaveFile.RetTBW := FRetentionTest;
-  FSaveFile.MaxFFR := FMaxFFR;
-  FSaveFile.TracePath := FTracePath;
-  FSaveFile.Model := FMainDriveModel;
-  FSaveFile.Serial := FMainDriveSerial;
-
-  FSaveFile.CurrTBW := FTester.GetHostWrite;
-  FSaveFile.StartLatency := FTester.StartLatency;
-  FSaveFile.EndLatency := FTester.EndLatency;
-
-  FSaveFile.SumLatency := FTester.SumLatency;
-  FSaveFile.MaxLatency := FTester.GetMaximumLatency;
-  FSaveFile.ErrorCount := FTester.ErrorCount;
-
-  FSaveFile.OverallTestCount := FTester.OverallTestCount;
-  FSaveFile.Iterator := FTester.Iterator;
-
+  FSaveFile.SetTBWToRetention(FRetentionTest);
+  FSaveFile.SetMaxFFR(FMaxFFR);
+  FSaveFile.SetTracePath(FTracePath);
+  FSaveFile.SetNeedRetention(FNeedRetention);
+  if FNeedRetention then
+    FSaveFile.SetLastRetention(FTester.GetHostWrite);
+  FTester.Save;
   FErrorList.Save;
-  result := FSaveFile.SaveToFile(SaveFilePath + 'settings.ini');
 end;
 
-function TTesterThread.Load(SaveFilePath: String): Boolean;
+procedure TTesterThread.Load(const SaveFilePath: String);
 begin
-  result := FSaveFile.LoadFromFile(SaveFilePath);
-
-  FMainNeedReten := FSaveFile.NeedVerify;
-  FMaxHostWrite := FSaveFile.MaxTBW;
-  FRetentionTest := FSaveFile.RetTBW;
-  FTracePath := FSaveFile.TracePath;
-  FMainDriveModel := FSaveFile.Model;
-  FMainDriveSerial := FSaveFile.Serial;
-  FMaxFFR := FSaveFile.MaxFFR;
-
-  FTester.HostWrite := FSaveFile.CurrTBW;
-  FTester.StartLatency := FSaveFile.StartLatency;
-  FTester.EndLatency := FSaveFile.EndLatency;
-
-  FTester.SumLatency := FSaveFile.SumLatency;
-  FTester.MaxLatency := FSaveFile.MaxLatency;
-  FTester.ErrorCount := FSaveFile.ErrorCount;
-
-  FTester.OverallTestCount := FSaveFile.OverallTestCount;
-  FTester.Iterator := FSaveFile.Iterator;
+  FRetentionTest := FSaveFile.GetTBWToRetention;
+  FMaxFFR := FSaveFile.GetMaxFFR;
+  FTracePath := FSaveFile.GetTracePath;
+  FNeedRetention := FSaveFile.GetNeedRetention;
+  FLastRetention := FSaveFile.GetLastRetention;
+  FTester.Load;
+  Synchronize(procedure
+  begin
+    if FNeedRetention then
+      fMain.VerifyRetention;
+  end);
 end;
 
 function TTesterThread.SetDisk(const DriveNumber: Integer): Boolean;
 begin
   result := FTester.SetDisk(DriveNumber);
   if result then
-    FSaveFile.Disknum := DriveNumber;
+    FSaveFile.SetDiskNumber(DriveNumber);
 end;
 
-procedure TTesterThread.SetHostWrite(const HostWrite: Int64);
+procedure TTesterThread.AddToHostWrite(const HostWrite: Int64);
 begin
-  FTester.HostWrite := HostWrite;
+  FTester.AddToHostWrite(HostWrite);
 end;
 
 function TTesterThread.LBAto48Bit(const NewLBA: UInt64): UInt64;
@@ -426,7 +352,23 @@ begin
   FMaxLBA := LBAto48Bit(NewLBA);
 end;
 
-procedure TTesterThread.SetOrigLBA(const NewLBA: UInt64);
+procedure TTesterThread.SetNeedRetention;
+begin
+  FNeedRetention := true;
+end;
+
+procedure TTesterThread.SetTestSetting(const TestSetting: TTestSetting);
+begin
+  SetDisk(TestSetting.DiskNumber);
+  FSavePath := TestSetting.LogSavePath;
+  if FRetentionTest = 0 then
+  begin
+    FMaxFFR := TestSetting.MaxFFR;
+    FRetentionTest := TestSetting.TBWToRetention;
+  end;
+end;
+
+procedure TTesterThread.SetTraceMaxLBA(const NewLBA: UInt64);
 begin
   FOrigLBA := LBAto48Bit(NewLBA);
 end;
@@ -434,32 +376,6 @@ end;
 procedure TTesterThread.StartThread;
 begin
   FStarted := true;
-end;
-
-function TTesterThread.ReadMaxTBW: UInt64;
-begin
-  result := FMaxHostWrite shr ByteToTB;
-end;
-
-function TTesterThread.ReadRetTest: UInt64;
-begin
-  result := FRetentionTest shr ByteToTB;
-end;
-
-procedure TTesterThread.WriteMaxTBW(const Value: UInt64);
-begin
-  FMaxHostWrite := Value shl ByteToTB;
-end;
-
-procedure TTesterThread.WriteRetTest(const Value: UInt64);
-begin
-  FRetentionTest := Value shl ByteToTB;
-end;
-
-procedure TTesterThread.AssignAlertPath(const Path: String);
-begin
-  FAlertPath := Path;
-  FErrorList.AssignSavePath(Path);
 end;
 
 function TTesterThread.AssignBufferSetting(const BufSize: Integer;
@@ -473,12 +389,6 @@ begin
     FBufSize := BufSize;
 
   FFullyLoaded := true;
-end;
-
-function TTesterThread.AssignBufferSetting(const BufSize: Integer;
-  const RandomnessInString: String): Boolean;
-begin
-  result := AssignBufferSetting(BufSize, StrToInt(RandomnessInString));
 end;
 
 end.

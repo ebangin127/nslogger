@@ -4,7 +4,7 @@ interface
 
 uses
   SysUtils, Math,
-  uLanguageSettings;
+  LanguageStrings;
 
 function GetLogLine(const Name: String; const Contents: String = ''): String;
 function GetByte2TBWStr(BW: Int64): String;

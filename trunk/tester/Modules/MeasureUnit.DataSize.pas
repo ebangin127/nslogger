@@ -5,6 +5,9 @@ interface
 uses
   SysUtils, Math;
 
+const
+  ByteToTB = 40;
+
 type
   TNumeralSystem = (Denary, Binary);
 

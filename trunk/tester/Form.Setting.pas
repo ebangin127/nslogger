@@ -6,9 +6,10 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, System.UITypes,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Generics.Collections,
-  Windows.Directory, uSaveFile, Tester.Thread, Device.PhysicalDrive,
-  uPartitionListGetter, Vcl.ComCtrls, uAutoPhysicalDriveListGetter,
-  uPhysicalDriveList, uLanguageSettings;
+  Windows.Directory, SaveFile, SaveFile.SettingForm,
+  Device.PhysicalDrive, uPartitionListGetter, Vcl.ComCtrls,
+  MeasureUnit.DataSize, uAutoPhysicalDriveListGetter, uPhysicalDriveList,
+  LanguageStrings;
 
 type
   EDriveNotFound = class(EResNotFound);
@@ -16,13 +17,10 @@ type
   TfSetting = class(TForm)
     GroupBox1: TGroupBox;
     GroupBox2: TGroupBox;
-    Label1: TLabel;
-    eDestTBW: TEdit;
     Label2: TLabel;
     eRetentionTBW: TEdit;
     bStartNew: TButton;
     Label5: TLabel;
-    Label3: TLabel;
     Label4: TLabel;
     bOpenExist: TButton;
     Label6: TLabel;
@@ -44,15 +42,13 @@ type
     FTracePath: String;
     FNeedToLoad: Boolean;
     function GetSavePath: Boolean;
-    procedure InsertDriveByNumber(SaveFile: TSaveFile);
-    procedure InsertDriveByModelSerial(SaveFile: TSaveFile);
-    procedure SetFormBySaveFile(SaveFile: TSaveFile);
+    procedure InsertDriveByNumber(const SaveFile: TSaveFileForSettingForm);
+    procedure InsertDriveByModelSerial(const SaveFile: TSaveFileForSettingForm);
+    procedure SetFormBySaveFile(const SaveFile: TSaveFileForSettingForm);
     function IsAllOptionSet: Boolean;
     function IsDestinationSet: Boolean;
     function IsFFRSet: Boolean;
-    function IsMaxTBWBiggerThanRetentionTBW: Boolean;
     function IsTBWToRetentionSet: Boolean;
-    function IsTBWToWriteSet: Boolean;
     procedure SetTracePath;
     procedure IfAlertExistsDelete;
     procedure SetSavePath;
@@ -74,7 +70,7 @@ implementation
 
 procedure TfSetting.bOpenExistClick(Sender: TObject);
 var
-  SaveFile: TSaveFile;
+  SaveFile: TSaveFileForSettingForm;
 begin
   if not GetSavePath then
     exit;
@@ -84,8 +80,8 @@ begin
     exit;
   end;
 
-  SaveFile := TSaveFile.Create;
-  SaveFile.LoadFromFile(FSavePath + 'settings.ini');
+  SaveFile := TSaveFileForSettingForm.Create(TSaveFile.Create(
+    FSavePath + 'settings.ini'));
   SetFormBySaveFile(SaveFile);
   FNeedToLoad := true;
   FOptionsSet := true;
@@ -97,15 +93,6 @@ begin
   result := cDestination.ItemIndex <> -1;
   if not result then
     ShowMessage(SettingInvalidDrive[CurrLang]);
-end;
-
-function TfSetting.IsTBWToWriteSet: Boolean;
-var
-  Dummy: Integer;
-begin
-  result := TryStrToInt(eDestTBW.Text, Dummy);
-  if not result then
-    ShowMessage(SettingInvalidTBWToWrite[CurrLang]);
 end;
 
 function TfSetting.IsTBWToRetentionSet: Boolean;
@@ -126,21 +113,12 @@ begin
     ShowMessage(SettingInvalidFFR[CurrLang]);
 end;
 
-function TfSetting.IsMaxTBWBiggerThanRetentionTBW: Boolean;
-begin
-  result := StrToInt(eDestTBW.Text) >= StrToInt(eRetentionTBW.Text);
-  if not result then
-    ShowMessage(SettingTBWToWriteIsLowerThanPeriod[CurrLang]);
-end;
-
 function TfSetting.IsAllOptionSet: Boolean;
 begin
   result :=
     IsDestinationSet and
-    IsTBWToWriteSet and
     IsTBWToRetentionSet and
-    IsFFRSet and
-    IsMaxTBWBiggerThanRetentionTBW;
+    IsFFRSet;
 end;
 
 procedure TfSetting.SetTracePath;
@@ -240,26 +218,27 @@ begin
     DeleteFile(PChar(FSavePath + 'alert.txt'));
 end;
 
-procedure TfSetting.SetFormBySaveFile(SaveFile: TSaveFile);
+procedure TfSetting.SetFormBySaveFile(const SaveFile: TSaveFileForSettingForm);
 begin
-  if FDriveList.IndexOf(SaveFile.Disknum) >= 0 then
+  if FDriveList.IndexOf(SaveFile.GetDiskNumber) >= 0 then
     InsertDriveByNumber(SaveFile)
   else
     InsertDriveByModelSerial(SaveFile);
-  eDestTBW.Text := IntToStr(SaveFile.MaxTBW shr ByteToTB);
-  eRetentionTBW.Text := IntToStr(SaveFile.RetTBW shr ByteToTB);
+  eRetentionTBW.Text := IntToStr(SaveFile.GetTBWToRetention shr ByteToTB);
 end;
 
-procedure TfSetting.InsertDriveByNumber(SaveFile: TSaveFile);
+procedure TfSetting.InsertDriveByNumber(const SaveFile:
+  TSaveFileForSettingForm);
 begin
-  FDriveList.Insert(0, SaveFile.Disknum);
+  FDriveList.Insert(0, SaveFile.GetDiskNumber);
   cDestination.Items.Insert(0, 'Open');
   cDestination.ItemIndex := 0;
 end;
 
-procedure TfSetting.InsertDriveByModelSerial(SaveFile: TSaveFile);
+procedure TfSetting.InsertDriveByModelSerial(const SaveFile:
+  TSaveFileForSettingForm);
 begin
-  FDriveList.Insert(0, FindDrive(SaveFile.Model, SaveFile.Serial));
+  FDriveList.Insert(0, FindDrive(SaveFile.GetModel, SaveFile.GetSerial));
   cDestination.Items.Insert(0, 'Open');
   cDestination.ItemIndex := 0;
 end;

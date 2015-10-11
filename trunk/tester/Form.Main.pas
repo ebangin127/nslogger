@@ -7,9 +7,9 @@ uses
   System.Classes, Vcl.Graphics,  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.ComCtrls, Vcl.StdCtrls, Vcl.ExtCtrls, Math, DateUtils,
   Vcl.Imaging.pngimage, System.UITypes, Device.PhysicalDrive,
-  MeasureUnit.DataSize, uRandomBuffer, Tester.Thread,
-  Setting.Test.ParamGetter, Setting.Test, Trace.List, Form.Setting,
-  Form.Retention, Log.Templates, uLanguageSettings;
+  MeasureUnit.DataSize, RandomBuffer, Tester.Thread,
+  Setting.Test.ParamGetter.InnerStorage, Setting.Test.ParamGetter, Setting.Test,
+  Trace.List, Form.Setting, Form.Retention, Log.Templates, LanguageStrings;
 
 const
   WM_AFTER_SHOW = WM_USER + 300;
@@ -61,8 +61,6 @@ type
     sDestPath: TStaticText;
     sDestModel: TStaticText;
     sDestSerial: TStaticText;
-    lDestTBW: TLabel;
-    sDestTBW: TStaticText;
     sRetention: TStaticText;
     lRetention: TLabel;
     lMaxFFR: TLabel;
@@ -100,14 +98,12 @@ type
     procedure SetUIAsSetting;
     procedure LoadTestFromFile;
     procedure PrepareNewTest;
-    procedure VerifyRetention;
     procedure Precondition;
     procedure PrepareTestThread(const PhysicalDrive: IPhysicalDrive);
     procedure SetTestThreadProperties(const PhysicalDrive: IPhysicalDrive);
     procedure AlignDestinationAddress(const CurrBasicTop: Integer);
     procedure AlignDestinationModel(const CurrBasicTop: Integer);
     procedure AlignDestinationSerial(const CurrBasicTop: Integer);
-    procedure AlignTBWToWrite(const CurrBasicTop: Integer);
     procedure AlignTBWToRetention(const CurrBasicTop: Integer);
     procedure AlignMaxFFR(const CurrBasicTop: Integer);
     procedure RealignGroupboxHorizontal;
@@ -121,12 +117,12 @@ type
     procedure SetButtonFont(const NewFontSize: Integer);
     procedure AskForRepeatRetention;
     procedure AddVerifyResultToLog;
-    procedure AddTestClosedNormallyToLog;
 
   public
     property TestSetting: TTestSetting read FTestSetting;
     property RepeatRetention: Boolean read FRepeatRetention;
     property NeedRetention: Boolean read FNeedRetention;
+    procedure VerifyRetention;
   end;
 
 var
@@ -155,7 +151,7 @@ procedure TfMain.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   if (FTestThread <> nil) and
      (FRepeatRetention = false) then
-    AddTestClosedNormallyToLog;
+    FTestThread.AddTestClosedNormallyToLog;
   StopTestThread;
 end;
 
@@ -280,8 +276,6 @@ begin
   Inc(CurrBasicTop, UnitSize - OuterPadding);
   AlignDestinationSerial(CurrBasicTop);
   Inc(CurrBasicTop, UnitSize);
-  AlignTBWToWrite(CurrBasicTop);
-  Inc(CurrBasicTop, UnitSize);
   AlignTBWToRetention(CurrBasicTop);
   Inc(CurrBasicTop, UnitSize);
   AlignMaxFFR(CurrBasicTop);
@@ -303,17 +297,6 @@ begin
   MiddlePoint := GetVerticalMiddlePointOfButtons;
   RealignButtonTop(MiddlePoint);
   RealignButtonLeft;
-end;
-
-procedure TfMain.AddTestClosedNormallyToLog;
-begin
-  FTestThread.AddToAlert(GetLogLine(MainTestEndNormally[CurrLang],
-    MainWrittenAmount[CurrLang] + ' - ' +
-    GetByte2TBWStr(FTestThread.HostWrite) + ' / ' +
-    MainAverageLatency[CurrLang] + ' - ' +
-    Format('%.2f%s', [FTestThread.AvgLatency, 'ms']) + ' / ' +
-    MainMaxLatency[CurrLang] + ' - ' +
-    Format('%.2f%s', [FTestThread.MaxLatency, 'ms'])));
 end;
 
 procedure TfMain.AddVerifyResultToLog;
@@ -445,14 +428,6 @@ begin
   sRetention.Left := lRetention.Left + lRetention.Width + OuterPadding;
 end;
 
-procedure TfMain.AlignTBWToWrite(const CurrBasicTop: Integer);
-begin
-  lDestTBW.Left := lDest.Left;
-  lDestTBW.Top := CurrBasicTop;
-  sDestTBW.Top := CurrBasicTop;
-  sDestTBW.Left := lDestTBW.Left + lDestTBW.Width + OuterPadding;
-end;
-
 procedure TfMain.AlignDestinationSerial(const CurrBasicTop: Integer);
 begin
   sDestSerial.Top := CurrBasicTop;
@@ -475,15 +450,9 @@ end;
 
 procedure TfMain.SetTestThreadProperties(const PhysicalDrive: IPhysicalDrive);
 begin
-  FTestThread.SetDisk(TestSetting.DiskNumber);
-  FTestThread.MaxLBA := PhysicalDrive.IdentifyDeviceResult.UserSizeInKB * 2;
-  FTestThread.OrigLBA := CapacityOf128GB;
-  FTestThread.Align := 512;
-  FTestThread.MaxFFR := TestSetting.MaxFFR;
-  FTestThread.MaxHostWrite := TestSetting.TBWToWrite;
-  FTestThread.RetentionTest := TestSetting.TBWToRetention;
-  FTestThread.Path := TestSetting.LogSavePath;
-  FTestThread.AssignAlertPath(TestSetting.LogSavePath + 'alert.txt');
+  FTestThread.SetTestSetting(TestSetting);
+  FTestThread.SetMaxLBA(PhysicalDrive.IdentifyDeviceResult.UserSizeInKB shl 1);
+  FTestThread.SetTraceMaxLBA(CapacityOf128GB);
   FTestThread.AssignBufferSetting(BufferSize, 100);
 end;
 
@@ -494,6 +463,8 @@ begin
     FTestThread.Terminate;
     WaitForSingleObject(FTestThread.Handle, 60);
     FNeedRetention := FNeedRetention or (FTestThread.ExitCode = EXIT_RETENTION);
+    if FNeedRetention then
+      FTestThread.SetNeedRetention;
     FreeAndNil(FTestThread);
     OpenRetentionSaveFormIfNeeded;
   end;
@@ -537,9 +508,6 @@ begin
     TestSetting.Model +
     ' (' + IntToStr(TestSetting.Capacity) + 'GB)';
   sDestSerial.Caption := TestSetting.Serial;
-  sDestTBW.Caption :=
-    IntToStr(TestSetting.TBWToWrite) + 'TBW / ' +
-    GetDayStr((TestSetting.TBWToWrite shl 10) / 10);
   sRetention.Caption :=
     IntToStr(TestSetting.TBWToRetention) + 'TBW / ' +
     GetDayStr((TestSetting.TBWToRetention shl 10) / 10);
@@ -549,8 +517,6 @@ end;
 procedure TfMain.LoadTestFromFile;
 begin
   FTestThread.Load(fSetting.SavePath + 'settings.ini');
-  if FTestThread.NeedVerify then
-    VerifyRetention;
 end;
 
 procedure TfMain.VerifyRetention;
@@ -575,10 +541,11 @@ end;
 procedure TfMain.PrepareNewTest;
 begin
   Precondition;
-  FTestThread.SetHostWrite(fRetention.Written);
+  FTestThread.AddToHostWrite(fRetention.Written);
   FTestThread.AddToAlert(
     GetLogLine(MainPreconditioningEnd[CurrLang],
-      MainWrittenAmount[CurrLang] + ' - ' + GetByte2TBWStr(fRetention.Written)));
+      MainWrittenAmount[CurrLang] + ' - ' +
+      GetByte2TBWStr(fRetention.Written)));
   FreeAndNil(fRetention);
 end;
 
@@ -600,7 +567,8 @@ begin
 
   PhysicalDrive := TPhysicalDrive.Create(
     TPhysicalDrive.BuildFileAddressByNumber(TestSetting.DiskNumber));
-  FTestThread := TTesterThread.Create(fSetting.TracePath);
+  FTestThread := TTesterThread.Create(fSetting.TracePath,
+    TestSetting.LogSavePath);
   FRepeatRetention := false;
   PrepareTestThread(PhysicalDrive);
   if FRepeatRetention then

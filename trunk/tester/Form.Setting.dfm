@@ -3,7 +3,7 @@ object fSetting: TfSetting
   Top = 0
   BorderIcons = [biSystemMenu, biMinimize]
   Caption = #49444#51221
-  ClientHeight = 261
+  ClientHeight = 229
   ClientWidth = 608
   Color = clWhite
   Font.Charset = DEFAULT_CHARSET
@@ -21,7 +21,7 @@ object fSetting: TfSetting
     Left = 409
     Top = 9
     Width = 189
-    Height = 242
+    Height = 208
     Margins.Left = 4
     Margins.Top = 4
     Margins.Right = 4
@@ -32,7 +32,7 @@ object fSetting: TfSetting
       Left = 17
       Top = 25
       Width = 156
-      Height = 200
+      Height = 167
       Margins.Left = 4
       Margins.Top = 4
       Margins.Right = 4
@@ -46,27 +46,16 @@ object fSetting: TfSetting
     Left = 10
     Top = 10
     Width = 391
-    Height = 241
+    Height = 207
     Margins.Left = 4
     Margins.Top = 4
     Margins.Right = 4
     Margins.Bottom = 4
     Caption = #49352' '#53580#49828#53944' '#49884#51089
     TabOrder = 1
-    object Label1: TLabel
-      Left = 21
-      Top = 65
-      Width = 75
-      Height = 21
-      Margins.Left = 4
-      Margins.Top = 4
-      Margins.Right = 4
-      Margins.Bottom = 4
-      Caption = #47785#54364' TBW:'
-    end
     object Label2: TLabel
-      Left = 21
-      Top = 105
+      Left = 19
+      Top = 65
       Width = 150
       Height = 21
       Margins.Left = 4
@@ -86,8 +75,8 @@ object fSetting: TfSetting
       Margins.Bottom = 4
       Caption = #45824#49345' '#50948#52824': '
     end
-    object Label3: TLabel
-      Left = 340
+    object Label4: TLabel
+      Left = 338
       Top = 65
       Width = 33
       Height = 21
@@ -97,20 +86,9 @@ object fSetting: TfSetting
       Margins.Bottom = 4
       Caption = 'TBW'
     end
-    object Label4: TLabel
-      Left = 340
-      Top = 105
-      Width = 33
-      Height = 21
-      Margins.Left = 4
-      Margins.Top = 4
-      Margins.Right = 4
-      Margins.Bottom = 4
-      Caption = 'TBW'
-    end
     object Label6: TLabel
-      Left = 21
-      Top = 145
+      Left = 19
+      Top = 105
       Width = 170
       Height = 21
       Margins.Left = 4
@@ -120,8 +98,8 @@ object fSetting: TfSetting
       Caption = #44592#45733' '#49892#54056#50984'(FFR) '#51228#54620': '
     end
     object Label7: TLabel
-      Left = 340
-      Top = 145
+      Left = 338
+      Top = 105
       Width = 13
       Height = 21
       Margins.Left = 4
@@ -130,33 +108,21 @@ object fSetting: TfSetting
       Margins.Bottom = 4
       Caption = '%'
     end
-    object eDestTBW: TEdit
-      Left = 109
-      Top = 62
-      Width = 222
-      Height = 29
-      Margins.Left = 4
-      Margins.Top = 4
-      Margins.Right = 4
-      Margins.Bottom = 4
-      TabOrder = 0
-      Text = '100'
-    end
     object eRetentionTBW: TEdit
-      Left = 183
-      Top = 101
+      Left = 182
+      Top = 64
       Width = 148
       Height = 29
       Margins.Left = 4
       Margins.Top = 4
       Margins.Right = 4
       Margins.Bottom = 4
-      TabOrder = 1
+      TabOrder = 0
       Text = '10'
     end
     object bStartNew: TButton
-      Left = 19
-      Top = 179
+      Left = 17
+      Top = 140
       Width = 354
       Height = 51
       Margins.Left = 4
@@ -164,19 +130,19 @@ object fSetting: TfSetting
       Margins.Right = 4
       Margins.Bottom = 4
       Caption = #49352' '#53580#49828#53944' '#49884#51089
-      TabOrder = 2
+      TabOrder = 1
       OnClick = bStartNewClick
     end
     object eFFR: TEdit
-      Left = 195
-      Top = 141
+      Left = 193
+      Top = 101
       Width = 136
       Height = 29
       Margins.Left = 4
       Margins.Top = 4
       Margins.Right = 4
       Margins.Bottom = 4
-      TabOrder = 3
+      TabOrder = 2
       Text = '3'
     end
   end
@@ -191,7 +157,7 @@ object fSetting: TfSetting
   end
   object oTrace: TOpenDialog
     Filter = 'JESD219A-MT (*.txt)|*.txt'
-    Left = 240
+    Left = 232
     Top = 128
   end
 end

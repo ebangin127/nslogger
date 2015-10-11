@@ -22,7 +22,8 @@ begin
     raise EArgumentNilException.Create('String is Empty'); 
 
   CurrentPChar := S;
-  MaxPChar := S + LengthOfS;
+  MaxPChar := S;
+  Inc(MaxPChar, LengthOfS);
   Minus := S[0] = '-';
   result := 0;
   PositionalNumber := 0;

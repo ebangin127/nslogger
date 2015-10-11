@@ -5,8 +5,9 @@ interface
 uses
   Windows, SysUtils, Generics.Collections, MMSystem, Math, Dialogs,
   Classes,
-  Trace.List, Trace.MultiList, uRandomBuffer, uErrorList, Trace.Node,
-  uCommandSet, uCommandSetFactory, Device.PhysicalDrive, Tester.CommandIssuer;
+  Trace.List, Trace.MultiList, RandomBuffer, ErrorList, Trace.Node,
+  uCommandSet, uCommandSetFactory, Device.PhysicalDrive, Tester.CommandIssuer,
+  SaveFile, SaveFile.TesterIterator;
 
 const
   MaxIOSize = 65536;
@@ -24,18 +25,16 @@ type
     FListIterator: ITraceListIterator;
     FFrequency: Double;
     FOverallTestCount: Integer;
-
     FStartLatency, FEndLatency: Int64; //Unit: us(10^-6)
     FSumLatency: UInt64;
     FAvgLatency, FMaxLatency: Int64; //Unit: us(10^-6)
     FHostWrite: Int64;
-
     FStartTime: Int64;
-
     FErrorList: TErrorList;
     FErrorCount: Integer;
     FCleared: Boolean;
-
+    FMeasureCount: Integer;
+    FSaveFile: TSaveFileForTesterIterator;
     procedure SetIterator(const Value: Integer);
     procedure ClearAvgLatency;
     function PrepareAndStartTest: Boolean;
@@ -43,34 +42,25 @@ type
     function ResetLatencyTest: Boolean;
     procedure CalculateLatency;
     procedure SetNowAsStart;
-
   public
+    constructor Create(const ErrorList: TErrorList; const SavePath: String);
+    destructor Destroy; override;
+    procedure Save;
+    procedure Load;
     function GetCurrentStage: TTestStage;
+    function GetStartLatency: Int64;
     function GetMaximumLatency: Int64;
     function GetAverageLatency: Int64;
     function GetOverallTestCount: Integer;
     function GetLength: Integer;
     function GetHostWrite: Int64;
-
-    property StartLatency: Int64 read FStartLatency write FStartLatency;
-    property EndLatency: Int64 read FEndLatency write FEndLatency;
-    property SumLatency: UInt64 read FSumLatency write FSumLatency;
-    property AvgLatency: Int64 read GetAverageLatency write FAvgLatency;
-    property MaxLatency: Int64 read FMaxLatency write FMaxLatency;
-    property OverallTestCount: Integer read FOverallTestCount write FOverallTestCount;
-    property Iterator: Integer read FIterator write SetIterator;
-    property HostWrite: Int64 read FHostWrite write FHostWrite;
-    property ErrorCount: Integer read FErrorCount write FErrorCount;
-
-    constructor Create(const ErrorList: TErrorList);
-    destructor Destroy; override;
-
+    function GetIterator: Integer;
+    function GetFFR: Double;
     function SetDisk(const DriveNumber: Integer): Boolean;
-
     function ProcessNextOperation: Boolean;
-
     function AssignBuffer(const RandBuf: PTRandomBuffer): Boolean;
     procedure AssignList(const NewList: TTraceMultiList);
+    procedure AddToHostWrite(const Value: Int64);
   end;
 
 implementation
@@ -80,7 +70,8 @@ begin
   FSumLatency := 0;
 end;
 
-constructor TTesterIterator.Create(const ErrorList: TErrorList);
+constructor TTesterIterator.Create(const ErrorList: TErrorList;
+  const SavePath: String);
 var
   Frequency: Int64;
 begin
@@ -97,8 +88,10 @@ begin
 
   FOverallTestCount := 0;
 
-  FErrorList := TErrorList.Create;
+  FErrorList := TErrorList.Create(SavePath + 'error.txt');
   FTesterCommandIssuer := TTesterCommandIssuer.Create;
+  FSaveFile := TSaveFileForTesterIterator.Create(
+    TSaveFile.Create(SavePath + 'settings.ini'));
 end;
 
 destructor TTesterIterator.Destroy;
@@ -106,6 +99,7 @@ begin
   FreeAndNil(FMasterTrace);
   FreeAndNil(FErrorList);
   FreeAndNil(FTesterCommandIssuer);
+  FreeAndNil(FSaveFile);
 end;
 
 function TTesterIterator.SetDisk(const DriveNumber: Integer): Boolean;
@@ -134,6 +128,11 @@ begin
   result := FHostWrite;
 end;
 
+function TTesterIterator.GetIterator: Integer;
+begin
+  result := FIterator;
+end;
+
 function TTesterIterator.GetMaximumLatency: Int64;
 begin
   result := FMaxLatency;
@@ -141,15 +140,28 @@ end;
 
 function TTesterIterator.GetAverageLatency: Int64;
 begin
-  if (FIterator div MaxParallelIO) = 0 then
+  if FMeasureCount = 0 then
     exit(0);
 
-  result := round(FSumLatency / (FIterator div MaxParallelIO));
+  result := round(FSumLatency / FMeasureCount);
 end;
 
 function TTesterIterator.GetOverallTestCount: Integer;
 begin
   result := FOverallTestCount;
+end;
+
+function TTesterIterator.GetStartLatency: Int64;
+begin
+  result := FStartLatency;
+end;
+
+function TTesterIterator.GetFFR: Double;
+begin
+  if GetLength > 0 then
+    result := (FErrorCount / GetLength) * 100
+  else
+    result := 0;
 end;
 
 function TTesterIterator.PrepareAndStartTest: Boolean;
@@ -165,9 +177,9 @@ begin
   FStage := stReady;
   FIterator := 0;
 
-  if StartLatency = 0 then
-    StartLatency := MaxLatency;
-  EndLatency := MaxLatency;
+  if FStartLatency = 0 then
+    FStartLatency := FMaxLatency;
+  FEndLatency := FMaxLatency;
 
   Inc(FOverallTestCount, 1);
   result := ProcessNextOperation;
@@ -226,6 +238,7 @@ begin
   QueryPerformanceCounter(EndTime);
   OverallTime := round((EndTime - FStartTime) / FFrequency);
   Inc(FSumLatency, OverallTime);
+  Inc(FMeasureCount);
   if (FMaxLatency < 0) or (FMaxLatency < OverallTime) then
     FMaxLatency := OverallTime;
 end;
@@ -243,6 +256,11 @@ begin
   end;
 end;
 
+procedure TTesterIterator.AddToHostWrite(const Value: Int64);
+begin
+  FHostWrite := FHostWrite + Value;
+end;
+
 function TTesterIterator.AssignBuffer(const RandBuf: PTRandomBuffer): Boolean;
 begin
   result := FTesterCommandIssuer.AssignBuffer(RandBuf);
@@ -256,4 +274,31 @@ begin
   FListIterator := FMasterTrace.GetIterator;
   FListIterator.SetIndex(FIterator);
 end;
+
+procedure TTesterIterator.Save;
+begin
+  FSaveFile.SetHostWrite(GetHostWrite);
+  FSaveFile.SetStartLatency(FStartLatency);
+  FSaveFile.SetEndLatency(FEndLatency);
+  FSaveFile.SetSumLatency(FSumLatency);
+  FSaveFile.SetMaxLatency(FMaxLatency);
+  FSaveFile.SetErrorCount(FErrorCount);
+  FSaveFile.SetOverallTestCount(FOverallTestCount);
+  FSaveFile.SetIterator(FIterator);
+  FSaveFile.SetMeasureCount(FMeasureCount);
+end;
+
+procedure TTesterIterator.Load;
+begin
+  FHostWrite := FSaveFile.GetHostWrite;
+  FStartLatency := FSaveFile.GetStartLatency;
+  FEndLatency := FSaveFile.GetEndLatency;
+  FSumLatency := FSaveFile.GetSumLatency;
+  FMaxLatency := FSaveFile.GetMaxLatency;
+  FErrorCount := FSaveFile.GetErrorCount;
+  FOverallTestCount := FSaveFile.GetOverallTestCount;
+  FMeasureCount := FSaveFile.GetMeasureCount;
+  SetIterator(FSaveFile.GetIterator);
+end;
+
 end.

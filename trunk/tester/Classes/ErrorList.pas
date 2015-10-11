@@ -1,4 +1,4 @@
-unit uErrorList;
+unit ErrorList;
 
 interface
 uses
@@ -16,11 +16,8 @@ type
     FToSaveList: TStringList;
     FSavePath: String;
   public
-    constructor Create;
+    constructor Create(const SavePath: String);
     destructor Destroy; override;
-
-    procedure AssignSavePath(const Path: String);
-
     procedure AddLine(const Value: String);
     procedure Save;
   end;
@@ -39,15 +36,11 @@ begin
   end;
 end;
 
-procedure TErrorList.AssignSavePath(const Path: String);
+constructor TErrorList.Create(const SavePath: String);
 begin
-  FSavePath := Path;
-end;
-
-constructor TErrorList.Create;
-begin
-  inherited;
+  inherited Create;
   FToSaveList := TStringList.Create;
+  FSavePath := SavePath;
 end;
 
 destructor TErrorList.Destroy;

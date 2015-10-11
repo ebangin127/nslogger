@@ -1,16 +1,16 @@
-unit uPreCondThread;
+unit Tester.Thread.Precondition;
 
 interface
 
 uses
   StdCtrls, ComCtrls, Classes, SysUtils, Windows, Dialogs,
-  Device.PhysicalDrive, uRandomBuffer, Device.NumberExtractor;
+  Device.PhysicalDrive, RandomBuffer, Device.NumberExtractor;
 
 const
   LinearRead = 16 shl 20; // 16MB
 
 type
-  TPreCondThread = class(TThread)
+  TPreConditionThread = class(TThread)
   private
     FBufStor: TRandomBuffer;
     FFileStream: TFileStream;
@@ -36,14 +36,14 @@ uses
 
 { TPreCondThread }
 
-procedure TPreCondThread.EndCopy;
+procedure TPreConditionThread.EndCopy;
 begin
   fRetention.EndTask := true;
   fRetention.Written := CurrWritten;
   fRetention.Close;
 end;
 
-procedure TPreCondThread.ApplyProgress;
+procedure TPreConditionThread.ApplyProgress;
 var
   MaxMega, CurrMega: Int64;
 begin
@@ -55,7 +55,7 @@ begin
   FProgressBar.Position := (CurrMega * 100) div MaxMega;
 end;
 
-constructor TPreCondThread.Create(Path: String; ProgressBar: TProgressBar;
+constructor TPreConditionThread.Create(Path: String; ProgressBar: TProgressBar;
                                   StaticText: TStaticText);
 var
   RandomSeed: Int64;
@@ -83,12 +83,12 @@ begin
   FFileStream := TFileStream.Create(Path, fmOpenWrite or fmShareDenyNone);
 end;
 
-destructor TPreCondThread.Destroy;
+destructor TPreConditionThread.Destroy;
 begin
   inherited;
 end;
 
-procedure TPreCondThread.Execute;
+procedure TPreConditionThread.Execute;
 const
   FiftyMB = 50 shl 10;
   Period = FiftyMB div LinearRead;

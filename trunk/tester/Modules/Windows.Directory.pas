@@ -2,6 +2,9 @@ unit Windows.Directory;
 
 interface
 
+{$WARN UNIT_PLATFORM OFF}
+{$WARN SYMBOL_PLATFORM OFF}
+
 uses Dialogs, SysUtils, ShellAPI, FileCtrl;
 
 function DeleteDirectory(const DirPath: String): Boolean;

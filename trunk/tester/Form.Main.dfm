@@ -3581,26 +3581,9 @@ object fMain: TfMain
       Font.Style = []
       ParentFont = False
     end
-    object lDestTBW: TLabel
-      Left = 37
-      Top = 177
-      Width = 103
-      Height = 30
-      Margins.Left = 4
-      Margins.Top = 4
-      Margins.Right = 4
-      Margins.Bottom = 4
-      Caption = #47785#54364' TBW:'
-      Font.Charset = DEFAULT_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -22
-      Font.Name = #47569#51008' '#44256#46357
-      Font.Style = []
-      ParentFont = False
-    end
     object lRetention: TLabel
       Left = 37
-      Top = 224
+      Top = 169
       Width = 205
       Height = 30
       Margins.Left = 4
@@ -3617,7 +3600,7 @@ object fMain: TfMain
     end
     object lMaxFFR: TLabel
       Left = 37
-      Top = 270
+      Top = 215
       Width = 205
       Height = 30
       Margins.Left = 4
@@ -3686,9 +3669,9 @@ object fMain: TfMain
       ParentFont = False
       TabOrder = 2
     end
-    object sDestTBW: TStaticText
-      Left = 158
-      Top = 177
+    object sRetention: TStaticText
+      Left = 259
+      Top = 169
       Width = 121
       Height = 34
       Margins.Left = 4
@@ -3704,27 +3687,9 @@ object fMain: TfMain
       ParentFont = False
       TabOrder = 3
     end
-    object sRetention: TStaticText
-      Left = 259
-      Top = 224
-      Width = 121
-      Height = 34
-      Margins.Left = 4
-      Margins.Top = 4
-      Margins.Right = 4
-      Margins.Bottom = 4
-      Caption = '0TBW / 0'#51068
-      Font.Charset = DEFAULT_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -22
-      Font.Name = #47569#51008' '#44256#46357
-      Font.Style = []
-      ParentFont = False
-      TabOrder = 4
-    end
     object sMaxFFR: TStaticText
       Left = 259
-      Top = 270
+      Top = 215
       Width = 34
       Height = 34
       Margins.Left = 4
@@ -3738,7 +3703,7 @@ object fMain: TfMain
       Font.Name = #47569#51008' '#44256#46357
       Font.Style = []
       ParentFont = False
-      TabOrder = 5
+      TabOrder = 4
     end
   end
   object gAlert: TGroupBox

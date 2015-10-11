@@ -4,25 +4,11 @@ interface
 
 uses
   SysUtils,
-  Pattern.Singleton, Form.Setting, MeasureUnit.DataSize, Device.PhysicalDrive;
+  Pattern.Singleton, Setting.Test.ParamGetter.InnerStorage,
+  Form.Setting, MeasureUnit.DataSize, Device.PhysicalDrive;
 
 type
   ENoDriveSelectedException = class(EArgumentNilException);
-
-  TTestSettingParamFromForm = record
-    FDiskNumber: Integer;
-    FLogSavePath: String;
-    FTBWToWrite: Integer;
-    FTBWToRetention: Integer;
-    FMaxFFR: Integer;
-    FTracePath: String;
-  end;
-
-  TTestSettingParamFromPhysicalDrive = record
-    FModel: String;
-    FSerial: String;
-    FCapacity: Int64;
-  end;
 
   TTestSettingParamGetter = class(TSingleton<TTestSettingParamGetter>)
   public
@@ -40,7 +26,6 @@ begin
   result.FDiskNumber := fSetting.GetDriveNumber;
   result.FLogSavePath := fSetting.SavePath;
 
-  result.FTBWToWrite := StrToInt(fSetting.eDestTBW.Text);
   result.FTBWToRetention :=
     StrToInt(fSetting.eRetentionTBW.Text);
   result.FMaxFFR := StrToInt(fSetting.eFFR.Text);

@@ -6,9 +6,9 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Vcl.ComCtrls, Generics.Collections,
-  uCopyThread, uVerifyThread, uPreCondThread,
+  Verifier.Thread.Copy, Verifier.Thread.Verify, Tester.Thread.Precondition,
   Device.PhysicalDrive, uPartitionListGetter, uPhysicalDriveList,
-  uAutoPhysicalDriveListGetter, Device.NumberExtractor, uLanguageSettings;
+  uAutoPhysicalDriveListGetter, Device.NumberExtractor, LanguageStrings;
 
 type
   TRetentionMode = (rsmVerify, rsmCopy, rsmPreCond);
@@ -20,7 +20,7 @@ type
       rsmCopy:
         (FCopyThrd: TCopyThread);
       rsmPreCond:
-        (FPreCondThrd: TPreCondThread);
+        (FPreCondThrd: TPreConditionThread);
   end;
 
   TfRetention = class(TForm)
@@ -125,7 +125,7 @@ begin
       FSelectedThread.FCopyThrd := TCopyThread.Create(FSavedFilePath,
         Destination);
     rsmPreCond:
-      FSelectedThread.FPreCondThrd := TPreCondThread.Create(Destination,
+      FSelectedThread.FPreCondThrd := TPreConditionThread.Create(Destination,
         pProgress, sProgress);
   end;
 end;

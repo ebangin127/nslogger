@@ -1,4 +1,4 @@
-unit uLanguageSettings;
+unit LanguageStrings;
 
 interface
 
@@ -83,16 +83,11 @@ const
     ('테스트 파일이 없습니다', 'There''s no test file');
   SettingInvalidDrive: TLanguageString =
     ('대상 위치를 올바르게 입력해주세요', 'Set valid drive');
-  SettingInvalidTBWToWrite: TLanguageString =
-    ('목표 TBW를 올바르게 입력해주세요', 'Set valid TBW to write');
   SettingInvalidRetentionTestPeriod: TLanguageString =
     ('리텐션 테스트 주기를 올바르게 입력해주세요',
      'Set valid retention test period');
   SettingInvalidFFR: TLanguageString =
     ('기능 실패율을 올바르게 입력해주세요', 'Set valid FFR');
-  SettingTBWToWriteIsLowerThanPeriod: TLanguageString =
-    ('목표 TBW는 리텐션 테스트 주기보다 작을 수 없습니다',
-     'TBW to write can''t be lower than Retention test period');
   SettingOverwriteLog: TLanguageString =
     ('해당 폴더에 이미 로그가 있습니다. 덮어씌우시겠습니까?',
      'Do you want to overwrite existing log in this folder?');

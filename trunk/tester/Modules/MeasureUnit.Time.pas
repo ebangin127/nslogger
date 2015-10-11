@@ -4,7 +4,7 @@ interface
 
 uses
   SysUtils, Math,
-  uLanguageSettings;
+  LanguageStrings;
 
 type
   TimeUnit = record

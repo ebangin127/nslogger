@@ -4,7 +4,7 @@ interface
 
 uses
   SysUtils, ComCtrls, StdCtrls, Math, Classes,
-  uLanguageSettings;
+  LanguageStrings;
 
 type
   TTesterToView = class
@@ -171,7 +171,8 @@ var
   TestProgress: Integer;
   NewCaption: String;
 begin
-  TestProgress := round(HostWrite / MaxHostWrite * 100);
+  TestProgress :=
+    round(((HostWrite / MaxHostWrite) - (HostWrite div MaxHostWrite)) * 100);
   fMain.pTestProgress.Position := TestProgress;
   fMain.sTestProgress.Caption := IntToStr(TestProgress) + '% (';
 

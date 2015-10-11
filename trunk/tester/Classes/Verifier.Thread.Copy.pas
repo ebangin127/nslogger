@@ -1,4 +1,4 @@
-unit uCopyThread;
+unit Verifier.Thread.Copy;
 
 interface
 
