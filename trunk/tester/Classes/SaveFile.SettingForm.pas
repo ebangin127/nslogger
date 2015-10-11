@@ -11,9 +11,9 @@ type
     SaveFile: TSaveFile;
   public
     function GetDiskNumber: Integer;
-    function GetModel: String;
-    function GetSerial: String;
     function GetTBWToRetention: Int64;
+    function GetTraceOriginalLBA: String;
+    function GetTracePath: String;
 
     constructor Create(const SaveFileToOpen: TSaveFile);
     destructor Destroy; override;
@@ -38,19 +38,19 @@ begin
   result := SaveFile.LoadInteger('Target', 'DiskNumber');
 end;
 
-function TSaveFileForSettingForm.GetModel: String;
-begin
-  result := SaveFile.LoadString('Target', 'Model');
-end;
-
-function TSaveFileForSettingForm.GetSerial: String;
-begin
-  result := SaveFile.LoadString('Target', 'Serial');
-end;
-
 function TSaveFileForSettingForm.GetTBWToRetention: Int64;
 begin
   result := SaveFile.LoadInt64('TBW', 'ToRetention');
+end;
+
+function TSaveFileForSettingForm.GetTracePath: String;
+begin
+  result := SaveFile.LoadString('Trace', 'Path');
+end;
+
+function TSaveFileForSettingForm.GetTraceOriginalLBA: String;
+begin
+  result := SaveFile.LoadString('Trace', 'OriginalLBA');
 end;
 
 end.

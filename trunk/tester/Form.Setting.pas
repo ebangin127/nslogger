@@ -14,36 +14,41 @@ uses
 type
   EDriveNotFound = class(EResNotFound);
 
+  EInvalidDrive = class(EArgumentException);
   TfSetting = class(TForm)
     GroupBox1: TGroupBox;
     GroupBox2: TGroupBox;
-    Label2: TLabel;
+    lRetentionTBW: TLabel;
     eRetentionTBW: TEdit;
     bStartNew: TButton;
-    Label5: TLabel;
-    Label4: TLabel;
+    lDestination: TLabel;
+    lTBW: TLabel;
     bOpenExist: TButton;
-    Label6: TLabel;
+    lFFR: TLabel;
     eFFR: TEdit;
-    Label7: TLabel;
+    lPercent: TLabel;
     oTrace: TOpenDialog;
+    eTracePath: TEdit;
+    lTraceOriginalLBA: TLabel;
+    lTracePath: TLabel;
+    bTracePath: TButton;
     cDestination: TComboBoxEx;
+    eTraceOriginalLBA: TEdit;
+    lGB: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure bStartNewClick(Sender: TObject);
-    function FindDrive(Model, Serial: String): Integer;
     procedure RefreshDrives;
     procedure FormDestroy(Sender: TObject);
     procedure bOpenExistClick(Sender: TObject);
     procedure cDestinationKeyPress(Sender: TObject; var Key: Char);
+    procedure bTracePathClick(Sender: TObject);
   private
     FOptionsSet: Boolean;
     FDriveList: TList<Integer>;
     FSavePath: String;
-    FTracePath: String;
     FNeedToLoad: Boolean;
     function GetSavePath: Boolean;
     procedure InsertDriveByNumber(const SaveFile: TSaveFileForSettingForm);
-    procedure InsertDriveByModelSerial(const SaveFile: TSaveFileForSettingForm);
     procedure SetFormBySaveFile(const SaveFile: TSaveFileForSettingForm);
     function IsAllOptionSet: Boolean;
     function IsDestinationSet: Boolean;
@@ -52,9 +57,10 @@ type
     procedure SetTracePath;
     procedure IfAlertExistsDelete;
     procedure SetSavePath;
+    function IsTraceOriginalLBASet: Boolean;
+    function IsTracePathSet: Boolean;
   public
     property SavePath: String read FSavePath;
-    property TracePath: String read FTracePath;
     property NeedToLoad: Boolean read FNeedToLoad;
 
     function GetDriveNumber: Integer;
@@ -82,7 +88,15 @@ begin
 
   SaveFile := TSaveFileForSettingForm.Create(TSaveFile.Create(
     FSavePath + 'settings.ini'));
-  SetFormBySaveFile(SaveFile);
+  try
+    SetFormBySaveFile(SaveFile);
+  except
+    on E: EInvalidDrive do
+      MessageBox(Handle, PChar(Caption), PChar(SettingInvalidDrive[CurrLang]),
+        MB_OK + MB_ICONERROR);
+    else
+      raise;
+  end;
   FNeedToLoad := true;
   FOptionsSet := true;
   Close;
@@ -113,24 +127,36 @@ begin
     ShowMessage(SettingInvalidFFR[CurrLang]);
 end;
 
+function TfSetting.IsTracePathSet: Boolean;
+begin
+  result := FileExists(eTracePath.Text);
+  if not result then
+    ShowMessage(SettingInvalidTracePath[CurrLang]);
+end;
+
+function TfSetting.IsTraceOriginalLBASet: Boolean;
+var
+  Dummy: Integer;
+begin
+  result := TryStrToInt(eTraceOriginalLBA.Text, Dummy);
+  if not result then
+    ShowMessage(SettingInvalidOriginalLBA[CurrLang]);
+end;
+
 function TfSetting.IsAllOptionSet: Boolean;
 begin
   result :=
     IsDestinationSet and
     IsTBWToRetentionSet and
-    IsFFRSet;
+    IsFFRSet and
+    IsTracePathSet and
+    IsTraceOriginalLBASet;
 end;
 
 procedure TfSetting.SetTracePath;
 begin
-  FTracePath := AppPath + 'mt.txt';
-  while (FTracePath = '') or (not(FileExists(FTracePath))) do
-  begin
-    if oTrace.Execute = false then
-      exit;
-
-    FTracePath := oTrace.FileName;
-  end;
+  if FileExists(AppPath + 'mt.txt') then
+    eTracePath.Text := AppPath + 'mt.txt';
 end;
 
 procedure TfSetting.SetSavePath;
@@ -164,10 +190,6 @@ begin
   if not IsAllOptionSet then
     exit;
 
-  SetTracePath;
-  if FTracePath = '' then
-    exit;
-
   SetSavePath;
   if FSavePath = '' then
     exit;
@@ -176,6 +198,12 @@ begin
 
   FOptionsSet := true;
   Close;
+end;
+
+procedure TfSetting.bTracePathClick(Sender: TObject);
+begin
+  if oTrace.Execute then
+    eTracePath.Text := oTrace.FileName;
 end;
 
 procedure TfSetting.cDestinationKeyPress(Sender: TObject; var Key: Char);
@@ -197,6 +225,7 @@ begin
 
   FDriveList := TList<Integer>.Create;
   RefreshDrives;
+  SetTracePath;
 end;
 
 procedure TfSetting.FormDestroy(Sender: TObject);
@@ -223,8 +252,10 @@ begin
   if FDriveList.IndexOf(SaveFile.GetDiskNumber) >= 0 then
     InsertDriveByNumber(SaveFile)
   else
-    InsertDriveByModelSerial(SaveFile);
+    raise EInvalidDrive.Create(SettingInvalidDrive[CurrLang]);
   eRetentionTBW.Text := IntToStr(SaveFile.GetTBWToRetention shr ByteToTB);
+  eTracePath.Text := SaveFile.GetTracePath;
+  eTraceOriginalLBA.Text := SaveFile.GetTraceOriginalLBA;
 end;
 
 procedure TfSetting.InsertDriveByNumber(const SaveFile:
@@ -235,39 +266,10 @@ begin
   cDestination.ItemIndex := 0;
 end;
 
-procedure TfSetting.InsertDriveByModelSerial(const SaveFile:
-  TSaveFileForSettingForm);
-begin
-  FDriveList.Insert(0, FindDrive(SaveFile.GetModel, SaveFile.GetSerial));
-  cDestination.Items.Insert(0, 'Open');
-  cDestination.ItemIndex := 0;
-end;
-
 function TfSetting.GetSavePath: Boolean;
 begin
   FSavePath := SelectDirectory(SettingSelectFolderSavedLog[CurrLang], AppPath);
   result := FSavePath <> '';
-end;
-
-function TfSetting.FindDrive(Model, Serial: String): Integer;
-var
-  DriveList: TPhysicalDriveList;
-  PhysicalDrive: IPhysicalDrive;
-begin
-  DriveList := AutoPhysicalDriveListGetter.GetPhysicalDriveList;
-  result := -1;
-  for PhysicalDrive in DriveList do
-  begin
-    if (Model = PhysicalDrive.IdentifyDeviceResult.Model) and
-       (Serial = PhysicalDrive.IdentifyDeviceResult.Serial) then
-      result :=
-        StrToInt(PhysicalDrive.GetPathOfFileAccessingWithoutPrefix);
-  end;
-  if result = -1 then
-    raise
-      EDriveNotFound.Create('DriveNotFound Model ' + Model + ', Serial ' +
-        Serial);
-  FreeAndNil(DriveList);
 end;
 
 procedure TfSetting.RefreshDrives;

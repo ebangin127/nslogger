@@ -26,7 +26,6 @@ begin
   Inc(MaxPChar, LengthOfS);
   Minus := S[0] = '-';
   result := 0;
-  PositionalNumber := 0;
 
   if Minus then
     Inc(CurrentPChar);
@@ -67,7 +66,6 @@ begin
   MaxPChar := S + LengthOfS;
   Minus := S[0] = '-';
   result := 0;
-  PositionalNumber := 0;
 
   if Minus then
     Inc(CurrentPChar);

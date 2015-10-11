@@ -11,12 +11,12 @@ type
     SaveFile: TSaveFile;
   public
     procedure SetDiskNumber(const Value: Integer);
+    procedure SetTracePath(const Value: String);
+    procedure SetTraceOriginalLBA(const Value: String);
     function GetTBWToRetention: UInt64;
     procedure SetTBWToRetention(const Value: UInt64);
     function GetRandomSeed: Int64;
     procedure SetRandomSeed(const Value: Int64);
-    function GetTracePath: String;
-    procedure SetTracePath(const Value: String);
     function GetMaxFFR: Integer;
     procedure SetMaxFFR(const Value: Integer);
     function GetNeedRetention: Boolean;
@@ -67,14 +67,14 @@ begin
   result := SaveFile.LoadInt64('General', 'RandomSeed');
 end;
 
-procedure TSaveFileForTesterThread.SetTracePath(const Value: String);
+procedure TSaveFileForTesterThread.SetTraceOriginalLBA(const Value: String);
 begin
-  SaveFile.SaveString('General', 'TracePath', Value);
+  SaveFile.SaveString('Trace', 'OriginalLBA', Value);
 end;
 
-function TSaveFileForTesterThread.GetTracePath: String;
+procedure TSaveFileForTesterThread.SetTracePath(const Value: String);
 begin
-  result := SaveFile.LoadString('General', 'TracePath');
+  SaveFile.SaveString('Trace', 'Path', Value);
 end;
 
 function TSaveFileForTesterThread.GetMaxFFR: Integer;

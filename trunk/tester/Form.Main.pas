@@ -19,8 +19,6 @@ const
   HalfPadding = InnerPadding;
   BufferSize = 16 shl 10;
 
-  CapacityOf128GB = 250069680;
-
 type
   TResizeUnit = record
     Name: TLabel;
@@ -99,8 +97,8 @@ type
     procedure LoadTestFromFile;
     procedure PrepareNewTest;
     procedure Precondition;
-    procedure PrepareTestThread(const PhysicalDrive: IPhysicalDrive);
-    procedure SetTestThreadProperties(const PhysicalDrive: IPhysicalDrive);
+    procedure PrepareTestThread;
+    procedure SetTestThreadProperties;
     procedure AlignDestinationAddress(const CurrBasicTop: Integer);
     procedure AlignDestinationModel(const CurrBasicTop: Integer);
     procedure AlignDestinationSerial(const CurrBasicTop: Integer);
@@ -356,7 +354,6 @@ var
   ForceRetenWidthAt9, ForceRetenWidthAt10: Integer;
   ForceRetenWidthDelta: Integer;
 begin
-  result := lForceReten.Font.Size;
   lForceReten.Font.Size := 9;
   ForceRetenWidthAt9 := lForceReten.Left + lForceReten.Width;
   lForceReten.Font.Size := 10;
@@ -448,11 +445,9 @@ begin
   sDestPath.Left := lDest.Left + lDest.Width + OuterPadding;
 end;
 
-procedure TfMain.SetTestThreadProperties(const PhysicalDrive: IPhysicalDrive);
+procedure TfMain.SetTestThreadProperties;
 begin
   FTestThread.SetTestSetting(TestSetting);
-  FTestThread.SetMaxLBA(PhysicalDrive.IdentifyDeviceResult.UserSizeInKB shl 1);
-  FTestThread.SetTraceMaxLBA(CapacityOf128GB);
   FTestThread.AssignBufferSetting(BufferSize, 100);
 end;
 
@@ -501,12 +496,36 @@ begin
 end;
 
 procedure TfMain.SetUIAsSetting;
+  function DenaryKBToGB: TDatasizeUnitChangeSetting;
+  begin
+    result.FNumeralSystem := TNumeralSystem.Denary;
+    result.FFromUnit := KiloUnit;
+    result.FToUnit := GigaUnit;
+  end;
+  function KiBtoDenaryMB(SizeInBinaryKiB: Double): Double;
+  var
+    KBtoMB: TDatasizeUnitChangeSetting;
+  begin
+    KBtoMB.FNumeralSystem := Denary;
+    KBtoMB.FFromUnit := KiloUnit;
+    KBtoMB.FToUnit := MegaUnit;
+
+    result :=
+      ChangeDatasizeUnit(
+        SizeInBinaryKiB * (1024 / 1000),
+        KBtoMB);
+  end;
+const
+  DenaryInteger: TFormatSizeSetting = (FNumeralSystem: Denary; FPrecision: 0);
 begin
   sDestPath.Caption :=
     TPhysicalDrive.BuildFileAddressByNumber(TestSetting.DiskNumber);
   sDestModel.Caption :=
     TestSetting.Model +
-    ' (' + IntToStr(TestSetting.Capacity) + 'GB)';
+    ' (' +
+    FormatSizeInMB(KiBtoDenaryMB(TestSetting.CapacityInLBA shr 1),
+      DenaryInteger) +
+    ')';
   sDestSerial.Caption := TestSetting.Serial;
   sRetention.Caption :=
     IntToStr(TestSetting.TBWToRetention) + 'TBW / ' +
@@ -549,28 +568,23 @@ begin
   FreeAndNil(fRetention);
 end;
 
-procedure TfMain.PrepareTestThread(const PhysicalDrive: IPhysicalDrive);
+procedure TfMain.PrepareTestThread;
 begin
   if fSetting.NeedToLoad then
     LoadTestFromFile
   else
     PrepareNewTest;
-  SetTestThreadProperties(PhysicalDrive);
+  SetTestThreadProperties;
 end;
 
 procedure TfMain.StartTestWithSetting;
-var
-  PhysicalDrive: IPhysicalDrive;
 begin
   SetUIAsSetting;
   Application.ProcessMessages;
 
-  PhysicalDrive := TPhysicalDrive.Create(
-    TPhysicalDrive.BuildFileAddressByNumber(TestSetting.DiskNumber));
-  FTestThread := TTesterThread.Create(fSetting.TracePath,
-    TestSetting.LogSavePath);
+  FTestThread := TTesterThread.Create(TestSetting.LogSavePath);
   FRepeatRetention := false;
-  PrepareTestThread(PhysicalDrive);
+  PrepareTestThread;
   if FRepeatRetention then
   begin
     Close;

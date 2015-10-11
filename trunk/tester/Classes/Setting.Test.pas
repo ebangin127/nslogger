@@ -30,12 +30,14 @@ type
       FTestSettingParamFromForm.FMaxFFR;
     property TracePath: String read
       FTestSettingParamFromForm.FTracePath;
+    property TraceOriginalLBA: Int64 read
+      FTestSettingParamFromForm.FTraceOriginalLBA;
     property Model: String read
       FTestSettingParamFromPhysicalDrive.FModel;
     property Serial: String read
       FTestSettingParamFromPhysicalDrive.FSerial;
-    property Capacity: Int64 read
-      FTestSettingParamFromPhysicalDrive.FCapacity;
+    property CapacityInLBA: Int64 read
+      FTestSettingParamFromPhysicalDrive.FCapacityInLBA;
   end;
 
 implementation

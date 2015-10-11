@@ -22,6 +22,12 @@ implementation
 
 function TTestSettingParamGetter.GetValuesFromForm(SettingForm: TfSetting):
   TTestSettingParamFromForm;
+  function DenaryGBToKB: TDatasizeUnitChangeSetting;
+  begin
+    result.FNumeralSystem := TNumeralSystem.Denary;
+    result.FFromUnit := GigaUnit;
+    result.FToUnit := KiloUnit;
+  end;
 begin
   result.FDiskNumber := fSetting.GetDriveNumber;
   result.FLogSavePath := fSetting.SavePath;
@@ -29,6 +35,10 @@ begin
   result.FTBWToRetention :=
     StrToInt(fSetting.eRetentionTBW.Text);
   result.FMaxFFR := StrToInt(fSetting.eFFR.Text);
+  result.FTracePath := fSetting.eTracePath.Text;
+  result.FTraceOriginalLBA :=
+    round(ChangeDatasizeUnit(
+      StrToInt(fSetting.eTraceOriginalLBA.Text), DenaryGBToKB)) shl 1;
 end;
 
 function TTestSettingParamGetter.GetValuesFromDrive(DiskNumber: Integer):
@@ -50,8 +60,8 @@ begin
 
   result.FModel := PhysicalDrive.IdentifyDeviceResult.Model;
   result.FSerial := PhysicalDrive.IdentifyDeviceResult.Serial;
-  result.FCapacity := Round(ChangeDatasizeUnit(
-    PhysicalDrive.IdentifyDeviceResult.UserSizeInKB, DenaryKBtoGB));
+  result.FCapacityInLBA :=
+    PhysicalDrive.IdentifyDeviceResult.UserSizeInKB shl 1;
 end;
 
 initialization

@@ -47,7 +47,7 @@ type
     function IsRetentionTestBoundReached: Boolean;
   public
     property ExitCode: Byte read FExitCode;
-    constructor Create(const TracePath, SavePath: String);
+    constructor Create(const SavePath: String);
     destructor Destroy; override;
     procedure Execute; override;
     procedure ApplyState;
@@ -72,7 +72,7 @@ implementation
 
 uses Form.Main;
 
-constructor TTesterThread.Create(const TracePath, SavePath: String);
+constructor TTesterThread.Create(const SavePath: String);
 var
   RandomSeed: Int64;
 begin
@@ -89,7 +89,6 @@ begin
   FTester := TTesterIterator.Create(FErrorList, FSavePath);
   FRandomBuffer := TRandomBuffer.Create(RandomSeed);
   FTesterToView := TTesterToView.Create;
-  FTracePath := TracePath;
 end;
 
 destructor TTesterThread.Destroy;
@@ -304,11 +303,19 @@ begin
 end;
 
 procedure TTesterThread.Save(const SaveFilePath: String);
+  function DenaryKBToGB: TDatasizeUnitChangeSetting;
+  begin
+    result.FNumeralSystem := TNumeralSystem.Denary;
+    result.FFromUnit := KiloUnit;
+    result.FToUnit := GigaUnit;
+  end;
 begin
   FSaveFile.SetTBWToRetention(FRetentionTest);
   FSaveFile.SetMaxFFR(FMaxFFR);
-  FSaveFile.SetTracePath(FTracePath);
   FSaveFile.SetNeedRetention(FNeedRetention);
+  FSaveFile.SetTracePath(FTracePath);
+  FSaveFile.SetTraceOriginalLBA(IntToStr(
+    round(ChangeDatasizeUnit(FOrigLBA shr 1, DenaryKBToGB))));
   if FNeedRetention then
     FSaveFile.SetLastRetention(FTester.GetHostWrite);
   FTester.Save;
@@ -319,7 +326,6 @@ procedure TTesterThread.Load(const SaveFilePath: String);
 begin
   FRetentionTest := FSaveFile.GetTBWToRetention;
   FMaxFFR := FSaveFile.GetMaxFFR;
-  FTracePath := FSaveFile.GetTracePath;
   FNeedRetention := FSaveFile.GetNeedRetention;
   FLastRetention := FSaveFile.GetLastRetention;
   FTester.Load;
@@ -360,6 +366,9 @@ end;
 procedure TTesterThread.SetTestSetting(const TestSetting: TTestSetting);
 begin
   SetDisk(TestSetting.DiskNumber);
+  SetMaxLBA(TestSetting.CapacityInLBA);
+  FTracePath := TestSetting.TracePath;
+  SetTraceMaxLBA(TestSetting.TraceOriginalLBA);
   FSavePath := TestSetting.LogSavePath;
   if FRetentionTest = 0 then
   begin

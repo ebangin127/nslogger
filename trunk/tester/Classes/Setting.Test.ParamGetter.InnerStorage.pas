@@ -9,12 +9,13 @@ type
     FTBWToRetention: Integer;
     FMaxFFR: Integer;
     FTracePath: String;
+    FTraceOriginalLBA: Int64;
   end;
 
   TTestSettingParamFromPhysicalDrive = record
     FModel: String;
     FSerial: String;
-    FCapacity: Int64;
+    FCapacityInLBA: Int64;
   end;
 
 implementation
