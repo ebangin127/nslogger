@@ -16,7 +16,7 @@ type
   ITraceListIterator = interface
     function GetNextItem: TTraceNode;
     procedure GoToFirst;
-    procedure SetIndex(NewIndex: Integer);
+    procedure SetIndex(const NewIndex: Integer);
   end;
 
   TTraceList = class
@@ -44,7 +44,7 @@ type
   public
     function GetNextItem: TTraceNode;
     procedure GoToFirst;
-    procedure SetIndex(NewIndex: Integer);
+    procedure SetIndex(const NewIndex: Integer);
 
     constructor Create(TraceList: TTraceList);
   end;
@@ -111,7 +111,7 @@ begin
   TMonitor.Exit(self);
 end;
 
-procedure TTraceListIterator.SetIndex(NewIndex: Integer);
+procedure TTraceListIterator.SetIndex(const NewIndex: Integer);
 begin
   CurrentItemIndex := NewIndex;
 end;

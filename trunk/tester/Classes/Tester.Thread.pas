@@ -5,7 +5,7 @@ interface
 uses
   Classes, SysUtils, ComCtrls, Math, Windows, DateUtils, Dialogs,
   Tester.Iterator, Trace.List, RandomBuffer, SaveFile,
-  SaveFile.TesterThread, Parser, Trace.Node, Trace.MultiList,
+  SaveFile.TesterThread, Parser, Trace.Node, Trace.PartialList,
   ErrorList, Tester.ToView, Log.Templates, LanguageStrings,
   Setting.Test, MeasureUnit.Datasize;
 
@@ -32,7 +32,7 @@ type
     FLastRetention: Integer;
     FSecCounter: Integer;
     FLastSyncCount: Integer;
-    FTraceMultiList: TTraceMultiList;
+    FTracePartialList: TTracePartialList;
     FMaxLBA: UInt64;
     FOrigLBA: UInt64;
     FRetentionTest: UInt64;
@@ -45,6 +45,7 @@ type
     function GetMaxLatency: Double;
     function GetAvgLatency: Double;
     function IsRetentionTestBoundReached: Boolean;
+    function GetSuitableMemorySize: Integer;
   public
     property ExitCode: Byte read FExitCode;
     constructor Create(const SavePath: String);
@@ -161,7 +162,7 @@ begin
 
   FTesterToView.ApplyLatency(GetAvgLatency, GetMaxLatency);
   FTesterToView.ApplyProgress(TBWStr, DayStr,
-    FTester.GetHostWrite shr 30, FRetentionTest);
+    FTester.GetHostWrite shr 40, FRetentionTest);
   ApplyWriteError(TBWStr, DayStr);
   FTesterToView.ApplyFFR(FTester.GetFFR, FMaxFFR);
 end;
@@ -246,6 +247,21 @@ begin
     (FTester.GetHostWrite > FLastRetention);
 end;
 
+function TTesterThread.GetSuitableMemorySize: Integer;
+const
+  DefaultMemoryUseInMiB = 512;
+var
+  RAMStatus: TMemoryStatus;
+  AvailMemoryInMiB: Integer;
+begin
+  RAMStatus.dwLength := SizeOf(RAMStatus);
+  GlobalMemoryStatus(RAMStatus);
+  result := DefaultMemoryUseInMiB;
+  AvailMemoryInMiB := RAMStatus.dwAvailPhys shr 20;
+  if result > AvailMemoryInMiB then
+    result := AvailMemoryInMiB;
+end;
+
 procedure TTesterThread.Execute;
 var
   CurrTime: Cardinal;
@@ -254,11 +270,12 @@ begin
     Sleep(100);
   if FFullyLoaded = false then
     exit;
+
   FLastSync := 0;
   FSecCounter := 0;
-  FTraceMultiList := TTraceMultiList.Create;
-  ImportTrace(FTraceMultiList, PChar(FTracePath), FMaxLBA / FOrigLBA);
-  FTester.AssignList(FTraceMultiList);
+  FTracePartialList := TTracePartialList.Create(FTracePath, FMaxLBA / FOrigLBA,
+    GetSuitableMemorySize);
+  FTester.AssignList(FTracePartialList);
   FTesterToView.ApplyStart;
   ApplyState;
   while not Terminated do

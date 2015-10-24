@@ -5,7 +5,7 @@ interface
 uses
   Windows, SysUtils, Generics.Collections, MMSystem, Math, Dialogs,
   Classes,
-  Trace.List, Trace.MultiList, RandomBuffer, ErrorList, Trace.Node,
+  Trace.List, Trace.PartialList, RandomBuffer, ErrorList, Trace.Node,
   uCommandSet, uCommandSetFactory, Device.PhysicalDrive, Tester.CommandIssuer,
   SaveFile, SaveFile.TesterIterator;
 
@@ -19,7 +19,7 @@ type
   TTesterIterator = class
   private
     FTesterCommandIssuer: TTesterCommandIssuer;
-    FMasterTrace: TTraceMultiList;
+    FMasterTrace: TTracePartialList;
     FStage: TTestStage;
     FIterator: Integer;
     FListIterator: ITraceListIterator;
@@ -59,7 +59,7 @@ type
     function SetDisk(const DriveNumber: Integer): Boolean;
     function ProcessNextOperation: Boolean;
     function AssignBuffer(const RandBuf: PTRandomBuffer): Boolean;
-    procedure AssignList(const NewList: TTraceMultiList);
+    procedure AssignList(const NewList: TTracePartialList);
     procedure AddToHostWrite(const Value: Int64);
   end;
 
@@ -75,7 +75,6 @@ constructor TTesterIterator.Create(const ErrorList: TErrorList;
 var
   Frequency: Int64;
 begin
-  FMasterTrace := TTraceMultiList.Create;
   FListIterator := FMasterTrace.GetIterator;
 
   QueryPerformanceFrequency(Frequency);
@@ -266,7 +265,7 @@ begin
   result := FTesterCommandIssuer.AssignBuffer(RandBuf);
 end;
 
-procedure TTesterIterator.AssignList(const NewList: TTraceMultiList);
+procedure TTesterIterator.AssignList(const NewList: TTracePartialList);
 begin
   if FMasterTrace <> nil then
     FreeAndNil(FMasterTrace);

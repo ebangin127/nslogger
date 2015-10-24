@@ -8,7 +8,7 @@ uses
 type
   T512Buffer = Array[0..511] of Byte;
   TStorageInterface =
-    (Probing, ATA, SAT, UnknownInterface);
+    (Probing, ATA, SAT, SCSI, UnknownInterface);
   TSATASpeed =
     (NotSATA, UnknownSATASpeed, SATA150, SATA300, SATA600);
   TIdentifyDeviceResult = record

@@ -21,6 +21,7 @@ begin
   if S[0] = #0 then
     raise EArgumentNilException.Create('String is Empty'); 
 
+  PositionalNumber := 0;
   CurrentPChar := S;
   MaxPChar := S;
   Inc(MaxPChar, LengthOfS);
@@ -61,7 +62,8 @@ var
 begin
   if S[0] = #0 then
     raise EArgumentNilException.Create('String is Empty'); 
-     
+
+  PositionalNumber := 0;
   CurrentPChar := S;
   MaxPChar := S + LengthOfS;
   Minus := S[0] = '-';

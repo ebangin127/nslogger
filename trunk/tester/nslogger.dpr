@@ -65,8 +65,10 @@ uses
   Tester.Thread in 'Classes\Tester.Thread.pas',
   Tester.ToView in 'Classes\Tester.ToView.pas',
   Trace.List in 'Classes\Trace.List.pas',
-  Trace.MultiList in 'Classes\Trace.MultiList.pas',
-  Trace.Node in 'Classes\Trace.Node.pas';
+  Trace.PartialList in 'Classes\Trace.PartialList.pas',
+  Trace.Node in 'Classes\Trace.Node.pas',
+  uSCSICommandSet in 'WindowsFileAPI\CommandSet\Specific\uSCSICommandSet.pas',
+  uSCSIBufferInterpreter in 'WindowsFileAPI\Interpreter\uSCSIBufferInterpreter.pas';
 
 {$R *.res}
 

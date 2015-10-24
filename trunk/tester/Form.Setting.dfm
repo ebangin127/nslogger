@@ -4,7 +4,7 @@ object fSetting: TfSetting
   BorderIcons = [biSystemMenu, biMinimize]
   Caption = #49444#51221
   ClientHeight = 314
-  ClientWidth = 760
+  ClientWidth = 712
   Color = clWhite
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -18,7 +18,7 @@ object fSetting: TfSetting
   PixelsPerInch = 120
   TextHeight = 21
   object GroupBox1: TGroupBox
-    Left = 544
+    Left = 491
     Top = 9
     Width = 207
     Height = 288
@@ -30,9 +30,9 @@ object fSetting: TfSetting
     TabOrder = 0
     object bOpenExist: TButton
       Left = 17
-      Top = 25
-      Width = 168
-      Height = 244
+      Top = 27
+      Width = 175
+      Height = 247
       Margins.Left = 4
       Margins.Top = 4
       Margins.Right = 4
@@ -45,7 +45,7 @@ object fSetting: TfSetting
   object GroupBox2: TGroupBox
     Left = 10
     Top = 10
-    Width = 526
+    Width = 471
     Height = 287
     Margins.Left = 4
     Margins.Top = 4
@@ -55,7 +55,7 @@ object fSetting: TfSetting
     TabOrder = 1
     object lRetentionTBW: TLabel
       Left = 19
-      Top = 65
+      Top = 67
       Width = 150
       Height = 21
       Margins.Left = 4
@@ -66,7 +66,7 @@ object fSetting: TfSetting
     end
     object lDestination: TLabel
       Left = 19
-      Top = 27
+      Top = 29
       Width = 80
       Height = 21
       Margins.Left = 4
@@ -76,8 +76,8 @@ object fSetting: TfSetting
       Caption = #45824#49345' '#50948#52824': '
     end
     object lTBW: TLabel
-      Left = 470
-      Top = 65
+      Left = 418
+      Top = 67
       Width = 33
       Height = 21
       Margins.Left = 4
@@ -88,7 +88,7 @@ object fSetting: TfSetting
     end
     object lFFR: TLabel
       Left = 19
-      Top = 105
+      Top = 108
       Width = 170
       Height = 21
       Margins.Left = 4
@@ -98,8 +98,8 @@ object fSetting: TfSetting
       Caption = #44592#45733' '#49892#54056#50984'(FFR) '#51228#54620': '
     end
     object lPercent: TLabel
-      Left = 470
-      Top = 105
+      Left = 418
+      Top = 108
       Width = 13
       Height = 21
       Margins.Left = 4
@@ -110,7 +110,7 @@ object fSetting: TfSetting
     end
     object lTraceOriginalLBA: TLabel
       Left = 19
-      Top = 185
+      Top = 186
       Width = 144
       Height = 21
       Margins.Left = 4
@@ -121,7 +121,7 @@ object fSetting: TfSetting
     end
     object lTracePath: TLabel
       Left = 19
-      Top = 145
+      Top = 147
       Width = 106
       Height = 21
       Margins.Left = 4
@@ -131,8 +131,8 @@ object fSetting: TfSetting
       Caption = #53944#47112#51060#49828' '#50948#52824':'
     end
     object lGB: TLabel
-      Left = 470
-      Top = 185
+      Left = 418
+      Top = 186
       Width = 20
       Height = 21
       Margins.Left = 4
@@ -143,8 +143,8 @@ object fSetting: TfSetting
     end
     object eRetentionTBW: TEdit
       Left = 182
-      Top = 64
-      Width = 280
+      Top = 66
+      Width = 228
       Height = 29
       Margins.Left = 4
       Margins.Top = 4
@@ -155,8 +155,8 @@ object fSetting: TfSetting
     end
     object bStartNew: TButton
       Left = 19
-      Top = 217
-      Width = 484
+      Top = 222
+      Width = 432
       Height = 51
       Margins.Left = 4
       Margins.Top = 4
@@ -168,8 +168,8 @@ object fSetting: TfSetting
     end
     object eFFR: TEdit
       Left = 193
-      Top = 102
-      Width = 269
+      Top = 105
+      Width = 217
       Height = 29
       Margins.Left = 4
       Margins.Top = 4
@@ -181,7 +181,7 @@ object fSetting: TfSetting
     object eTracePath: TEdit
       Left = 144
       Top = 144
-      Width = 318
+      Width = 266
       Height = 29
       Margins.Left = 4
       Margins.Top = 4
@@ -192,8 +192,8 @@ object fSetting: TfSetting
       OnClick = bTracePathClick
     end
     object bTracePath: TButton
-      Left = 469
-      Top = 146
+      Left = 417
+      Top = 148
       Width = 34
       Height = 29
       Caption = '...'
@@ -202,8 +202,8 @@ object fSetting: TfSetting
     end
     object cDestination: TComboBoxEx
       Left = 106
-      Top = 24
-      Width = 393
+      Top = 26
+      Width = 345
       Height = 30
       ItemsEx = <>
       Style = csExDropDownList
@@ -211,8 +211,8 @@ object fSetting: TfSetting
     end
     object eTraceOriginalLBA: TEdit
       Left = 182
-      Top = 182
-      Width = 280
+      Top = 183
+      Width = 228
       Height = 29
       Margins.Left = 4
       Margins.Top = 4
@@ -223,7 +223,7 @@ object fSetting: TfSetting
     end
   end
   object oTrace: TOpenDialog
-    Filter = 'JESD219A-MT (*.txt)|*.txt'
+    Filter = 'JESD219-Trace (*.txt)|*.txt'
     Left = 520
     Top = 232
   end

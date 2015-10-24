@@ -5,7 +5,7 @@ interface
 uses
   Windows, SysUtils, Dialogs,
   uCommandSet, uBufferInterpreter,
-  uATACommandSet, uLegacyATACommandSet, uSATCommandSet;
+  uATACommandSet, uLegacyATACommandSet, uSATCommandSet, uSCSICommandSet;
 
 type
   TMetaCommandSet = class of TCommandSet;
@@ -53,6 +53,7 @@ begin
   result := TestCommandSetCompatibility(TATACommandSet, result);
   result := TestCommandSetCompatibility(TLegacyATACommandSet, result);
   result := TestCommandSetCompatibility(TSATCommandSet, result);
+  result := TestCommandSetCompatibility(TSCSICommandSet, result);
 end;
 
 function TCommandSetFactory.TestCommandSetCompatibility

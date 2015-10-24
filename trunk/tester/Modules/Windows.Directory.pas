@@ -54,7 +54,7 @@ begin
         Title := DialogTitle;
         Options := [fdoPickFolders, fdoPathMustExist, fdoForceFileSystem];
         DefaultFolder := DefaultDir;
-        FileName := DefaultDir;
+        FileName := '';
         if Execute then
           result := FileName;
       finally

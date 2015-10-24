@@ -478,7 +478,7 @@ end;
 procedure TfMain.gAlertRealign;
 begin
   lAlert.Width := gAlert.Width - (lAlert.Left shl 1);
-  lAlert.Height := gAlert.Height - (OuterPadding shl 1);
+  lAlert.Height := gAlert.Height - (lAlert.Top shl 1);
 end;
 
 function TfMain.GetTestSettingFromForm: TTestSetting;
