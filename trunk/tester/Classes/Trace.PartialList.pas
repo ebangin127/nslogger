@@ -94,7 +94,6 @@ begin
   try
     Reset(OpenedFile);
     DivideCount := (FileSize(OpenedFile) shr 20) div (FMaxRAMInMiB shr 3 * 5);
-    DivideCount := 4;
     FPartLimit := Divider.Divide(DivideCount);
   finally
     CloseFile(OpenedFile);
