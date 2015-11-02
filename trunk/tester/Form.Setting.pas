@@ -7,9 +7,9 @@ uses
   System.Classes, Vcl.Graphics, System.UITypes,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Generics.Collections,
   Windows.Directory, SaveFile, SaveFile.SettingForm,
-  Device.PhysicalDrive, uPartitionListGetter, Vcl.ComCtrls,
-  MeasureUnit.DataSize, uAutoPhysicalDriveListGetter, uPhysicalDriveList,
-  LanguageStrings;
+  Device.PhysicalDrive, Getter.PartitionList, Vcl.ComCtrls,
+  MeasureUnit.DataSize, Getter.PhysicalDriveList.Auto,
+  Device.PhysicalDrive.List, LanguageStrings;
 
 type
   EDriveNotFound = class(EResNotFound);

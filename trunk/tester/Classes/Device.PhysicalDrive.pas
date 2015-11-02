@@ -5,9 +5,9 @@ interface
 uses
   Windows, SysUtils,
   Device.BusPhysicalDrive, Device.OSPhysicalDrive,
-  uOSFile, uInterfacedOSFile,
-  uDiskGeometryGetter, uPartitionListGetter, uDriveAvailabilityGetter,
-  uBufferInterpreter, Device.SMARTValueList, uNCQAvailabilityGetter;
+  OSFile, OSFile.Interfaced,
+  Getter.DiskGeometry, Getter.PartitionList, Getter.DriveAvailability,
+  BufferInterpreter, Device.SMARTValueList, Getter.NCQAvailability;
 
 type
   IPhysicalDrive = interface

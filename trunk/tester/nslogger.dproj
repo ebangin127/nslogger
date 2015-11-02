@@ -5,7 +5,7 @@
         <FrameworkType>VCL</FrameworkType>
         <MainSource>nslogger.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Release</Config>
+        <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Application</AppType>
@@ -58,11 +58,14 @@
         <Base>true</Base>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
+        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <VerInfo_Locale>1042</VerInfo_Locale>
+        <Manifest_File>GetAdmin.manifest</Manifest_File>
         <DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_OutputDRCFile>true</DCC_OutputDRCFile>
         <SanitizedProjectName>nslogger</SanitizedProjectName>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
-        <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
+        <Icon_MainIcon>lifelog.ico</Icon_MainIcon>
         <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
         <DCC_ExeOutput>..\exe\bin\</DCC_ExeOutput>
         <DCC_E>false</DCC_E>
@@ -79,22 +82,17 @@
         <Manifest_File>GetAdmin.manifest</Manifest_File>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <DCC_UsePackage>bindcompfmx;vcldbx;fmx;rtl;IndySystem;dbrtl;TeeDB;bindcomp;inetdb;vclib;inetdbbde;DBXInterBaseDriver;Tee;DataSnapCommon;xmlrtl;svnui;ibxpress;DbxCommonDriver;vclimg;IndyProtocols;dbxcds;MetropolisUILiveTile;bindcompdbx;vclactnband;bindengine;vcldb;soaprtl;vcldsnap;bindcompvcl;FMXTee;TeeUI;vclie;vcltouch;websnap;CustomIPTransport;VclSmp;dsnap;IndyIPServer;IndyCore;vcl;IndyIPCommon;dsnapcon;FmxTeeUI;inet;vclx;inetdbxpress;webdsnap;svn;bdertl;dbexpress;adortl;IndyIPClient;$(DCC_UsePackage)</DCC_UsePackage>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;$(DCC_Namespace)</DCC_Namespace>
-        <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <DCC_UsePackage>bindcompfmx;fmx;rtl;IndySystem;dbrtl;bindcomp;inetdb;DBXInterBaseDriver;DataSnapCommon;xmlrtl;DbxCommonDriver;vclimg;IndyProtocols;dbxcds;bindcompdbx;vclactnband;bindengine;vcldb;soaprtl;vcldsnap;bindcompvcl;vclie;vcltouch;websnap;CustomIPTransport;VclSmp;dsnap;IndyIPServer;IndyCore;vcl;IndyIPCommon;dsnapcon;inet;vclx;inetdbxpress;webdsnap;dbexpress;IndyIPClient;$(DCC_UsePackage)</DCC_UsePackage>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1)'!=''">
-        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
-        <DCC_ExeOutput>..\exe\bin\</DCC_ExeOutput>
-        <VerInfo_Locale>1042</VerInfo_Locale>
-        <Manifest_File>None</Manifest_File>
+        <Icon_MainIcon>lifelog.ico</Icon_MainIcon>
+        <Manifest_File>GetAdmin.manifest</Manifest_File>
         <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
         <DCC_DebugDCUs>true</DCC_DebugDCUs>
         <DCC_Optimize>false</DCC_Optimize>
@@ -103,8 +101,6 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <Icon_MainIcon>lifelog.ico</Icon_MainIcon>
-        <Manifest_File>GetAdmin.manifest</Manifest_File>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
@@ -156,33 +152,33 @@
         <DCCReference Include="Classes\Verifier.Thread.Copy.pas"/>
         <DCCReference Include="Classes\Verifier.Thread.Verify.pas"/>
         <DCCReference Include="Classes\Tester.Thread.Precondition.pas"/>
-        <DCCReference Include="WindowsFileAPI\Abstraction\uInterfacedOSFile.pas"/>
-        <DCCReference Include="WindowsFileAPI\Abstraction\uIoControlFile.pas"/>
-        <DCCReference Include="WindowsFileAPI\Abstraction\uOSFile.pas"/>
-        <DCCReference Include="WindowsFileAPI\Abstraction\uOSFileWithHandle.pas"/>
-        <DCCReference Include="WindowsFileAPI\CommandSet\Abstraction\uCommandSet.pas"/>
-        <DCCReference Include="WindowsFileAPI\CommandSet\Factory\uCommandSetFactory.pas"/>
-        <DCCReference Include="WindowsFileAPI\CommandSet\Specific\uATACommandSet.pas"/>
-        <DCCReference Include="WindowsFileAPI\CommandSet\Specific\uLegacyATACommandSet.pas"/>
-        <DCCReference Include="WindowsFileAPI\CommandSet\Specific\uSATCommandSet.pas"/>
-        <DCCReference Include="WindowsFileAPI\Interpreter\uATABufferInterpreter.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\Getter\uDiskGeometryGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\Getter\uDriveAvailabilityGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\Getter\uNCQAvailabilityGetter.pas"/>
+        <DCCReference Include="WindowsFileAPI\Abstraction\OSFile.Interfaced.pas"/>
+        <DCCReference Include="WindowsFileAPI\Abstraction\OSFile.IoControl.pas"/>
+        <DCCReference Include="WindowsFileAPI\Abstraction\OSFile.pas"/>
+        <DCCReference Include="WindowsFileAPI\Abstraction\OSFile.Handle.pas"/>
+        <DCCReference Include="WindowsFileAPI\CommandSet\Abstraction\CommandSet.pas"/>
+        <DCCReference Include="WindowsFileAPI\CommandSet\Factory\CommandSet.Factory.pas"/>
+        <DCCReference Include="WindowsFileAPI\CommandSet\Specific\CommandSet.ATA.pas"/>
+        <DCCReference Include="WindowsFileAPI\CommandSet\Specific\CommandSet.ATA.Legacy.pas"/>
+        <DCCReference Include="WindowsFileAPI\CommandSet\Specific\CommandSet.SAT.pas"/>
+        <DCCReference Include="WindowsFileAPI\BufferInterpreter.ATA.pas"/>
+        <DCCReference Include="WindowsFileAPI\PhysicalDrive\Getter\Getter.DiskGeometry.pas"/>
+        <DCCReference Include="WindowsFileAPI\PhysicalDrive\Getter\Getter.DriveAvailability.pas"/>
+        <DCCReference Include="WindowsFileAPI\PhysicalDrive\Getter\Getter.NCQAvailability.pas"/>
         <DCCReference Include="WindowsFileAPI\PhysicalDrive\Part\Device.BusPhysicalDrive.pas"/>
         <DCCReference Include="WindowsFileAPI\PhysicalDrive\Part\Device.OSPhysicalDrive.pas"/>
-        <DCCReference Include="WindowsFileAPI\Abstraction\uBufferInterpreter.pas"/>
+        <DCCReference Include="WindowsFileAPI\BufferInterpreter.pas"/>
         <DCCReference Include="Modules\MeasureUnit.DataSize.pas"/>
         <DCCReference Include="Modules\MeasureUnit.Time.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\List\uPhysicalDriveList.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\ListGetter\Abstraction\uPhysicalDriveListGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\ListGetter\Auto\uAutoPhysicalDriveListGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\ListGetter\Specific\uBruteForcePhysicalDriveListGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\ListGetter\Specific\uWMIPhysicalDriveListGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\PhysicalDrive\Getter\uPartitionListGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\Abstraction\uDriveListGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\Partition\Getter\uPartitionExtentGetter.pas"/>
-        <DCCReference Include="WindowsFileAPI\Partition\Getter\uFixedDriveListGetter.pas"/>
+        <DCCReference Include="WindowsFileAPI\PhysicalDrive\List\Device.PhysicalDrive.List.pas"/>
+        <DCCReference Include="WindowsFileAPI\PhysicalDrive\ListGetter\Abstraction\Getter.PhysicalDriveList.pas"/>
+        <DCCReference Include="WindowsFileAPI\PhysicalDrive\ListGetter\Auto\Getter.PhysicalDriveList.Auto.pas"/>
+        <DCCReference Include="WindowsFileAPI\PhysicalDrive\ListGetter\Specific\Getter.PhysicalDriveList.BruteForce.pas"/>
+        <DCCReference Include="WindowsFileAPI\PhysicalDrive\ListGetter\Specific\Getter.PhysicalDriveList.WMI.pas"/>
+        <DCCReference Include="WindowsFileAPI\PhysicalDrive\Getter\Getter.PartitionList.pas"/>
+        <DCCReference Include="WindowsFileAPI\Getter.DriveList.pas"/>
+        <DCCReference Include="WindowsFileAPI\Partition\Getter\Getter.PartitionExtent.pas"/>
+        <DCCReference Include="WindowsFileAPI\Partition\Getter\Getter.DriveList.Fixed.pas"/>
         <DCCReference Include="Modules\LanguageStrings.pas"/>
         <DCCReference Include="Modules\System.PCharVal.pas"/>
         <DCCReference Include="Modules\Log.Templates.pas"/>
@@ -213,8 +209,8 @@
         <DCCReference Include="Classes\Trace.List.pas"/>
         <DCCReference Include="Classes\Trace.PartialList.pas"/>
         <DCCReference Include="Classes\Trace.Node.pas"/>
-        <DCCReference Include="WindowsFileAPI\CommandSet\Specific\uSCSICommandSet.pas"/>
-        <DCCReference Include="WindowsFileAPI\Interpreter\uSCSIBufferInterpreter.pas"/>
+        <DCCReference Include="WindowsFileAPI\CommandSet\Specific\CommandSet.NVMe.Samsung.pas"/>
+        <DCCReference Include="WindowsFileAPI\BufferInterpreter.NVMe.Samsung.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

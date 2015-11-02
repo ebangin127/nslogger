@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, SysUtils, Generics.Collections, MMSystem,
-  RandomBuffer, Trace.Node, uCommandSet, uCommandSetFactory,
+  RandomBuffer, Trace.Node, CommandSet, CommandSet.Factory,
   Device.PhysicalDrive;
 
 const

@@ -250,6 +250,13 @@ begin
     ResizeUnit.DynamicText.Top + ResizeUnit.DynamicText.Height + InnerPadding;
   ResizeUnit.Progressbar.Width :=
     gStatus.Width - (ResizeUnit.Progressbar.Left shl 1);
+  ResizeUnit.DynamicText.Left := ResizeUnit.Name.Left + ResizeUnit.Name.Width +
+    InnerPadding;
+  if ResizeUnit.LeftLabel <> nil then
+    ResizeUnit.Progressbar.Left := ResizeUnit.LeftLabel.Left +
+      ResizeUnit.LeftLabel.Width + InnerPadding
+  else
+    ResizeUnit.Progressbar.Left := lFFRL.Left + lFFRL.Width + OuterPadding;
 end;
 
 procedure TFMain.RealignStatusComponents(const BasicTop: Integer;
@@ -373,8 +380,9 @@ end;
 
 procedure TfMain.RealignStatusLabels(const ResizeUnit: TResizeUnit);
 begin
+  ResizeUnit.Progressbar.Height := ResizeUnit.LeftLabel.Height;
   ResizeUnit.LeftLabel.Top := ResizeUnit.Progressbar.Top;
-  ResizeUnit.RightLabel.Top := ResizeUnit.Progressbar.Top;
+  ResizeUnit.RightLabel.Top := ResizeUnit.LeftLabel.Top;
   ResizeUnit.RightLabel.Left :=
     ResizeUnit.Progressbar.Left + ResizeUnit.Progressbar.Width +
     (ResizeUnit.Progressbar.Left - ResizeUnit.LeftLabel.Left -

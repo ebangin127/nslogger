@@ -6,7 +6,7 @@ uses
   Windows, SysUtils, Generics.Collections, MMSystem, Math, Dialogs,
   Classes,
   Trace.List, Trace.PartialList, RandomBuffer, ErrorList, Trace.Node,
-  uCommandSet, uCommandSetFactory, Device.PhysicalDrive, Tester.CommandIssuer,
+  CommandSet, CommandSet.Factory, Device.PhysicalDrive, Tester.CommandIssuer,
   SaveFile, SaveFile.TesterIterator;
 
 const

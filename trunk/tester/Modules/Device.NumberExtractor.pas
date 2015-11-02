@@ -2,7 +2,9 @@ unit Device.NumberExtractor;
 
 interface
 
-uses SysUtils, uOSFile;
+uses
+  SysUtils,
+  OSFile;
 
 function ExtractDeviceNumber(const Input: String): String;
 
