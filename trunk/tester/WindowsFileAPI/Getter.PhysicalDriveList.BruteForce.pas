@@ -3,10 +3,9 @@ unit Getter.PhysicalDriveList.BruteForce;
 interface
 
 uses
-  SysUtils,
+  SysUtils, Threading,
   OSFile, Device.PhysicalDrive, Getter.PhysicalDriveList,
-  Device.PhysicalDrive.List,
-  Threading;
+  Device.PhysicalDrive.List, CommandSet.Factory;
 
 type
   TBruteForcePhysicalDriveListGetter = class sealed(TPhysicalDriveListGetter)
@@ -27,10 +26,18 @@ implementation
 
 procedure TBruteForcePhysicalDriveListGetter.AddDriveToList
   (CurrentDrive: Integer);
+var
+  PhysicalDrive: IPhysicalDrive;
 begin
-  PhysicalDriveList.Add(
-    TPhysicalDrive.Create(
-      TPhysicalDrive.BuildFileAddressByNumber(CurrentDrive)));
+  try
+    PhysicalDrive :=
+      TPhysicalDrive.Create(
+        TPhysicalDrive.BuildFileAddressByNumber(CurrentDrive));
+    PhysicalDriveList.Add(PhysicalDrive);
+  except
+    on ENotSupportedCommandSet do
+    else raise;
+  end;
 end;
 
 function TBruteForcePhysicalDriveListGetter.TryToGetIsDriveAccessible

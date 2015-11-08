@@ -7,6 +7,8 @@ uses
   OSFile.Handle, OSFile.IoControl;
 
 type
+  ERAMDrive = class(Exception);
+
   TPartitionExtentEntry = record
     DriveNumber: DWORD;
     StartingOffset: TLargeInteger;
@@ -18,27 +20,20 @@ type
   TPartitionExtentGetter = class sealed(TIoControlFile)
   public
     constructor Create(FileToGetAccess: String); override;
-
     function GetPartitionExtentList: TPartitionExtentList;
-
   protected
     function GetMinimumPrivilege: TCreateFileDesiredAccess; override;
-
   private
     PartitionExtentList: TPartitionExtentList;
     VolumeName: String;
     function TryToGetPartitionExtentList: TPartitionExtentList;
-
     type
       TVolumeNameBuffer = Array[0..MAX_PATH] of Char;
-
       DISK_EXTENT = TPartitionExtentEntry;
-
       VOLUME_DISK_EXTENTS = record
         NumberOfDiskExtents: DWORD;
         Extents: Array[0..50] of DISK_EXTENT;
       end;
-
     function IsRAMDrive: Boolean;
     procedure IfRAMDriveRaiseException;
     function GetPartitionExtent: TPartitionExtentList;
@@ -47,13 +42,11 @@ type
     function SetIOBufferToGetPartitionExtent(
       OutputBufferPointer: Pointer): TIoControlIOBuffer;
     procedure ExtentsToTPartitionExtentList(DiskExtents: VOLUME_DISK_EXTENTS);
-
     procedure SetVolumeNameBuffer;
     function QueryDosDeviceSystemCall
       (VolumePath: String; VolumeNameBuffer: TVolumeNameBuffer): String;
   end;
 
-  ERAMDrive = class(Exception);
 
 implementation
 

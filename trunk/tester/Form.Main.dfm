@@ -1,9 +1,9 @@
 object fMain: TfMain
   Left = 0
   Top = 0
-  Caption = 'Naraeon SSD Lifelogger Alpha 1'
-  ClientHeight = 800
-  ClientWidth = 800
+  Caption = 'Naraeon SSD Lifelogger Alpha 2'
+  ClientHeight = 700
+  ClientWidth = 850
   Color = clWhite
   Constraints.MinHeight = 720
   Constraints.MinWidth = 700

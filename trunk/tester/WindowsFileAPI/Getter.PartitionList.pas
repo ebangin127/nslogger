@@ -3,35 +3,26 @@ unit Getter.PartitionList;
 interface
 
 uses
-  Windows, SysUtils, Generics.Collections,
-  OSFile, Getter.DriveList, Getter.DriveList.Fixed, Getter.PartitionExtent;
+  Windows, SysUtils,
+  OSFile, Getter.DriveList, Getter.DriveList.Fixed, Getter.PartitionExtent,
+  Partition.List;
 
 type
-  TPartitionEntry = record
-    Letter: String;
-    StartingOffset: TLargeInteger;
-  end;
-
-  TPartitionList = TList<TPartitionEntry>;
-
   TPartitionListGetter = class sealed(TOSFile)
   public
     function GetPartitionList: TPartitionList;
-
   private
     type
       TPhysicalDriveNumberQueryResult = record
         Found: Boolean;
         Position: Cardinal;
       end;
-      
   private
     PartitionList: TPartitionList;
     PartitionExtentList: TPartitionExtentList;
     FixedDriveList: TDriveList;
     PhysicalDriveNumber: Cardinal;
     PartitionExtentGetter: TPartitionExtentGetter;
-
     function GetFixedDrives: TDriveList;
     procedure AddThisDriveToList
       (CurrentDrive: Integer; PartitionExtentPosition: Cardinal);

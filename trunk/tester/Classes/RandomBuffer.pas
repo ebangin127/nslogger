@@ -126,6 +126,14 @@ begin
 end;
 
 procedure TRandomBuffer.TryToFillBuffer(const Randomness: Integer);
+type
+  TRandom4int = record
+    case Integer of
+      0:
+        (RandomInt: Integer;);
+      1:
+        (RandomChar: Array[0..3] of Byte;);
+  end;
 var
   BufferLength: Cardinal;
   ArrNumAnd3: Integer;

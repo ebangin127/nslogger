@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, SysUtils,
-  OSFile.IoControl, CommandSet, BufferInterpreter, Device.SMARTValueList,
+  OSFile.IoControl, CommandSet, BufferInterpreter, Device.SMART.List,
   BufferInterpreter.ATA;
 
 type

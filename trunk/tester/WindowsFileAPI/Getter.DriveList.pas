@@ -12,16 +12,12 @@ type
   TDriveListGetter = class abstract(TOSFile)
   public
     function GetDriveList: TDriveList;
-  
   protected
     function GetDriveTypeToGet: Cardinal; virtual; abstract;
-
   private
     SpecifiedDriveList: TDriveList;
     LogicalDriveString: Array of WideChar;
-
     CurrentCharPosition: Cardinal;
-
     procedure SetLogicalDriveInConcatString;
     procedure ConcatStringToTDriveList;
     procedure AddNextDrive;

@@ -20,6 +20,27 @@
 unit Mersenne;
 
 interface
+type
+  TMersenne = class
+  public
+    function genrand_int32(): Cardinal;
+    function genrand_int31(): Integer;
+    function genrand_real1(): Double;
+    function genrand_real2(): Double;
+    function genrand_real3(): Double;
+    function genrand_res53(): Double;
+    function genrand_res64(): Extended;
+    procedure init_genrand(s: Cardinal);
+    constructor Create(s: Cardinal); overload;
+  private
+    const
+      N = 624;
+  private
+    mt: Array[0..N-1] of Cardinal; { the array for the state vector  }
+    mti: Integer; { mti==N+1 means mt[N] is not initialized }
+  end;
+
+implementation
 
 { Period parameters }
 const
@@ -28,37 +49,6 @@ const
   MATRIX_A = $9908b0df;   { constant vector a }
   UPPER_MASK = $80000000; { most significant w-r bits }
   LOWER_MASK = $7fffffff; { least significant r bits }
-
-type
-  TRandom4int = record
-    case Integer of
-      0:
-        (RandomInt: Integer;);
-      1:
-        (RandomChar: Array[0..3] of Byte;);
-  end;
-
-  TMersenne = class
-    function genrand_int32(): Cardinal;
-    function genrand_int31(): Integer;
-
-    function genrand_real1(): Double;
-    function genrand_real2(): Double;
-    function genrand_real3(): Double;
-
-    function genrand_res53(): Double;
-    function genrand_res64(): Extended;
-
-    procedure init_genrand(s: Cardinal);
-
-    constructor Create(s: Cardinal); overload;
-
-    private
-      mt: Array[0..N-1] of Cardinal; { the array for the state vector  }
-      mti: Integer; { mti==N+1 means mt[N] is not initialized }
-  end;
-
-implementation
 
 { initializes mt[N] with a seed }
 procedure TMersenne.init_genrand(s: Cardinal);
@@ -78,7 +68,7 @@ begin
     mt[mti_local] := mt[mti_local] and $ffffffff;
     { for >32 bit machines }
   end;
-  mti := mti_local;
+  mti := N;
 end;
 
 { generates a random number on [0,0xffffffff]-interval }
@@ -101,11 +91,10 @@ begin
       y := (mt[kk] and UPPER_MASK) or (mt[kk + 1] and LOWER_MASK);
       mt[kk] := mt[kk + M] xor (y shr 1) xor mag01[y and 1];
     end;
-    while kk < N-1 do
+    for kk := (N - M - 1) to N-1 do
     begin
       y := (mt[kk] and UPPER_MASK) or (mt[kk + 1] and LOWER_MASK);
       mt[kk] := mt[kk + (M - N)] xor (y shr 1) xor mag01[y and 1];
-      kk := kk + 1;
     end;
 
     y := (mt[N - 1] and UPPER_MASK) or (mt[0] and LOWER_MASK);

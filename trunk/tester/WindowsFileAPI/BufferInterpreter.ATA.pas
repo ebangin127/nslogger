@@ -4,7 +4,7 @@ interface
 
 uses
   SysUtils,
-  BufferInterpreter, Device.SMARTValueList;
+  BufferInterpreter, Device.SMART.List;
 
 type
   TATABufferInterpreter = class sealed(TBufferInterpreter)

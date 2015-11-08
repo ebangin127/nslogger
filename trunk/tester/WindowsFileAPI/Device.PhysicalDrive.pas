@@ -7,7 +7,7 @@ uses
   Device.BusPhysicalDrive, Device.OSPhysicalDrive,
   OSFile, OSFile.Interfaced,
   Getter.DiskGeometry, Getter.PartitionList, Getter.DriveAvailability,
-  BufferInterpreter, Device.SMARTValueList, Getter.NCQAvailability;
+  BufferInterpreter, Device.SMART.List, Getter.NCQAvailability, Partition.List;
 
 type
   IPhysicalDrive = interface
@@ -17,10 +17,8 @@ type
     function GetNCQAvailability: TNCQAvailability;
     function GetPathOfFileAccessing: String;
     function GetPathOfFileAccessingWithoutPrefix: String;
-
     property IdentifyDeviceResult: TIdentifyDeviceResult
       read GetIdentifyDeviceResult;
-
     property DiskSizeInByte: TLargeInteger
       read GetDiskSizeInByte;
     property IsDriveAvailable: Boolean
@@ -34,16 +32,13 @@ type
   private
     OSPhysicalDrive: TOSPhysicalDrive;
     BusPhysicalDrive: TBusPhysicalDrive;
-
     function GetDiskSizeInByte: TLargeInteger;
     function GetIsDriveAvailable: Boolean;
     function GetIdentifyDeviceResult: TIdentifyDeviceResult;
     function GetNCQAvailability: TNCQAvailability;
-
   public
     property IdentifyDeviceResult: TIdentifyDeviceResult
       read GetIdentifyDeviceResult;
-
     property DiskSizeInByte: TLargeInteger
       read GetDiskSizeInByte;
     property IsDriveAvailable: Boolean
@@ -51,11 +46,9 @@ type
     property NCQAvailability: TNCQAvailability
       read GetNCQAvailability;
     function GetPartitionList: TPartitionList;
-
     constructor Create(FileToGetAccess: String); override;
     class function BuildFileAddressByNumber(DriveNumber: Cardinal): String;
     destructor Destroy; override;
-
   end;
 
 implementation

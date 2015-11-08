@@ -10,12 +10,9 @@ type
   TDriveAvailabilityGetter = class sealed(TIoControlFile)
   public
     constructor Create(FileToGetAccess: String); override;
-
     function GetAvailability: Boolean;
-
   protected
     function GetMinimumPrivilege: TCreateFileDesiredAccess; override;
-
   private
     function GetNullBuffer: TIoControlIOBuffer;
   end;

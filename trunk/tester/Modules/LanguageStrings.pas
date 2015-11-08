@@ -74,6 +74,8 @@ const
   TesterThreadPosition: TLanguageString = ('위치', 'Position');
   TesterThreadLength: TLanguageString = ('길이', 'Length');
   TesterThreadErrorEnd: TLanguageString = ('지점의 오류 끝', 'listing end');
+  TesterThreadNewValue: TLanguageString =
+    ('새로운 값', '새로운 값');
 
   TesterToViewGood: TLanguageString = ('양호', 'Good');
   TesterToViewNormal: TLanguageString = ('보통', 'Normal');

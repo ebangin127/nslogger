@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, SysUtils,
-  OSFile, Device.SMARTValueList, BufferInterpreter,
+  OSFile, Device.SMART.List, BufferInterpreter,
   CommandSet, CommandSet.Factory;
 
 type
@@ -12,24 +12,18 @@ type
   private
     IdentifyDeviceResultReadWrite: TIdentifyDeviceResult;
     SMARTValueListReadWrite: TSMARTValueList;
-
     CommandSet: TCommandSet;
-
     procedure RequestIdentifyDevice;
     procedure RequestSMARTReadData;
-
     function GetIdentifyDeviceResultOrRequestAndReturn: TIdentifyDeviceResult;
     function GetSMARTValueListOrRequestAndReturn: TSMARTValueList;
-
   public
     property IdentifyDeviceResult: TIdentifyDeviceResult
       read GetIdentifyDeviceResultOrRequestAndReturn;
     property SMARTValueList: TSMARTValueList
       read GetSMARTValueListOrRequestAndReturn;
-
     constructor Create(FileToGetAccess: String); override;
     destructor Destroy; override;
-
   end;
 
 implementation

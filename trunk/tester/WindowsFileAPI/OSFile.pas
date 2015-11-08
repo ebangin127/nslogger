@@ -13,18 +13,14 @@ type
   TOSFile = class abstract(TObject)
   public
     constructor Create(FileToGetAccess: String); virtual;
-
     function IsPathEqual(OSFileToCompare: TOSFile): Boolean; overload;
     function IsPathEqual(PathToCompare: String): Boolean; overload;
     function GetPathOfFileAccessing: String; virtual;
     function GetPathOfFileAccessingWithoutPrefix: String; virtual;
-
   protected
     procedure IfOSErrorRaiseException;
-
   private
     PathOfFileAccessing: String;
-
     function DeletePrefix(PrefixToDelete: String): String;
     function IsPathOfFileAccessingHavePrefix
       (PrefixToCheck: String): Boolean;

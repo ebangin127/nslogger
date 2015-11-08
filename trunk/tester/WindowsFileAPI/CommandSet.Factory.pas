@@ -10,12 +10,12 @@ uses
 
 type
   TMetaCommandSet = class of TCommandSet;
+  ENotSupportedCommandSet = class(ENotSupportedException);
   TCommandSetFactory = class
   public
     function GetSuitableCommandSet(FileToGetAccess: String):
       TCommandSet;
     class function Create: TCommandSetFactory;
-
   private
     function TryCommandSetsAndGetRightSet: TCommandSet;
     function TestCommandSetCompatibility(
@@ -45,7 +45,8 @@ begin
   self.FileToGetAccess := FileToGetAccess;
   result := TryCommandSetsAndGetRightSet;
   if result = nil then
-    raise EArgumentNilException.Create('Argument Nil: CommandSet is not set');
+    raise ENotSupportedCommandSet.Create(
+      'Not Supported: CommandSet is not set');
 end;
 
 function TCommandSetFactory.TryCommandSetsAndGetRightSet: TCommandSet;

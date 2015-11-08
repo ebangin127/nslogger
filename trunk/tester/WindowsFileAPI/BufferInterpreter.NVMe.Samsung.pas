@@ -4,7 +4,7 @@ interface
 
 uses
   SysUtils,
-  BufferInterpreter, Device.SMARTValueList, MeasureUnit.DataSize;
+  BufferInterpreter, Device.SMART.List, MeasureUnit.DataSize;
 
 type
   TSMARTValueID = (

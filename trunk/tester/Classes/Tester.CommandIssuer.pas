@@ -5,7 +5,7 @@ interface
 uses
   Windows, SysUtils, Generics.Collections, MMSystem,
   RandomBuffer, Trace.Node, CommandSet, CommandSet.Factory,
-  Device.PhysicalDrive;
+  Device.PhysicalDrive, Device.SMART.List;
 
 const
   MaxIOSize = 65536;
@@ -44,6 +44,7 @@ type
     function DiskRead(const Contents: TTraceNode): TCommandResult;
     function DiskTrim(const Contents: TTraceNode): TCommandResult;
     function DiskFlush: TCommandResult;
+    function GetSMARTList: TSMARTValueList;
     function ClearList: Boolean;
     function SetDisk(DriveNumber: Integer): Boolean;
     function AssignBuffer(RandBuf: PTRandomBuffer): Boolean;
@@ -61,6 +62,11 @@ begin
   result.hEvent := CreateEvent(nil, true, false, nil);
   result.Offset := LBA.Lo;
   result.OffsetHigh := LBA.Hi;
+end;
+
+function TTesterCommandIssuer.GetSMARTList: TSMARTValueList;
+begin
+  result := FCommandSet.SMARTReadData;
 end;
 
 procedure TTesterCommandIssuer.DisposeOverlapPtr(const POVERLAPPEDToDispose:

@@ -8,7 +8,8 @@ uses
   Vcl.StdCtrls, Vcl.ComCtrls, Generics.Collections,
   Verifier.Thread.Copy, Verifier.Thread.Verify, Tester.Thread.Precondition,
   Device.PhysicalDrive, Getter.PartitionList, Device.PhysicalDrive.List,
-  Getter.PhysicalDriveList.Auto, Device.NumberExtractor, LanguageStrings;
+  Getter.PhysicalDriveList.Auto, Device.NumberExtractor, LanguageStrings,
+  Partition.List;
 
 type
   TRetentionMode = (rsmVerify, rsmCopy, rsmPreCond);

@@ -7,20 +7,16 @@ uses
   OSFile.Handle;
 
 type
+  EInvalidIoControlCode = class(Exception);
+  EWrongIoControlCode = class(Exception);
   TIoControlSingleBuffer = record
     Size: Cardinal;
     Buffer: Pointer;
   end;
-
   TIoControlIOBuffer = record
     InputBuffer: TIoControlSingleBuffer;
     OutputBuffer: TIoControlSingleBuffer;
   end;
-
-  EInvalidIoControlCode = class(Exception);
-
-  EWrongIoControlCode = class(Exception);
-
   TIoControlFile = class abstract(TOSFileWithHandle)
   protected
     type
@@ -34,16 +30,15 @@ type
          GetVolumeDiskExtents,
          GetNTFSVolumeData,
          GetDriveGeometryEX,
+         GetDriveLayout,
          OSLevelTrim,
          Unknown);
-
     function IoControl(
       ControlCode: TIoControlCode;
       IOBuffer: TIoControlIOBuffer): Cardinal;
     function ExceptionFreeIoControl(
       ControlCode: TIoControlCode;
       IOBuffer: TIoControlIOBuffer): Cardinal;
-
   private
     function DeviceIoControlSystemCall(
       OSControlCode: Integer;
@@ -122,6 +117,7 @@ const
      IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
      FSCTL_GET_NTFS_VOLUME_DATA,
      IOCTL_DISK_GET_DRIVE_GEOMETRY_EX,
+     IOCTL_DISK_GET_DRIVE_LAYOUT,
      IOCTL_STORAGE_MANAGE_DATA_SET_ATTRIBUTES,
      0);
 begin

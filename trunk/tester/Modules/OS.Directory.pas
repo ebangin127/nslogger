@@ -1,4 +1,4 @@
-unit Windows.Directory;
+unit OS.Directory;
 
 interface
 

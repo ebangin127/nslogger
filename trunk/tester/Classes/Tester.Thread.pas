@@ -7,7 +7,8 @@ uses
   Tester.Iterator, Trace.List, RandomBuffer, SaveFile,
   SaveFile.TesterThread, Parser, Trace.Node, Trace.PartialList,
   ErrorList, Tester.ToView, Log.Templates, LanguageStrings,
-  Setting.Test, MeasureUnit.Datasize;
+  Setting.Test, MeasureUnit.Datasize, Device.SMART.List,
+  Device.SMART.Diff;
 
 const
   EXIT_NORMAL = 0;
@@ -40,12 +41,14 @@ type
     FExitCode: Byte;
     FTesterToView: TTesterToView;
     FNeedRetention: Boolean;
-
+    FLastSMARTList: TSMARTValueList;
     function LBAto48Bit(const NewLBA: UInt64): UInt64;
     function GetMaxLatency: Double;
     function GetAvgLatency: Double;
     function IsRetentionTestBoundReached: Boolean;
     function GetSuitableMemorySize: Integer;
+    procedure RefreshSMART;
+    procedure ReceiveErrorList;
   public
     property ExitCode: Byte read FExitCode;
     constructor Create(const SavePath: String);
@@ -87,9 +90,10 @@ begin
     RandomSeed := GetTickCount;
 
   FErrorList := TErrorList.Create(FSavePath + 'alert.txt');
-  FTester := TTesterIterator.Create(FErrorList, FSavePath);
+  FTester := TTesterIterator.Create(FSavePath);
   FRandomBuffer := TRandomBuffer.Create(RandomSeed);
   FTesterToView := TTesterToView.Create;
+  FLastSMARTList := TSMARTValueList.Create;
 end;
 
 destructor TTesterThread.Destroy;
@@ -112,6 +116,7 @@ begin
   FreeAndNil(FRandomBuffer);
   FreeAndNil(FSaveFile);
   FreeAndNil(FErrorList);
+  FreeAndNil(FLastSMARTList);
 end;
 
 procedure TTesterThread.ApplyEnd;
@@ -277,6 +282,7 @@ begin
     GetSuitableMemorySize);
   FTester.AssignList(FTracePartialList);
   FTesterToView.ApplyStart;
+  RefreshSMART;
   ApplyState;
   while not Terminated do
   begin
@@ -289,7 +295,8 @@ begin
       Queue(ApplyEnd);
       break;
     end;
-    FTester.ProcessNextOperation;
+    if not FTester.ProcessNextOperation then
+      ReceiveErrorList;
     CurrTime := GetTickCount;
     if ((CurrTime - FLastSync) > 1000) and (not Terminated) then
     begin
@@ -299,14 +306,42 @@ begin
         ShowMessage('ApplyState ' + TesterThreadError[CurrLang]);
       end;
       FSecCounter := FSecCounter + 1;
-      if FSecCounter >= 300 then // 5 minutes
+      if FSecCounter >= 60 then // 1 minute
       begin
+        RefreshSMART;
         Save(FSavePath);
         FSecCounter := 0;
       end;
       FLastSync := CurrTime;
     end;
   end;
+end;
+
+procedure TTesterThread.ReceiveErrorList;
+begin
+  FErrorList.AddRange(FTester.GetErrorList.ToArray);
+  FTester.GetErrorList.Clear;
+end;
+
+procedure TTesterThread.RefreshSMART;
+var
+  CurrentSMARTValueList: TSMARTValueList;
+  DiffList: TSMARTValueList;
+  DifferentItem: TSMARTValueEntry;
+begin
+  CurrentSMARTValueList := FTester.GetSMARTList;
+  DiffList := TSMARTDiff.GetInstance.CompareSMART(FLastSMARTList,
+    CurrentSMARTValueList);
+  for DifferentItem in DiffList do
+    Synchronize(procedure
+    begin
+      AddToAlert(GetLogLine(TesterThreadNewValue[CurrLang],
+        TSMARTValueEntry.ToString(
+          CurrentSMARTValueList.GetEntryByID(DifferentItem.ID))));
+    end);
+  DiffList.Free;
+  FLastSMARTList.Free;
+  FLastSMARTList := CurrentSMARTValueList;
 end;
 
 function TTesterThread.GetAvgLatency: Double;

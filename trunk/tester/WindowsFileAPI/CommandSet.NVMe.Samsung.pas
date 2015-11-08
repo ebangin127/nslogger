@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, SysUtils,
-  OSFile.IoControl, CommandSet, BufferInterpreter, Device.SMARTValueList,
+  OSFile.IoControl, CommandSet, BufferInterpreter, Device.SMART.List,
   BufferInterpreter.NVMe.Samsung;
 
 type
@@ -76,7 +76,6 @@ type
     procedure SetOSBufferByInnerBuffer;
     procedure SetInnerBufferAsFlagsAndCdb(Flags: ULONG;
       CommandDescriptorBlock: SCSI_COMMAND_DESCRIPTOR_BLOCK);
-    procedure SetInnerBufferToIdentifyDevice;
     function InterpretIdentifyDeviceBuffer: TIdentifyDeviceResult;
     procedure SetBufferAndIdentifyDevice;
     procedure SetBufferAndReadCapacity;
@@ -136,19 +135,6 @@ begin
   IoInnerBuffer := GetCommonBuffer;
 	IoInnerBuffer.Parameter.DataIn := Flags;
   IoInnerBuffer.Parameter.CommandDescriptorBlock := CommandDescriptorBlock;
-end;
-
-procedure TSamsungNVMeCommandSet.SetInnerBufferToIdentifyDevice;
-const
-  InquiryCommand = $12;
-  AllocationLowBit = 2;
-var
-  CommandDescriptorBlock: SCSI_COMMAND_DESCRIPTOR_BLOCK;
-begin
-  CommandDescriptorBlock := GetCommonCommandDescriptorBlock;
-  CommandDescriptorBlock.SCSICommand := InquiryCommand;
-  CommandDescriptorBlock.LogicalBlockAddress[AllocationLowBit] := $FF;
-  SetInnerBufferAsFlagsAndCdb(SCSI_IOCTL_DATA_IN, CommandDescriptorBlock);
 end;
 
 procedure TSamsungNVMeCommandSet.SetOSBufferByInnerBuffer;
@@ -275,6 +261,7 @@ function TSamsungNVMeCommandSet.IdentifyDevice: TIdentifyDeviceResult;
 var
   ReadCapacityResult: TIdentifyDeviceResult;
 begin
+  SMARTReadData;
   SetBufferAndIdentifyDevice;
   result := InterpretIdentifyDeviceBuffer;
   result.StorageInterface := TStorageInterface.SCSI;

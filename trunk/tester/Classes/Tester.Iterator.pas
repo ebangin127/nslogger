@@ -7,7 +7,7 @@ uses
   Classes,
   Trace.List, Trace.PartialList, RandomBuffer, ErrorList, Trace.Node,
   CommandSet, CommandSet.Factory, Device.PhysicalDrive, Tester.CommandIssuer,
-  SaveFile, SaveFile.TesterIterator;
+  SaveFile, SaveFile.TesterIterator, Device.SMART.List;
 
 const
   MaxIOSize = 65536;
@@ -43,7 +43,7 @@ type
     procedure CalculateLatency;
     procedure SetNowAsStart;
   public
-    constructor Create(const ErrorList: TErrorList; const SavePath: String);
+    constructor Create(const SavePath: String);
     destructor Destroy; override;
     procedure Save;
     procedure Load;
@@ -59,6 +59,8 @@ type
     function SetDisk(const DriveNumber: Integer): Boolean;
     function ProcessNextOperation: Boolean;
     function AssignBuffer(const RandBuf: PTRandomBuffer): Boolean;
+    function GetSMARTList: TSMARTValueList;
+    function GetErrorList: TErrorList;
     procedure AssignList(const NewList: TTracePartialList);
     procedure AddToHostWrite(const Value: Int64);
   end;
@@ -70,8 +72,7 @@ begin
   FSumLatency := 0;
 end;
 
-constructor TTesterIterator.Create(const ErrorList: TErrorList;
-  const SavePath: String);
+constructor TTesterIterator.Create(const SavePath: String);
 var
   Frequency: Int64;
 begin
@@ -117,6 +118,11 @@ begin
   result := FStage;
 end;
 
+function TTesterIterator.GetErrorList: TErrorList;
+begin
+  result := FErrorList;
+end;
+
 function TTesterIterator.GetLength: Integer;
 begin
   result := FMasterTrace.Count;
@@ -148,6 +154,11 @@ end;
 function TTesterIterator.GetOverallTestCount: Integer;
 begin
   result := FOverallTestCount;
+end;
+
+function TTesterIterator.GetSMARTList: TSMARTValueList;
+begin
+  result := FTesterCommandIssuer.GetSMARTList;
 end;
 
 function TTesterIterator.GetStartLatency: Int64;

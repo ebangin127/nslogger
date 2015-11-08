@@ -5,7 +5,7 @@ interface
 uses
   SysUtils,
   OSFile.Handle, OSFile.IoControl,
-  Device.SMARTValueList, BufferInterpreter;
+  Device.SMART.List, BufferInterpreter;
 
 type
   TCommandSet = class abstract(TIoControlFile)

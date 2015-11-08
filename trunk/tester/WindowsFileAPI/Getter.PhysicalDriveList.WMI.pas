@@ -5,7 +5,7 @@ interface
 uses
   Windows, ActiveX, ComObj, Variants, SysUtils,
   OSFile, Getter.PhysicalDriveList, Device.PhysicalDrive,
-  Device.PhysicalDrive.List;
+  Device.PhysicalDrive.List, CommandSet.Factory;
 
 type
   TWMIPhysicalDriveListGetter = class sealed(TPhysicalDriveListGetter)
@@ -132,10 +132,15 @@ end;
 
 procedure TWMIPhysicalDriveListGetter.AddDriveToList;
 var
-  PhysicalDrive: TPhysicalDrive;
+  PhysicalDrive: IPhysicalDrive;
 begin
-  PhysicalDrive := TPhysicalDrive.Create(String(CurrentDrive.DeviceID));
-  PhysicalDriveList.Add(PhysicalDrive);
+  try
+    PhysicalDrive := TPhysicalDrive.Create(String(CurrentDrive.DeviceID));
+    PhysicalDriveList.Add(PhysicalDrive);
+  except
+    on ENotSupportedCommandSet do
+    else raise;
+  end;
 end;
 
 function TWMIPhysicalDriveListGetter.IsDriveConnectedBy

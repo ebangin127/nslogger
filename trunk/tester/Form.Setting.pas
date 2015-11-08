@@ -6,14 +6,14 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, System.UITypes,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Generics.Collections,
-  Windows.Directory, SaveFile, SaveFile.SettingForm,
+  OS.Directory, SaveFile, SaveFile.SettingForm,
   Device.PhysicalDrive, Getter.PartitionList, Vcl.ComCtrls,
   MeasureUnit.DataSize, Getter.PhysicalDriveList.Auto,
-  Device.PhysicalDrive.List, LanguageStrings;
+  Device.PhysicalDrive.List, LanguageStrings, Getter.DiskLayout,
+  Partition.List;
 
 type
   EDriveNotFound = class(EResNotFound);
-
   EInvalidDrive = class(EArgumentException);
   TfSetting = class(TForm)
     GroupBox1: TGroupBox;
@@ -275,15 +275,21 @@ end;
 procedure TfSetting.RefreshDrives;
 var
   DriveList: TPhysicalDriveList;
+  DiskLayoutGetter: TDiskLayoutGetter;
   PartitionList: TPartitionList;
   PhysicalDrive: IPhysicalDrive;
   CurrentDriveNumber: Integer;
 begin
   DriveList := AutoPhysicalDriveListGetter.GetPhysicalDriveList;
+  if DriveList = nil then
+    exit;
   for PhysicalDrive in DriveList do
   begin
-    PartitionList := PhysicalDrive.GetPartitionList;
-    if PartitionList.Count = 0 then
+    DiskLayoutGetter :=
+      TDiskLayoutGetter.Create(PhysicalDrive.GetPathOfFileAccessing);
+    PartitionList := DiskLayoutGetter.GetPartitionList;
+    FreeAndNil(DiskLayoutGetter);
+    if (PartitionList <> nil) and (PartitionList.Count = 0) then
     begin
       CurrentDriveNumber :=
         StrToInt(PhysicalDrive.GetPathOfFileAccessingWithoutPrefix);
