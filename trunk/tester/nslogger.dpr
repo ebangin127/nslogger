@@ -10,7 +10,6 @@ uses
   Verifier.Thread.Copy in 'Classes\Verifier.Thread.Copy.pas',
   Verifier.Thread.Verify in 'Classes\Verifier.Thread.Verify.pas',
   Tester.Thread.Precondition in 'Classes\Tester.Thread.Precondition.pas',
-  MeasureUnit.DataSize in 'Modules\MeasureUnit.DataSize.pas',
   MeasureUnit.Time in 'Modules\MeasureUnit.Time.pas',
   LanguageStrings in 'Modules\LanguageStrings.pas',
   System.PCharVal in 'Modules\System.PCharVal.pas',
@@ -71,7 +70,8 @@ uses
   OSFile in 'WindowsFileAPI\OSFile.pas',
   Device.SMART.Diff in 'Classes\Device.SMART.Diff.pas',
   Getter.DiskLayout in 'WindowsFileAPI\Getter.DiskLayout.pas',
-  Partition.List in 'WindowsFileAPI\Partition.List.pas';
+  Partition.List in 'WindowsFileAPI\Partition.List.pas',
+  MeasureUnit.DataSize in 'WindowsFileAPI\MeasureUnit.DataSize.pas';
 
 {$R *.res}
 

@@ -43,8 +43,6 @@ const
 function GetDivideUnitSize(DivideUnitType: TNumeralSystem): Integer;
 function ChangeDatasizeUnit
   (Size: Double; Setting: TDatasizeUnitChangeSetting): Double;
-function LiteONUnitToMB(Size: UInt64): UInt64;
-function MBToLiteONUnit(Size: UInt64): UInt64;
 function FormatSizeInMB(SizeInMB: Double; Setting: TFormatSizeSetting): String;
 
 implementation
@@ -70,20 +68,6 @@ begin
     Power(GetDivideUnitSize(Setting.FNumeralSystem),
       Setting.FFromUnit.FPowerOfKUnit -
       Setting.FToUnit.FPowerOfKUnit);
-end;
-
-function LiteONUnitToMB(Size: UInt64): UInt64;
-const
-  LiteONUnitInMB = 64;
-begin
-  result := Size * LiteONUnitInMB;
-end;
-
-function MBToLiteONUnit(Size: UInt64): UInt64;
-const
-  LiteONUnitInMB = 64;
-begin
-  result := Size div LiteONUnitInMB;
 end;
 
 function GetSizeUnitString
