@@ -1,4 +1,4 @@
-unit ErrorList;
+unit ErrorLogger;
 
 interface
 uses
@@ -11,7 +11,7 @@ const
 type
   time_t = Int64;
 
-  TErrorList = class(TList<TTraceNode>)
+  TErrorLogger = class
   private
     FToSaveList: TStringList;
     FSavePath: String;
@@ -24,9 +24,9 @@ type
 
 implementation
 
-{ TErrorList }
+{ TErrorLogger }
 
-procedure TErrorList.AddLine(const Value: String);
+procedure TErrorLogger.AddLine(const Value: String);
 begin
   FToSaveList.Add(Value);
   if FToSaveList.Count > SaveLine then
@@ -36,20 +36,20 @@ begin
   end;
 end;
 
-constructor TErrorList.Create(const SavePath: String);
+constructor TErrorLogger.Create(const SavePath: String);
 begin
   inherited Create;
   FToSaveList := TStringList.Create;
   FSavePath := SavePath;
 end;
 
-destructor TErrorList.Destroy;
+destructor TErrorLogger.Destroy;
 begin
   FreeAndNil(FToSaveList);
   inherited;
 end;
 
-procedure TErrorList.Save;
+procedure TErrorLogger.Save;
 var
   DestFile: TStreamWriter;
   CurrLine: String;
@@ -59,9 +59,7 @@ begin
     exit;
 
   for CurrLine in FToSaveList do
-  begin
     DestFile.WriteLine(CurrLine);
-  end;
   FToSaveList.Clear;
 
   FreeAndNil(DestFile);

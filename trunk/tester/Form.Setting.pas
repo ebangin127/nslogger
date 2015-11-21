@@ -167,8 +167,9 @@ procedure TfSetting.SetSavePath;
   end;
 begin
   repeat
-    FSavePath := SelectDirectory(SettingSelectFolderToSaveLog[CurrLang],
-      AppPath);
+    //FSavePath := SelectDirectory(SettingSelectFolderToSaveLog[CurrLang],
+    //  AppPath);
+    FSavePath := 'D:\Logs\';
     if FSavePath = '' then
       exit;
 

@@ -8,6 +8,7 @@ uses
 
 type
   TSMARTDiff = class(TSingleton<TSMARTDiff>)
+  public
     function CompareSMART(const LSide, RSide: TSMARTValueList): TSMARTValueList;
   end;
 

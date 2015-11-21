@@ -117,7 +117,8 @@ begin
   FNextPosition := ListIndex;
   FLastReadingTask := TTask.Create(procedure
   begin
-    FNextList := ImportTrace(FPath, FMultiConst, FPartLimit[FCurrentPosition]);
+    FNextList := TParser.GetInstance.ImportTrace(
+      FPath, FMultiConst, FPartLimit[FCurrentPosition]);
   end);
   FLastReadingTask.Start;
 end;

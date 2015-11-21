@@ -159,7 +159,7 @@
         <DCCReference Include="Modules\Device.NumberExtractor.pas"/>
         <DCCReference Include="WindowsFileAPI\Device.PhysicalDrive.pas"/>
         <DCCReference Include="WindowsFileAPI\Device.SMART.List.pas"/>
-        <DCCReference Include="Classes\ErrorList.pas"/>
+        <DCCReference Include="Classes\ErrorLogger.pas"/>
         <DCCReference Include="WindowsFileAPI\OS.SecurityDescriptor.pas"/>
         <DCCReference Include="Classes\Parser.BufferStorage.pas"/>
         <DCCReference Include="Classes\Parser.Consumer.pas"/>
@@ -214,6 +214,12 @@
         <DCCReference Include="WindowsFileAPI\Getter.DiskLayout.pas"/>
         <DCCReference Include="WindowsFileAPI\Partition.List.pas"/>
         <DCCReference Include="WindowsFileAPI\MeasureUnit.DataSize.pas"/>
+        <DCCReference Include="WindowsFileAPI\Overlapped.pas"/>
+        <DCCReference Include="WindowsFileAPI\Overlapped.List.pas"/>
+        <DCCReference Include="WindowsFileAPI\Overlapped.OS.pas"/>
+        <DCCReference Include="WindowsFileAPI\Overlapped.AnonymousMethod.pas"/>
+        <DCCReference Include="WindowsFileAPI\ErrorCode.List.pas"/>
+        <DCCReference Include="Classes\Error.List.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

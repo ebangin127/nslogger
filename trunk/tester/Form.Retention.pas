@@ -191,6 +191,8 @@ var
   PhysicalDrive: IPhysicalDrive;
 begin
   DriveList := AutoPhysicalDriveListGetter.GetPhysicalDriveList;
+  if DriveList = nil then
+    exit;
   for PhysicalDrive in DriveList do
   begin
     PartitionList := PhysicalDrive.GetPartitionList;

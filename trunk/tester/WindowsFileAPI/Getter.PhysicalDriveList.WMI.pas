@@ -9,12 +9,8 @@ uses
 
 type
   TWMIPhysicalDriveListGetter = class sealed(TPhysicalDriveListGetter)
-  public
-    function GetPhysicalDriveList: TPhysicalDriveList; override;
   private
     CurrentDrive: OleVariant;
-    PhysicalDriveList: TPhysicalDriveList;
-    procedure AddDriveToList;
     procedure CheckMediaTypeAndAddIfRequirementMet;
     function ConnectToWMIObjectByMoniker: IDispatch;
     function GetDefaultMonikerFromObjectPath(ObjectPath: String;
@@ -37,7 +33,8 @@ type
     function IsHarddrive(MediaType: String): Boolean;
     procedure TraverseResultAndAddFixedOrUSBDrive(
       DiskDriveSearchResult: IEnumVARIANT);
-    procedure TryToGetPhysicalDriveList;
+  protected
+    procedure TryToGetPhysicalDriveList; override;
   end;
 
 implementation
@@ -130,19 +127,6 @@ begin
   result := Pos('hard', LowerCase(MediaType)) >= 0;
 end;
 
-procedure TWMIPhysicalDriveListGetter.AddDriveToList;
-var
-  PhysicalDrive: IPhysicalDrive;
-begin
-  try
-    PhysicalDrive := TPhysicalDrive.Create(String(CurrentDrive.DeviceID));
-    PhysicalDriveList.Add(PhysicalDrive);
-  except
-    on ENotSupportedCommandSet do
-    else raise;
-  end;
-end;
-
 function TWMIPhysicalDriveListGetter.IsDriveConnectedBy
   (InterfaceName: String): Boolean;
 begin
@@ -160,7 +144,7 @@ end;
 procedure TWMIPhysicalDriveListGetter.IfDriveConnectedByKnownInterfaceAddToList;
 begin
   if IsDriveConnectedByKnownInterface then
-     AddDriveToList;
+     AddDriveToList(String(CurrentDrive.DeviceID));
 end;
 
 procedure TWMIPhysicalDriveListGetter.CheckMediaTypeAndAddIfRequirementMet;
@@ -215,18 +199,6 @@ begin
   WMIObject := ConnectToWMIObjectByMoniker;
   DiskDriveSearchResult := GetDiskDriveSearchResult(WMIObject);
   TraverseResultAndAddFixedOrUSBDrive(DiskDriveSearchResult);
-end;
-
-function TWMIPhysicalDriveListGetter.GetPhysicalDriveList:
-  TPhysicalDriveList;
-begin
-  try
-    PhysicalDriveList := TPhysicalDriveList.Create;
-    TryToGetPhysicalDriveList;
-  except
-    FreeAndNil(PhysicalDriveList);
-  end;
-  result := PhysicalDriveList;
 end;
 
 end.

@@ -5,9 +5,9 @@ interface
 uses
   Windows, SysUtils, Generics.Collections, MMSystem, Math, Dialogs,
   Classes,
-  Trace.List, Trace.PartialList, RandomBuffer, ErrorList, Trace.Node,
+  Trace.List, Trace.PartialList, RandomBuffer, ErrorLogger, Trace.Node,
   CommandSet, CommandSet.Factory, Device.PhysicalDrive, Tester.CommandIssuer,
-  SaveFile, SaveFile.TesterIterator, Device.SMART.List;
+  SaveFile, SaveFile.TesterIterator, Device.SMART.List, Error.List;
 
 const
   MaxIOSize = 65536;
@@ -30,11 +30,12 @@ type
     FAvgLatency, FMaxLatency: Int64; //Unit: us(10^-6)
     FHostWrite: Int64;
     FStartTime: Int64;
-    FErrorList: TErrorList;
+    FErrorLogger: TErrorLogger;
     FErrorCount: Integer;
     FCleared: Boolean;
     FMeasureCount: Integer;
     FSaveFile: TSaveFileForTesterIterator;
+    FErrorList: TErrorList;
     procedure SetIterator(const Value: Integer);
     procedure ClearAvgLatency;
     function PrepareAndStartTest: Boolean;
@@ -88,7 +89,8 @@ begin
 
   FOverallTestCount := 0;
 
-  FErrorList := TErrorList.Create(SavePath + 'error.txt');
+  FErrorLogger := TErrorLogger.Create(SavePath + 'error.txt');
+  FErrorList := TErrorList.Create;
   FTesterCommandIssuer := TTesterCommandIssuer.Create;
   FSaveFile := TSaveFileForTesterIterator.Create(
     TSaveFile.Create(SavePath + 'settings.ini'));
@@ -97,9 +99,10 @@ end;
 destructor TTesterIterator.Destroy;
 begin
   FreeAndNil(FMasterTrace);
-  FreeAndNil(FErrorList);
+  FreeAndNil(FErrorLogger);
   FreeAndNil(FTesterCommandIssuer);
   FreeAndNil(FSaveFile);
+  FreeAndNil(FErrorList);
 end;
 
 function TTesterIterator.SetDisk(const DriveNumber: Integer): Boolean;
@@ -221,22 +224,22 @@ begin
     TIOType.ioWrite:
     begin
       CommandResult := FTesterCommandIssuer.DiskWrite(NextOperation);
-      if CommandResult.CommandSuccess then
-        Inc(FHostWrite, NextOperation.GetLength shl 9);
+      Inc(FHostWrite, NextOperation.GetLength shl 9);
     end;
     TIOType.ioTrim:
       CommandResult := FTesterCommandIssuer.DiskTrim(NextOperation);
     TIOType.ioFlush:
       CommandResult := FTesterCommandIssuer.DiskFlush;
   end;
-  result := CommandResult.CommandSuccess;
+  result := CommandResult.FailedCommandList.Count = 0;
   FCleared := CommandResult.OverlapFinished;
   if FCleared then
     CalculateLatency;
   if result = false then
   begin
-    FErrorList.Add(NextOperation);
-    Inc(FErrorCount);
+    FErrorList.AddRange(CommandResult.FailedCommandList.ToArray);
+    Inc(FErrorCount, CommandResult.FailedCommandList.Count);
+    CommandResult.FailedCommandList.Clear;
   end;
 end;
 

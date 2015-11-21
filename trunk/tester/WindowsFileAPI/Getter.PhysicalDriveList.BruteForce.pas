@@ -9,36 +9,17 @@ uses
 
 type
   TBruteForcePhysicalDriveListGetter = class sealed(TPhysicalDriveListGetter)
-  public
-    function GetPhysicalDriveList: TPhysicalDriveList; override;
   private
-    PhysicalDriveList: TPhysicalDriveList;
-    procedure AddDriveToList(CurrentDrive: Integer);
     procedure IfThisDriveAccessibleAddToList(CurrentDrive: Integer);
     function TryToGetIsDriveAccessible(CurrentDrive: Integer): Boolean;
-    procedure TryToGetPhysicalDriveList;
     function IsDriveAccessible(CurrentDrive: Integer): Boolean;
+  protected
+    procedure TryToGetPhysicalDriveList; override;
   end;
 
 implementation
 
 { TBruteForcePhysicalDriveGetter }
-
-procedure TBruteForcePhysicalDriveListGetter.AddDriveToList
-  (CurrentDrive: Integer);
-var
-  PhysicalDrive: IPhysicalDrive;
-begin
-  try
-    PhysicalDrive :=
-      TPhysicalDrive.Create(
-        TPhysicalDrive.BuildFileAddressByNumber(CurrentDrive));
-    PhysicalDriveList.Add(PhysicalDrive);
-  except
-    on ENotSupportedCommandSet do
-    else raise;
-  end;
-end;
 
 function TBruteForcePhysicalDriveListGetter.TryToGetIsDriveAccessible
   (CurrentDrive: Integer): Boolean;
@@ -65,7 +46,7 @@ procedure TBruteForcePhysicalDriveListGetter.IfThisDriveAccessibleAddToList
   (CurrentDrive: Integer);
 begin
   if IsDriveAccessible(CurrentDrive) then
-    AddDriveToList(CurrentDrive);
+    AddDriveToList(TPhysicalDrive.BuildFileAddressByNumber(CurrentDrive));
 end;
 
 procedure TBruteForcePhysicalDriveListGetter.TryToGetPhysicalDriveList;
@@ -76,18 +57,6 @@ begin
   begin
     IfThisDriveAccessibleAddToList(CurrentDrive)
   end);
-end;
-
-function TBruteForcePhysicalDriveListGetter.GetPhysicalDriveList:
-  TPhysicalDriveList;
-begin
-  try
-    PhysicalDriveList := TPhysicalDriveList.Create;
-    TryToGetPhysicalDriveList;
-  except
-    FreeAndNil(PhysicalDriveList);
-  end;
-  result := PhysicalDriveList;
 end;
 
 end.

@@ -5,14 +5,18 @@ interface
 uses
   Classes, Windows, SysUtils, Dialogs,
   Trace.List, Trace.Node, Parser.Producer, Parser.Consumer,
-  Parser.BufferStorage, Parser.Divider, Threading, MMSystem;
+  Parser.BufferStorage, Parser.Divider, Pattern.Singleton;
 
-function ImportTrace(const Path: String; const MultiConst: Double;
-  const DividedAreaToGet: TDividedArea): TTraceList;
+type
+  TParser = class(TSingleton<TParser>)
+  public
+    function ImportTrace(const Path: String; const MultiConst: Double;
+      const DividedAreaToGet: TDividedArea): TTraceList;
+  end;
 
 implementation
 
-function ImportTrace(const Path: String; const MultiConst: Double;
+function TParser.ImportTrace(const Path: String; const MultiConst: Double;
   const DividedAreaToGet: TDividedArea): TTraceList;
 var
   Producer: TProducer;
@@ -29,4 +33,8 @@ begin
   WaitForSingleObject(Consumer.Handle, INFINITE);
   FreeAndNil(Consumer);
 end;
+
+initialization
+finalization
+  TParser.FreeSingletonInstance;
 end.

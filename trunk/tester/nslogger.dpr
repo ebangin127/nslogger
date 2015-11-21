@@ -17,7 +17,7 @@ uses
   Device.NumberExtractor in 'Modules\Device.NumberExtractor.pas',
   Device.PhysicalDrive in 'WindowsFileAPI\Device.PhysicalDrive.pas',
   Device.SMART.List in 'WindowsFileAPI\Device.SMART.List.pas',
-  ErrorList in 'Classes\ErrorList.pas',
+  ErrorLogger in 'Classes\ErrorLogger.pas',
   OS.SecurityDescriptor in 'WindowsFileAPI\OS.SecurityDescriptor.pas',
   Parser.BufferStorage in 'Classes\Parser.BufferStorage.pas',
   Parser.Consumer in 'Classes\Parser.Consumer.pas',
@@ -71,9 +71,16 @@ uses
   Device.SMART.Diff in 'Classes\Device.SMART.Diff.pas',
   Getter.DiskLayout in 'WindowsFileAPI\Getter.DiskLayout.pas',
   Partition.List in 'WindowsFileAPI\Partition.List.pas',
-  MeasureUnit.DataSize in 'WindowsFileAPI\MeasureUnit.DataSize.pas';
+  MeasureUnit.DataSize in 'WindowsFileAPI\MeasureUnit.DataSize.pas',
+  Overlapped in 'WindowsFileAPI\Overlapped.pas',
+  Overlapped.List in 'WindowsFileAPI\Overlapped.List.pas',
+  Overlapped.OS in 'WindowsFileAPI\Overlapped.OS.pas',
+  Overlapped.AnonymousMethod in 'WindowsFileAPI\Overlapped.AnonymousMethod.pas',
+  ErrorCode.List in 'WindowsFileAPI\ErrorCode.List.pas',
+  Error.List in 'Classes\Error.List.pas';
 
 {$R *.res}
+{$SETPEOPTFLAGS $140}
 
 begin
   Application.Initialize;

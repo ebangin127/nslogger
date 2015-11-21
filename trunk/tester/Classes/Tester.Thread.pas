@@ -6,9 +6,9 @@ uses
   Classes, SysUtils, ComCtrls, Math, Windows, DateUtils, Dialogs,
   Tester.Iterator, Trace.List, RandomBuffer, SaveFile,
   SaveFile.TesterThread, Parser, Trace.Node, Trace.PartialList,
-  ErrorList, Tester.ToView, Log.Templates, LanguageStrings,
+  ErrorLogger, Tester.ToView, Log.Templates, LanguageStrings,
   Setting.Test, MeasureUnit.Datasize, Device.SMART.List,
-  Device.SMART.Diff;
+  Device.SMART.Diff, Error.List;
 
 const
   EXIT_NORMAL = 0;
@@ -24,6 +24,7 @@ type
     FRandomBuffer: TRandomBuffer;
     FSaveFile: TSaveFileForTesterThread;
     FSavePath: String;
+    FErrorLogger: TErrorLogger;
     FErrorList: TErrorList;
     FTracePath: String;
     FFullyLoaded: Boolean;
@@ -89,11 +90,12 @@ begin
   if QueryPerformanceCounter(RandomSeed) = false then
     RandomSeed := GetTickCount;
 
-  FErrorList := TErrorList.Create(FSavePath + 'alert.txt');
+  FErrorLogger := TErrorLogger.Create(FSavePath + 'alert.txt');
   FTester := TTesterIterator.Create(FSavePath);
   FRandomBuffer := TRandomBuffer.Create(RandomSeed);
   FTesterToView := TTesterToView.Create;
   FLastSMARTList := TSMARTValueList.Create;
+  FErrorList := TErrorList.Create;
 end;
 
 destructor TTesterThread.Destroy;
@@ -115,8 +117,9 @@ begin
   FreeAndNil(FTester);
   FreeAndNil(FRandomBuffer);
   FreeAndNil(FSaveFile);
-  FreeAndNil(FErrorList);
+  FreeAndNil(FErrorLogger);
   FreeAndNil(FLastSMARTList);
+  FreeAndNil(FErrorList);
 end;
 
 procedure TTesterThread.ApplyEnd;
@@ -185,7 +188,7 @@ end;
 
 procedure TTesterThread.AddToAlert(const Value: String);
 begin
-  FErrorList.AddLine(Value);
+  FErrorLogger.AddLine(Value);
   FTesterToView.AddToAlert(Value);
 end;
 
@@ -193,7 +196,7 @@ procedure TTesterThread.ApplyWriteError(const TBWStr, DayStr: String);
 var
   ErrorName: String;
   ErrorContents: String;
-  CurrNode: TTraceNode;
+  CurrNode: TErrorNode;
   UpdateStarted: Boolean;
   TrimmedDayStr: String;
 begin
@@ -210,7 +213,7 @@ begin
 
   for CurrNode in FErrorList do
   begin
-    case CurrNode.GetIOType of
+    case CurrNode.Key.GetIOType of
     TIOType.ioRead:
       ErrorName := TesterThreadRead[CurrLang];
     TIOType.ioWrite:
@@ -222,13 +225,13 @@ begin
     end;
     ErrorName := ErrorName + ' ' + TesterThreadError[CurrLang];
     ErrorContents := '';
-    case CurrNode.GetIOType of
+    case CurrNode.Key.GetIOType of
     TIOType.ioRead..TIOType.ioTrim:
     begin
       ErrorContents := TesterThreadPosition[CurrLang] + ' ' +
-        IntToStr(CurrNode.GetLBA) + ', ';
+        IntToStr(CurrNode.Key.GetLBA) + ', ';
       ErrorContents := ErrorContents + TesterThreadLength[CurrLang] + ' ' +
-        IntToStr(CurrNode.GetLength);
+        IntToStr(CurrNode.Key.GetLength);
     end;
     end;
 
@@ -371,7 +374,7 @@ begin
   if FNeedRetention then
     FSaveFile.SetLastRetention(FTester.GetHostWrite);
   FTester.Save;
-  FErrorList.Save;
+  FErrorLogger.Save;
 end;
 
 procedure TTesterThread.Load(const SaveFilePath: String);

@@ -7,64 +7,85 @@ interface
 
 uses Dialogs, SysUtils, ShellAPI, FileCtrl;
 
-function DeleteDirectory(const DirPath: String): Boolean;
-function SelectDirectory(DialogTitle: String; DefaultDir: String): String;
+function DeleteDirectory(const DirectoryToDelete: String): Boolean;
+function SelectDirectory(const DialogTitle: String; const DefaultDir: String):
+  String;
 
 implementation
 
-function DeleteDirectory(const DirPath: String): Boolean;
-var
-  SHFileOpStruct: TSHFileOpStruct;
-  DirBuf: array [0..255] of char;
-  Directory: string;
-  iFindResult: integer;
- srSchRec : TSearchRec;
+function GetSHFileOpStruct(const DirectoryToDelete: String): TSHFileOpStruct;
 begin
-  Result := False;
-  iFindResult := FindFirst(DirPath + '*.*', faAnyFile, srSchRec);
-  while iFindResult = 0 do
-  begin
-    try
-      Directory := ExcludeTrailingPathDelimiter(DirPath + srSchRec.Name);
-      Fillchar(SHFileOpStruct, sizeof(SHFileOpStruct), 0);
-      FillChar(DirBuf, sizeof(DirBuf), 0);
-      StrPCopy(DirBuf, Directory);
-      with SHFileOpStruct do
-      begin
-        Wnd := 0;
-        pFrom := @DirBuf;
-        wFunc := FO_DELETE;
-        fFlags := fFlags or FOF_NOCONFIRMATION;
-        fFlags := fFlags or FOF_SILENT;
-      end;
-      Result := (SHFileOperation(SHFileOpStruct) = 0);
-    except
-      Result := False;
-    end;
-    iFindResult := FindNext(srSchRec);
-  end;
-  FindClose(srSchRec);
+  FillChar(result, sizeof(SHFileOpStruct), 0);
+  result.Wnd := 0;
+  result.pFrom := PChar(DirectoryToDelete);
+  result.wFunc := FO_DELETE;
+  result.fFlags := result.fFlags or FOF_NOCONFIRMATION;
+  result.fFlags := result.fFlags or FOF_SILENT;
 end;
 
-function SelectDirectory(DialogTitle: String; DefaultDir: String): String;
+function TryToDeleteFoundDirectory(const DirectoryToDelete,
+  FoundFile: String): Boolean;
+var
+  CurrentDirectoryToDelete: String;
 begin
-   if Win32MajorVersion >= 6 then
-    with TFileOpenDialog.Create(nil) do
-      try
-        Title := DialogTitle;
-        Options := [fdoPickFolders, fdoPathMustExist, fdoForceFileSystem];
-        DefaultFolder := DefaultDir;
-        FileName := '';
-        if Execute then
-          result := FileName;
-      finally
-        Free;
-      end
+  CurrentDirectoryToDelete := ExcludeTrailingPathDelimiter(
+    DirectoryToDelete + FoundFile);
+  result := (SHFileOperation(GetSHFileOpStruct(
+    CurrentDirectoryToDelete)) = 0);
+end;
+
+function DeleteDirectory(const DirectoryToDelete: String): Boolean;
+var
+  ZeroFoundElseNotFound: integer;
+  SearchRecord: TSearchRec;
+begin
+  result := false;
+  ZeroFoundElseNotFound := FindFirst(DirectoryToDelete + '*.*', faAnyFile,
+    SearchRecord);
+
+  while ZeroFoundElseNotFound = 0 do
+  begin
+    TryToDeleteFoundDirectory(DirectoryToDelete, SearchRecord.Name);
+    ZeroFoundElseNotFound := FindNext(SearchRecord);
+  end;
+
+  FindClose(SearchRecord);
+end;
+
+function SelectDirectoryNewUI(const DialogTitle: String;
+  const DefaultDir: String): String;
+var
+  FileOpenDialog: TFileOpenDialog;
+begin
+  FileOpenDialog := TFileOpenDialog.Create(nil);
+  try
+    FileOpenDialog.Title := DialogTitle;
+    FileOpenDialog.Options := [fdoPickFolders, fdoPathMustExist,
+      fdoForceFileSystem];
+    FileOpenDialog.DefaultFolder := DefaultDir;
+    FileOpenDialog.FileName := '';
+    if FileOpenDialog.Execute then
+      result := FileOpenDialog.FileName;
+  finally
+    FileOpenDialog.Free;
+  end;
+end;
+
+function SelectDirectoryOldUI(const DialogTitle: String;
+  const DefaultDir: String): String;
+begin
+  result := DefaultDir;
+  FileCtrl.SelectDirectory(DialogTitle, ExtractFileDrive(DefaultDir),
+    result, [sdNewUI, sdNewFolder], nil);
+end;
+
+function SelectDirectory(const DialogTitle: String; const DefaultDir: String):
+  String;
+begin
+  if Win32MajorVersion >= 6 then
+    result := SelectDirectoryNewUI(DialogTitle, DefaultDir)
   else
-    if FileCtrl.SelectDirectory('Select Directory',
-                              ExtractFileDrive(DefaultDir), DefaultDir,
-                              [sdNewUI, sdNewFolder], nil) = true then
-      result := DefaultDir;
+    result := SelectDirectoryOldUI(DialogTitle, DefaultDir);
 
   if result <> '' then
     result := result + '\';

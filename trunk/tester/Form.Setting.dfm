@@ -168,7 +168,7 @@ object fSetting: TfSetting
   end
   object oTrace: TOpenDialog
     Filter = 'JESD219-Trace (*.txt)|*.txt'
-    Left = 520
-    Top = 232
+    Left = 376
+    Top = 144
   end
 end
