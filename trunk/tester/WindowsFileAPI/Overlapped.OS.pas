@@ -10,9 +10,9 @@ type
   TOSOverlapped = class(TOverlapped)
   private
     FHandle: THandle;
-    FOverlapped: _OVERLAPPED;
+    FOverlapped: POverlapped;
   public
-    constructor Create(const Handle: THandle; const Overlapped: _OVERLAPPED);
+    constructor Create(const Handle: THandle; const Overlapped: POverlapped);
     destructor Destroy; override;
     function WaitAndGetErrorCode: Cardinal; override;
   end;
@@ -22,7 +22,7 @@ implementation
 { TOSOverlapped }
 
 constructor TOSOverlapped.Create(const Handle: THandle;
-  const Overlapped: _OVERLAPPED);
+  const Overlapped: POverlapped);
 begin
   FHandle := Handle;
   FOverlapped := Overlapped;
@@ -38,6 +38,7 @@ begin
 
   WaitAndGetErrorCode;
   CloseHandle(FOverlapped.hEvent);
+  FreeMem(FOverlapped);
   inherited;
 end;
 
@@ -48,7 +49,7 @@ var
   NumberOfBytesTransferred: DWORD;
 begin
   result := ERROR_SUCCESS;
-  if not GetOverlappedResult(FHandle, FOverlapped, NumberOfBytesTransferred,
+  if not GetOverlappedResult(FHandle, FOverlapped^, NumberOfBytesTransferred,
     WaitForCompletion) then
       result := GetLastError;
 

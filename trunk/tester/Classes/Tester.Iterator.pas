@@ -231,15 +231,15 @@ begin
     TIOType.ioFlush:
       CommandResult := FTesterCommandIssuer.DiskFlush;
   end;
-  result := CommandResult.FailedCommandList.Count = 0;
+  result := FTesterCommandIssuer.GetFailedCommandList.Count = 0;
   FCleared := CommandResult.OverlapFinished;
   if FCleared then
     CalculateLatency;
   if result = false then
   begin
-    FErrorList.AddRange(CommandResult.FailedCommandList.ToArray);
-    Inc(FErrorCount, CommandResult.FailedCommandList.Count);
-    CommandResult.FailedCommandList.Clear;
+    FErrorList.AddRange(FTesterCommandIssuer.GetFailedCommandList.ToArray);
+    Inc(FErrorCount, FTesterCommandIssuer.GetFailedCommandList.Count);
+    FTesterCommandIssuer.GetFailedCommandList.Clear;
   end;
 end;
 

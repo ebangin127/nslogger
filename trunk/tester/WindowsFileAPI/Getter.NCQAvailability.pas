@@ -13,12 +13,9 @@ type
   TNCQAvailabilityGetter = class sealed(TIoControlFile)
   public
     constructor Create(FileToGetAccess: String); override;
-
     function GetNCQStatus: TNCQAvailability;
-
   protected
     function GetMinimumPrivilege: TCreateFileDesiredAccess; override;
-
   private
     type
       STORAGE_PROPERTY_QUERY = record
@@ -26,10 +23,8 @@ type
         QueryType: DWORD;
         AdditionalParameters: array[0..3] of Byte;
       end;
-
       TBusType = (UnknownBus = 0, SCSI, ATAPI, ATA, IEEE1394, SSA,
         Fibre, USB, RAID, iSCSI, SAS, SATA, BusTypeMaxReserved = $7F);
-
       STORAGE_ADAPTOR_DESCRIPTOR = record
         Version: DWORD;
         Size: DWORD;
@@ -44,26 +39,20 @@ type
         BusMajorVersion: WORD;
         BusMinorVersion: WORD;
       end;
-
       TStorageAdaptorDescriptorWithBuffer = record
         StorageAdaptorDescriptor: STORAGE_ADAPTOR_DESCRIPTOR;
         Buffer: Array[0..1023] of Byte;
       end;
-
   private
     InnerQueryBuffer: STORAGE_PROPERTY_QUERY;
     InnerOutputBuffer: STORAGE_ADAPTOR_DESCRIPTOR;
-
     procedure GetAdaptorDescriptorAndIfNotReturnedRaiseException(
       IOBuffer: TIoControlIOBuffer);
-
     procedure SetAdaptorDescriptor;
-    function GetIOBufferToGetAdaptorDescriptor: TIoControlIOBuffer;
     procedure SetQueryBuffer;
     function DetermineNCQStatus: TNCQAvailability;
     function IsSCSIwithCommandQueuing: Boolean;
     function IsATAwithCommandQueuing: Boolean;
-
     function IsSATA: Boolean;
     function IsNCQ: Boolean;
     function IsUnknown: Boolean;
@@ -77,19 +66,6 @@ implementation
 constructor TNCQAvailabilityGetter.Create(FileToGetAccess: String);
 begin
   CreateHandle(FileToGetAccess, GetMinimumPrivilege);
-end;
-
-function TNCQAvailabilityGetter.GetIOBufferToGetAdaptorDescriptor:
-  TIoControlIOBuffer;
-const
-  NullInputBuffer = nil;
-  NullInputBufferSize = 0;
-begin
-  result.InputBuffer.Buffer := @InnerQueryBuffer;
-  result.InputBuffer.Size := SizeOf(InnerQueryBuffer);
-
-  result.OutputBuffer.Buffer := @InnerOutputBuffer;
-  result.OutputBuffer.Size := SizeOf(InnerOutputBuffer);
 end;
 
 procedure TNCQAvailabilityGetter.
@@ -119,12 +95,11 @@ begin
 end;
 
 procedure TNCQAvailabilityGetter.SetAdaptorDescriptor;
-var
-  IOBuffer: TIoControlIOBuffer;
 begin
   SetQueryBuffer;
-  IOBuffer := GetIOBufferToGetAdaptorDescriptor;
-  GetAdaptorDescriptorAndIfNotReturnedRaiseException(IOBuffer);
+  GetAdaptorDescriptorAndIfNotReturnedRaiseException(
+    BuildOSBufferBy<STORAGE_PROPERTY_QUERY, STORAGE_ADAPTOR_DESCRIPTOR>(
+      InnerQueryBuffer, InnerOutputBuffer));
 end;
 
 function TNCQAvailabilityGetter.IsSCSIwithCommandQueuing: Boolean;

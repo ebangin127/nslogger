@@ -36,8 +36,6 @@ type
         DiskSizeInByte: TLargeInteger;
       end;
     function GetDiskGeometry: TDiskGeometryResult;
-    function GetIOBufferToGetGeometry(
-      OutputBufferPointer: Pointer): TIoControlIOBuffer;
     procedure GetDiskGeometryAndIfNotReturnedRaiseException(
       IOBuffer: TIoControlIOBuffer);
     function OSMediaTypeToTMediaType(MediaType: Byte): TMediaType;
@@ -51,19 +49,6 @@ implementation
 constructor TDiskGeometryGetter.Create(FileToGetAccess: String);
 begin
   CreateHandle(FileToGetAccess, GetMinimumPrivilege);
-end;
-
-function TDiskGeometryGetter.GetIOBufferToGetGeometry
-  (OutputBufferPointer: Pointer): TIoControlIOBuffer;
-const
-  NullInputBuffer = nil;
-  NullInputBufferSize = 0;
-begin
-  result.InputBuffer.Buffer := NullInputBuffer;
-  result.InputBuffer.Size := NullInputBufferSize;
-
-  result.OutputBuffer.Buffer := OutputBufferPointer;
-  result.OutputBuffer.Size := SizeOf(DISK_GEOMETRY_EX);
 end;
 
 procedure TDiskGeometryGetter.GetDiskGeometryAndIfNotReturnedRaiseException
@@ -98,11 +83,10 @@ end;
 
 function TDiskGeometryGetter.GetDiskGeometry: TDiskGeometryResult;
 var
-  IOBuffer: TIoControlIOBuffer;
   OSGeometryResult: DISK_GEOMETRY_EX;
 begin
-  IOBuffer := GetIOBufferToGetGeometry(@OSGeometryResult);
-  GetDiskGeometryAndIfNotReturnedRaiseException(IOBuffer);
+  GetDiskGeometryAndIfNotReturnedRaiseException(
+    BuildOSBufferByOutput<DISK_GEOMETRY_EX>(OSGeometryResult));
 
   result.DiskSizeInByte := OSGeometryResult.DiskSize;
   result.MediaType :=

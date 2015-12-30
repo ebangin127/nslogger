@@ -28,16 +28,16 @@ constructor TAnonymousMethodOverlapped.Create(
   const AnonymousFunctionToLoad: TFunctionReturnsErrorCode);
 begin
   FAnonymousFunctionToLoad := AnonymousFunctionToLoad;
-  FAsynchronousTask := TTask.Create(procedure
-  begin
-    FErrorCode := FAnonymousFunctionToLoad;
-  end);
-  FAsynchronousTask.Start;
+  FAsynchronousTask := TTask.Run(procedure
+    begin
+      FErrorCode := FAnonymousFunctionToLoad;
+    end);
 end;
 
 destructor TAnonymousMethodOverlapped.Destroy;
 begin
-  WaitAndGetErrorCode;
+  if FAsynchronousTask.Status <> TTaskStatus.Completed then
+    WaitAndGetErrorCode;
 end;
 
 function TAnonymousMethodOverlapped.WaitAndGetErrorCode: Cardinal;

@@ -14,6 +14,8 @@ type
   protected
     function GetMinimumPrivilege: TCreateFileDesiredAccess; override;
   private
+    function GetIOBufferToGetLayout(
+      OutputBufferPointer: Pointer): TIoControlIOBuffer;
     type
       TPartitionInformation = record
         StartingOffset: LARGE_INTEGER;
@@ -31,8 +33,6 @@ type
         PartitionEntry: Array[0..127] of TPartitionInformation;
       end;
     function GetDiskLayout: TDiskLayoutInformation;
-    function GetIOBufferToGetLayout(
-      OutputBufferPointer: Pointer): TIoControlIOBuffer;
     procedure GetDiskLayoutAndIfNotReturnedRaiseException(
       IOBuffer: TIoControlIOBuffer);
     function PartitionInformationToPartitionEntry(
@@ -49,6 +49,17 @@ begin
   CreateHandle(FileToGetAccess, GetMinimumPrivilege);
 end;
 
+procedure TDiskLayoutGetter.GetDiskLayoutAndIfNotReturnedRaiseException
+  (IOBuffer: TIoControlIOBuffer);
+var
+  ReturnedBytes: Cardinal;
+begin
+  ReturnedBytes := IoControl(TIoControlCode.GetDriveLayout, IOBuffer);
+  if ReturnedBytes = 0 then
+    ENoDataReturnedFromIO.Create
+      ('NoDataReturnedFromIO: No data returned from GetDriveGeometryEX');
+end;
+
 function TDiskLayoutGetter.GetIOBufferToGetLayout
   (OutputBufferPointer: Pointer): TIoControlIOBuffer;
 const
@@ -62,23 +73,12 @@ begin
   result.OutputBuffer.Size := SizeOf(TDiskLayoutInformation);
 end;
 
-procedure TDiskLayoutGetter.GetDiskLayoutAndIfNotReturnedRaiseException
-  (IOBuffer: TIoControlIOBuffer);
-var
-  ReturnedBytes: Cardinal;
-begin
-  ReturnedBytes := IoControl(TIoControlCode.GetDriveLayout, IOBuffer);
-  if ReturnedBytes = 0 then
-    ENoDataReturnedFromIO.Create
-      ('NoDataReturnedFromIO: No data returned from GetDriveGeometryEX');
-end;
-
 function TDiskLayoutGetter.GetDiskLayout: TDiskLayoutInformation;
 var
-  IOBuffer: TIoControlIOBuffer;
+  DiskLayoutInformation: TDiskLayoutInformation;
 begin
-  IOBuffer := GetIOBufferToGetLayout(@result);
-  GetDiskLayoutAndIfNotReturnedRaiseException(IOBuffer);
+  GetDiskLayoutAndIfNotReturnedRaiseException(
+    GetIOBufferToGetLayout(@result));
 end;
 
 function TDiskLayoutGetter.GetMinimumPrivilege: TCreateFileDesiredAccess;

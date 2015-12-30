@@ -14,9 +14,7 @@ type
     function SMARTReadData: TSMARTValueList; override;
     function DataSetManagement(StartLBA, LBACount: Int64): Cardinal; override;
     procedure Flush; override;
-
     function IsDataSetManagementSupported: Boolean; override;
-
   private
     type
       ATA_SINGLE_TASK_FILE = record
@@ -50,7 +48,6 @@ type
         Parameter: ATA_PASS_THROUGH_EX;
         Buffer: T512Buffer;
       end;
-
     const
       ATA_FLAGS_NON_DATA = 0;
       ATA_FLAGS_DRDY_REQUIRED = 1;
@@ -59,14 +56,10 @@ type
       ATA_FLAGS_48BIT_COMMAND = 1 shl 3;
       ATA_FLAGS_USE_DMA = 1 shl 4;
       ATA_FLAGS_NO_MULTIPLE = 1 shl 5;
-
   private
     IoInnerBuffer: ATA_WITH_BUFFER;
-    IoOSBuffer: TIoControlIOBuffer;
-
     function GetCommonBuffer: ATA_WITH_BUFFER;
     function GetCommonTaskFile: ATA_TASK_FILES;
-    procedure SetOSBufferByInnerBuffer;
     procedure SetInnerBufferAsFlagsAndTaskFile(Flags: ULONG;
       TaskFile: ATA_TASK_FILES);
     procedure SetInnerBufferToSMARTReadData;
@@ -120,20 +113,12 @@ begin
   SetInnerBufferAsFlagsAndTaskFile(ATA_FLAGS_DATA_IN, IoTaskFile);
 end;
 
-procedure TLegacyATACommandSet.SetOSBufferByInnerBuffer;
-begin
-  IoOSBuffer.InputBuffer.Size := SizeOf(IoInnerBuffer);
-  IoOSBuffer.InputBuffer.Buffer := @IOInnerBuffer;
-
-  IoOSBuffer.OutputBuffer.Size := SizeOf(IoInnerBuffer);
-  IoOSBuffer.OutputBuffer.Buffer := @IOInnerBuffer;
-end;
-
 procedure TLegacyATACommandSet.SetBufferAndIdentifyDevice;
 begin
   SetInnerBufferToIdentifyDevice;
-  SetOSBufferByInnerBuffer;
-  IoControl(TIoControlCode.ATAPassThrough, IoOSBuffer);
+  IoControl(TIoControlCode.ATAPassThrough,
+    BuildOSBufferBy<ATA_WITH_BUFFER, ATA_WITH_BUFFER>(IoInnerBuffer,
+      IoInnerBuffer));
 end;
 
 function TLegacyATACommandSet.InterpretIdentifyDeviceBuffer:
@@ -175,8 +160,9 @@ end;
 procedure TLegacyATACommandSet.SetBufferAndSMARTReadData;
 begin
   SetInnerBufferToSMARTReadData;
-  SetOSBufferByInnerBuffer;
-  IoControl(TIoControlCode.ATAPassThrough, IoOSBuffer);
+  IoControl(TIoControlCode.ATAPassThrough,
+    BuildOSBufferBy<ATA_WITH_BUFFER, ATA_WITH_BUFFER>(IoInnerBuffer,
+      IoInnerBuffer));
 end;
 
 function TLegacyATACommandSet.InterpretSMARTReadDataBuffer:
@@ -256,9 +242,10 @@ function TLegacyATACommandSet.DataSetManagement(StartLBA, LBACount: Int64):
   Cardinal;
 begin
   SetInnerBufferToDataSetManagement(StartLBA, LBACount);
-  SetOSBufferByInnerBuffer;
   result := ExceptionFreeIoControl
-    (TIoControlCode.ATAPassThrough, IoOSBuffer);
+    (TIoControlCode.ATAPassThrough,
+      BuildOSBufferBy<ATA_WITH_BUFFER, ATA_WITH_BUFFER>(IoInnerBuffer,
+        IoInnerBuffer));
 end;
 
 procedure TLegacyATACommandSet.SetInnerBufferToFlush;
@@ -275,8 +262,9 @@ end;
 procedure TLegacyATACommandSet.Flush;
 begin
   SetInnerBufferToFlush;
-  SetOSBufferByInnerBuffer;
-  IoControl(TIoControlCode.ATAPassThrough, IoOSBuffer);
+  IoControl(TIoControlCode.ATAPassThrough,
+    BuildOSBufferBy<ATA_WITH_BUFFER, ATA_WITH_BUFFER>(IoInnerBuffer,
+      IoInnerBuffer));
 end;
 
 end.

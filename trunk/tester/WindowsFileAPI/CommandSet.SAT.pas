@@ -14,9 +14,7 @@ type
     function SMARTReadData: TSMARTValueList; override;
     function DataSetManagement(StartLBA, LBACount: Int64): Cardinal; override;
     procedure Flush; override;
-
     function IsDataSetManagementSupported: Boolean; override;
-
   private
     type
       SCSI_COMMAND_DESCRIPTOR_BLOCK = record
@@ -67,19 +65,14 @@ type
         SenseBuffer: SCSI_24B_SENSE_BUFFER;
         Buffer: T512Buffer;
       end;
-
     const
       SCSI_IOCTL_DATA_OUT = 0;
       SCSI_IOCTL_DATA_IN = 1;
       SCSI_IOCTL_DATA_UNSPECIFIED = 2;
-
   private
     IoInnerBuffer: SCSI_WITH_BUFFER;
-    IoOSBuffer: TIoControlIOBuffer;
-
     function GetCommonBuffer: SCSI_WITH_BUFFER;
     function GetCommonCommandDescriptorBlock: SCSI_COMMAND_DESCRIPTOR_BLOCK;
-    procedure SetOSBufferByInnerBuffer;
     procedure SetInnerBufferAsFlagsAndCdb(Flags: ULONG;
       CommandDescriptorBlock: SCSI_COMMAND_DESCRIPTOR_BLOCK);
     procedure SetInnerBufferToSMARTReadData;
@@ -163,20 +156,12 @@ begin
   SetInnerBufferAsFlagsAndCdb(SCSI_IOCTL_DATA_IN, CommandDescriptorBlock);
 end;
 
-procedure TSATCommandSet.SetOSBufferByInnerBuffer;
-begin
-  IoOSBuffer.InputBuffer.Size := SizeOf(IoInnerBuffer);
-  IoOSBuffer.InputBuffer.Buffer := @IOInnerBuffer;
-
-  IoOSBuffer.OutputBuffer.Size := SizeOf(IoInnerBuffer);
-  IoOSBuffer.OutputBuffer.Buffer := @IOInnerBuffer;
-end;
-
 procedure TSATCommandSet.SetBufferAndIdentifyDevice;
 begin
   SetInnerBufferToIdentifyDevice;
-  SetOSBufferByInnerBuffer;
-  IoControl(TIoControlCode.SCSIPassThrough, IoOSBuffer);
+  IoControl(TIoControlCode.SCSIPassThrough,
+    BuildOSBufferBy<SCSI_WITH_BUFFER, SCSI_WITH_BUFFER>(IoInnerBuffer,
+      IoInnerBuffer));
 end;
 
 function TSATCommandSet.InterpretIdentifyDeviceBuffer:
@@ -218,8 +203,9 @@ end;
 procedure TSATCommandSet.SetBufferAndSMARTReadData;
 begin
   SetInnerBufferToSMARTReadData;
-  SetOSBufferByInnerBuffer;
-  IoControl(TIoControlCode.SCSIPassThrough, IoOSBuffer);
+  IoControl(TIoControlCode.SCSIPassThrough,
+    BuildOSBufferBy<SCSI_WITH_BUFFER, SCSI_WITH_BUFFER>(IoInnerBuffer,
+      IoInnerBuffer));
 end;
 
 function TSATCommandSet.InterpretSMARTReadDataBuffer:

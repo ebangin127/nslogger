@@ -15,7 +15,6 @@ const
 
 type
   TCommandResult = record
-    FailedCommandList: TErrorList;
     OverlapFinished: Boolean;
   end;
 
@@ -36,10 +35,10 @@ type
     function LBATo48BitLBA(const LBAInInt64: Int64): T48BitLBA;
     function LBAToByte(const LBA: Cardinal): Cardinal;
     function ValidResult(const ErrorCode: Cardinal): Boolean;
-    function GetOverlap(const LBA: T48BitLBA): _OVERLAPPED;
+    function GetOverlap(const LBA: T48BitLBA): POverlapped;
     procedure RefreshFailedCommandSet;
     function AddOSOverlappedAndIfFullClear(
-      const Overlap: _OVERLAPPED): TCommandResult;
+      const Overlap: POverlapped): TCommandResult;
   public
     function DiskWrite(const Contents: TTraceNode): TCommandResult;
     function DiskRead(const Contents: TTraceNode): TCommandResult;
@@ -49,15 +48,22 @@ type
     function ClearList: TErrorCodeList;
     function SetDisk(DriveNumber: Integer): Boolean;
     function AssignBuffer(RandBuf: PTRandomBuffer): Boolean;
+    function GetFailedCommandList: TErrorList;
     constructor Create;
     destructor Destroy; override;
   end;
 
 implementation
 
-function TTesterCommandIssuer.GetOverlap(const LBA: T48BitLBA): _OVERLAPPED;
+function TTesterCommandIssuer.GetFailedCommandList: TErrorList;
 begin
-  FillMemory(@result, sizeof(_OVERLAPPED), 0);
+  result := FFailedCommandList;
+end;
+
+function TTesterCommandIssuer.GetOverlap(const LBA: T48BitLBA): POverlapped;
+begin
+  GetMem(result, SizeOf(_OVERLAPPED));
+  ZeroMemory(result, sizeof(_OVERLAPPED));
   result.hEvent := CreateEvent(nil, true, false, nil);
   result.Offset := LBA.Lo;
   result.OffsetHigh := LBA.Hi;
@@ -86,7 +92,7 @@ begin
 end;
 
 function TTesterCommandIssuer.AddOSOverlappedAndIfFullClear(
-  const Overlap: _OVERLAPPED): TCommandResult;
+  const Overlap: POverlapped): TCommandResult;
 begin
   result := AddAndIfFullClear(TOSOverlapped.Create(FDriveHandle, Overlap));
 end;
@@ -95,7 +101,6 @@ function TTesterCommandIssuer.AddAndIfFullClear(const Overlap: IOverlapped):
   TCommandResult;
 begin
   result.OverlapFinished := false;
-  result.FailedCommandList := FFailedCommandList;
   FOverlappedList.Add(Overlap);
   if FOverlappedList.Count > MaxParallelIO then
   begin
@@ -128,27 +133,22 @@ var
   BufferPoint: Pointer;
   LBA: T48BitLBA;
   IOLength: Cardinal;
-  Overlap: _OVERLAPPED;
-  AddAndIfFullClearResult: TCommandResult;
+  Overlap: POverlapped;
 begin
   result.OverlapFinished := false;
   IOLength := LBAToByte(Contents.GetLength);
   BufferPoint := FRandomBuffer.GetBufferPtr(IOLength);
   LBA := LBATo48BitLBA(Contents.GetLBA);
-  Overlap := GetOverlap(LBA);
-  result.FailedCommandList := FFailedCommandList;
 
-  WriteFile(FDriveHandle, BufferPoint^, IOLength, BytesWritten, @Overlap);
+  Overlap := GetOverlap(LBA);
+  WriteFile(FDriveHandle, BufferPoint^, IOLength, BytesWritten, Overlap);
   if not ValidResult(GetLastError) then
-    result.FailedCommandList.Add(CreateErrorNode(
-      Contents, GetLastError));
+    FFailedCommandList.Add(CreateErrorNode(Contents, GetLastError));
 
   if GetLastError = ERROR_IO_PENDING then
   begin
     FPendingCommandList.Add(Contents);
-    AddAndIfFullClearResult := AddOSOverlappedAndIfFullClear(Overlap);
-    if AddAndIfFullClearResult.OverlapFinished then
-      result := AddAndIfFullClearResult;
+    result := AddOSOverlappedAndIfFullClear(Overlap);
   end;
 end;
 
@@ -159,28 +159,23 @@ var
   BufferPoint: Pointer;
   LBA: T48BitLBA;
   IOLength: UINT;
-  Overlap: _OVERLAPPED;
+  Overlap: POverlapped;
   ReadBuffer: Array[0..MaxIOSize - 1] of Byte;
-  AddAndIfFullClearResult: TCommandResult;
 begin
   result.OverlapFinished := false;
   IOLength := LBAToByte(Contents.GetLength);
   BufferPoint := @ReadBuffer;
   LBA := LBATo48BitLBA(Contents.GetLBA);
-  Overlap := GetOverlap(LBA);
-  result.FailedCommandList := FFailedCommandList;
 
-  ReadFile(FDriveHandle, BufferPoint, IOLength, BytesRead, @Overlap);
+  Overlap := GetOverlap(LBA);
+  ReadFile(FDriveHandle, BufferPoint, IOLength, BytesRead, Overlap);
   if not ValidResult(GetLastError) then
-    result.FailedCommandList.Add(CreateErrorNode(
-      Contents, GetLastError));
+    FFailedCommandList.Add(CreateErrorNode(Contents, GetLastError));
 
   if GetLastError = ERROR_IO_PENDING then
   begin
     FPendingCommandList.Add(Contents);
-    AddAndIfFullClearResult := AddOSOverlappedAndIfFullClear(Overlap);
-    if AddAndIfFullClearResult.OverlapFinished then
-      result := AddAndIfFullClearResult;
+    result := AddOSOverlappedAndIfFullClear(Overlap);
   end;
 end;
 
@@ -189,42 +184,35 @@ function TTesterCommandIssuer.DiskTrim(const Contents: TTraceNode):
 var
   CapturedLBA: UInt64;
   CapturedLength: Word;
-  AddAndIfFullClearResult: TCommandResult;
 begin
   result.OverlapFinished := false;
-  result.FailedCommandList := FFailedCommandList;
   CapturedLBA := Contents.GetLBA;
   CapturedLength := Contents.GetLength;
 
   FPendingCommandList.Add(Contents);
-  AddAndIfFullClear(TAnonymousMethodOverlapped.Create(function: Cardinal
-  begin
-    result :=
-      FCommandSet.DataSetManagement(CapturedLBA, CapturedLength);
-  end));
-  if AddAndIfFullClearResult.OverlapFinished then
-    result := AddAndIfFullClearResult;
+  result := AddAndIfFullClear(TAnonymousMethodOverlapped.Create(
+    function: Cardinal
+    begin
+      result :=
+        FCommandSet.DataSetManagement(CapturedLBA, CapturedLength);
+    end));
 end;
 
 function TTesterCommandIssuer.DiskFlush: TCommandResult;
-var
-  AddAndIfFullClearResult: TCommandResult;
 begin
-  result.OverlapFinished := false;
-  result.FailedCommandList := FFailedCommandList;
-  AddAndIfFullClear(TAnonymousMethodOverlapped.Create(function: Cardinal
-  begin
-    try
-      FCommandSet.Flush;
-    except
-      on E: EOSError do
-        result := E.ErrorCode
-      else
-        raise;
-    end;
-  end));
-  if AddAndIfFullClearResult.OverlapFinished then
-    result := AddAndIfFullClearResult;
+  result := AddAndIfFullClear(TAnonymousMethodOverlapped.Create(
+    function: Cardinal
+    begin
+      result := ERROR_SUCCESS;
+      try
+        FCommandSet.Flush;
+      except
+        on E: EOSError do
+          result := E.ErrorCode
+        else
+          raise;
+      end;
+    end));
 end;
 
 function TTesterCommandIssuer.ClearList: TErrorCodeList;

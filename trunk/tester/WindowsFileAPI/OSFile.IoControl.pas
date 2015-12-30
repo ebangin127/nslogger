@@ -39,6 +39,10 @@ type
     function ExceptionFreeIoControl(
       ControlCode: TIoControlCode;
       IOBuffer: TIoControlIOBuffer): Cardinal;
+    function BuildOSBufferBy<InputType, OutputType>(var InputBuffer: InputType;
+      var OutputBuffer: OutputType): TIoControlIOBuffer;
+    function BuildOSBufferByOutput<OutputType>(
+      var OutputBuffer: OutputType): TIoControlIOBuffer;
   private
     function DeviceIoControlSystemCall(
       OSControlCode: Integer;
@@ -62,6 +66,22 @@ begin
   SetLastError(ERROR_SUCCESS);
   DeviceIoControlSystemCall(OSControlCode, IOBuffer);
   result := GetLastError;
+end;
+
+function TIoControlFile.BuildOSBufferBy<InputType, OutputType>(
+  var InputBuffer: InputType; var OutputBuffer: OutputType): TIoControlIOBuffer;
+begin
+  result.InputBuffer.Size := SizeOf(InputBuffer);
+  result.InputBuffer.Buffer := @InputBuffer;
+  result.OutputBuffer.Size := SizeOf(OutputBuffer);
+  result.OutputBuffer.Buffer := @OutputBuffer;
+end;
+
+function TIoControlFile.BuildOSBufferByOutput<OutputType>(
+  var OutputBuffer: OutputType): TIoControlIOBuffer;
+begin
+  result.OutputBuffer.Size := SizeOf(OutputBuffer);
+  result.OutputBuffer.Buffer := @OutputBuffer;
 end;
 
 function TIoControlFile.IoControl(ControlCode: TIoControlCode;

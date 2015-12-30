@@ -15,9 +15,7 @@ type
     function DataSetManagement(StartLBA, LBACount: Int64): Cardinal;
       override;
     procedure Flush; override;
-
     function IsDataSetManagementSupported: Boolean; override;
-
   private
     type
       SCSI_COMMAND_DESCRIPTOR_BLOCK = record
@@ -61,19 +59,14 @@ type
         SenseBuffer: SCSI_24B_SENSE_BUFFER;
         Buffer: T512Buffer;
       end;
-
     const
       SCSI_IOCTL_DATA_OUT = 0;
       SCSI_IOCTL_DATA_IN = 1;
       SCSI_IOCTL_DATA_UNSPECIFIED = 2;
-
   private
     IoInnerBuffer: SCSI_WITH_BUFFER;
-    IoOSBuffer: TIoControlIOBuffer;
-
     function GetCommonBuffer: SCSI_WITH_BUFFER;
     function GetCommonCommandDescriptorBlock: SCSI_COMMAND_DESCRIPTOR_BLOCK;
-    procedure SetOSBufferByInnerBuffer;
     procedure SetInnerBufferAsFlagsAndCdb(Flags: ULONG;
       CommandDescriptorBlock: SCSI_COMMAND_DESCRIPTOR_BLOCK);
     function InterpretIdentifyDeviceBuffer: TIdentifyDeviceResult;
@@ -137,15 +130,6 @@ begin
   IoInnerBuffer.Parameter.CommandDescriptorBlock := CommandDescriptorBlock;
 end;
 
-procedure TSamsungNVMeCommandSet.SetOSBufferByInnerBuffer;
-begin
-  IoOSBuffer.InputBuffer.Size := SizeOf(IoInnerBuffer);
-  IoOSBuffer.InputBuffer.Buffer := @IOInnerBuffer;
-
-  IoOSBuffer.OutputBuffer.Size := SizeOf(IoInnerBuffer);
-  IoOSBuffer.OutputBuffer.Buffer := @IOInnerBuffer;
-end;
-
 procedure TSamsungNVMeCommandSet.SetBufferAndIdentifyDevice;
 begin
   SetBufferAndSendIdentifyDeviceCommand;
@@ -155,8 +139,9 @@ end;
 procedure TSamsungNVMeCommandSet.SetBufferAndSendIdentifyDeviceCommand;
 begin
   SetInnerBufferToSendIdentifyDeviceCommand;
-  SetOSBufferByInnerBuffer;
-  IoControl(TIoControlCode.SCSIPassThrough, IoOSBuffer);
+  IoControl(TIoControlCode.SCSIPassThrough,
+    BuildOSBufferBy<SCSI_WITH_BUFFER, SCSI_WITH_BUFFER>(IoInnerBuffer,
+      IoInnerBuffer));
 end;
 
 procedure TSamsungNVMeCommandSet.SetInnerBufferToSendIdentifyDeviceCommand;
@@ -185,8 +170,9 @@ end;
 procedure TSamsungNVMeCommandSet.SetBufferAndReceiveIdentifyDeviceCommand;
 begin
   SetInnerBufferToReceiveIdentifyDeviceCommand;
-  SetOSBufferByInnerBuffer;
-  IoControl(TIoControlCode.SCSIPassThrough, IoOSBuffer);
+  IoControl(TIoControlCode.SCSIPassThrough,
+    BuildOSBufferBy<SCSI_WITH_BUFFER, SCSI_WITH_BUFFER>(IoInnerBuffer,
+      IoInnerBuffer));
 end;
 
 procedure TSamsungNVMeCommandSet.SetInnerBufferToReceiveIdentifyDeviceCommand;
@@ -236,8 +222,9 @@ end;
 procedure TSamsungNVMeCommandSet.SetBufferAndReadCapacity;
 begin
   SetInnerBufferToReadCapacity;
-  SetOSBufferByInnerBuffer;
-  IoControl(TIoControlCode.SCSIPassThrough, IoOSBuffer);
+  IoControl(TIoControlCode.SCSIPassThrough,
+    BuildOSBufferBy<SCSI_WITH_BUFFER, SCSI_WITH_BUFFER>(IoInnerBuffer,
+      IoInnerBuffer));
 end;
 
 procedure TSamsungNVMeCommandSet.SetInnerBufferToReadCapacity;
@@ -298,8 +285,9 @@ end;
 procedure TSamsungNVMeCommandSet.SetBufferAndSendSMARTCommand;
 begin
   SetInnerBufferToSendSMARTCommand;
-  SetOSBufferByInnerBuffer;
-  IoControl(TIoControlCode.SCSIPassThrough, IoOSBuffer);
+  IoControl(TIoControlCode.SCSIPassThrough,
+    BuildOSBufferBy<SCSI_WITH_BUFFER, SCSI_WITH_BUFFER>(IoInnerBuffer,
+      IoInnerBuffer));
 end;
 
 procedure TSamsungNVMeCommandSet.SetInnerBufferToSendSMARTCommand;
@@ -333,8 +321,9 @@ end;
 procedure TSamsungNVMeCommandSet.SetBufferAndReceiveSMARTCommand;
 begin
   SetInnerBufferToReceiveSMARTCommand;
-  SetOSBufferByInnerBuffer;
-  IoControl(TIoControlCode.SCSIPassThrough, IoOSBuffer);
+  IoControl(TIoControlCode.SCSIPassThrough,
+    BuildOSBufferBy<SCSI_WITH_BUFFER, SCSI_WITH_BUFFER>(IoInnerBuffer,
+      IoInnerBuffer));
 end;
 
 procedure TSamsungNVMeCommandSet.SetInnerBufferToReceiveSMARTCommand;
@@ -365,8 +354,9 @@ begin
   CommandDescriptorBlock.SCSICommand := FlushCommand;
   SetInnerBufferAsFlagsAndCdb(SCSI_IOCTL_DATA_UNSPECIFIED,
     CommandDescriptorBlock);
-  SetOSBufferByInnerBuffer;
-  IoControl(TIoControlCode.SCSIPassThrough, IoOSBuffer);
+  IoControl(TIoControlCode.SCSIPassThrough,
+    BuildOSBufferBy<SCSI_WITH_BUFFER, SCSI_WITH_BUFFER>(IoInnerBuffer,
+      IoInnerBuffer));
 end;
 
 function TSamsungNVMeCommandSet.IsDataSetManagementSupported: Boolean;
@@ -424,8 +414,9 @@ function TSamsungNVMeCommandSet.DataSetManagement(StartLBA, LBACount: Int64):
   Cardinal;
 begin
   SetInnerBufferToUnmap(StartLBA, LBACount);
-  SetOSBufferByInnerBuffer;
-  result := ExceptionFreeIoControl(TIoControlCode.SCSIPassThrough, IoOSBuffer);
+  result := ExceptionFreeIoControl(TIoControlCode.SCSIPassThrough,
+    BuildOSBufferBy<SCSI_WITH_BUFFER, SCSI_WITH_BUFFER>(IoInnerBuffer,
+      IoInnerBuffer));
 end;
 
 end.
