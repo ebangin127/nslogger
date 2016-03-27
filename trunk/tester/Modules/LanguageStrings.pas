@@ -119,7 +119,7 @@ implementation
 
 procedure DetermineLanguage;
 begin
-  if GetSystemDefaultLangID = 1042 then
+  if GetUserDefaultLCID = 1042 then
     CurrLang := LANG_HANGUL
   else
     CurrLang := LANG_ENGLISH;
