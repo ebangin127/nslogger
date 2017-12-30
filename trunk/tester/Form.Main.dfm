@@ -1,7 +1,7 @@
 object fMain: TfMain
   Left = 0
   Top = 0
-  Caption = 'Naraeon SSD Lifelogger Alpha 2'
+  Caption = 'Naraeon SSD Lifelogger Alpha 3'
   ClientHeight = 700
   ClientWidth = 850
   Color = clWhite

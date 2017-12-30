@@ -26,8 +26,6 @@ type
     CurrentPhysicalDriveList: TPhysicalDriveList;
     function GetListChangeByCurrentPhysicalDriveList:
       TRefreshedListAndChanges;
-    function IsSupportedOrNotNeededToCheck(
-      IsSupported: Boolean): Boolean;
     function ReturnAddedListAndRefreshList(
       var NewList: TPhysicalDriveList): TPhysicalDriveList;
     function ReturnDeletedListAndRefreshList(
@@ -51,14 +49,6 @@ implementation
 
 uses
   Getter.PhysicalDriveList.Auto;
-
-function TListChangeGetter.IsSupportedOrNotNeededToCheck(
-  IsSupported: Boolean): Boolean;
-begin
-  result :=
-    (IsSupported) or
-    (not IsOnlyGetSupportedDrives);
-end;
   
 procedure TListChangeGetter.RefreshListWithoutResultFrom(
   var ListToRefresh: TPhysicalDriveList);
@@ -108,7 +98,6 @@ function TListChangeGetter.ReturnAddedListAndRefreshList(
 var
   CurrentEntry: IPhysicalDrive;
   IsExistsInPreviousList: Boolean;
-  CanBeListed: Boolean;
 begin
   result := TPhysicalDriveList.Create;
 
@@ -117,7 +106,7 @@ begin
     IsExistsInPreviousList := ListToRefresh.IsExists(CurrentEntry);
     if not IsResultNeeded then
       Continue;
-    if (not IsExistsInPreviousList) and (CanBeListed) then
+    if not IsExistsInPreviousList then
       result.Add(CurrentEntry);
   end;
 end;
