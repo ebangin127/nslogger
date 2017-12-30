@@ -6,3 +6,5 @@ But beware. Just using this program doesn't make your test JESD219A-compatible.
 There're a lot of things to consider when you do JESD219A client workload test.
 
 License: GPL 3.0
+
+Win32 Binary Download: http://naraeon.net/en/나래온-ssd-lifelogger-다운로드
