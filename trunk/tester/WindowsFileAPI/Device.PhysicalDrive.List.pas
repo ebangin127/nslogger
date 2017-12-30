@@ -7,21 +7,19 @@ uses
   Device.PhysicalDrive;
 
 type
+  TThreadedPhysicalDriveList = class sealed(TThreadList<IPhysicalDrive>);
   TPhysicalDriveList = class sealed(TList<IPhysicalDrive>)
   public
     destructor Destroy; override;
-    procedure Delete(Index: Integer);
-
-    function IndexOf(Model, Serial: String): Integer; overload;
-    function IndexOf(Entry: TPhysicalDrive): Integer; overload;
-    function IndexOf(DeviceName: String): Integer; overload;
-    
+    function IndexOf(const Model, Serial: String): Integer; overload;
+    function IndexOf(Entry: IPhysicalDrive): Integer; overload;
+    function IndexOf(const DeviceName: String): Integer; overload;
     function IsExists(Entry: IPhysicalDrive): Boolean;
   end;
 
 implementation
 
-function TPhysicalDriveList.IndexOf(Model, Serial: String): Integer;
+function TPhysicalDriveList.IndexOf(const Model, Serial: String): Integer;
 var
   CurrEntry: Integer;
 begin
@@ -38,7 +36,7 @@ begin
     exit(-1);
 end;
 
-function TPhysicalDriveList.IndexOf(Entry: TPhysicalDrive): Integer;
+function TPhysicalDriveList.IndexOf(Entry: IPhysicalDrive): Integer;
 var
   CurrEntry: Integer;
 begin
@@ -53,22 +51,16 @@ begin
     exit(-1);
 end;
 
-procedure TPhysicalDriveList.Delete(Index: Integer);
-begin
-  Self[Index] := nil;
-  inherited Delete(Index);
-end;
-
 destructor TPhysicalDriveList.Destroy;
 var
   CurrentItem: Integer;
 begin
-  for CurrentItem := 0 to Count - 1 do
+  for CurrentItem := 0 to Count - 1 do //FI:W528
     Delete(0);
   inherited;
 end;
 
-function TPhysicalDriveList.IndexOf(DeviceName: String): Integer;
+function TPhysicalDriveList.IndexOf(const DeviceName: String): Integer;
 var
   CurrEntry: Integer;
 begin

@@ -4,11 +4,9 @@ interface
 
 uses
   Windows, SysUtils, Generics.Collections,
-  OSFile.Handle, OSFile.IoControl;
+  OSFile.Handle, OSFile.IoControl, OS.Handle;
 
 type
-  ERAMDrive = class(Exception);
-
   TPartitionExtentEntry = record
     DriveNumber: DWORD;
     StartingOffset: TLargeInteger;
@@ -19,14 +17,13 @@ type
 
   TPartitionExtentGetter = class sealed(TIoControlFile)
   public
-    constructor Create(FileToGetAccess: String); override;
+    constructor Create(const FileToGetAccess: String); override;
     function GetPartitionExtentList: TPartitionExtentList;
   protected
     function GetMinimumPrivilege: TCreateFileDesiredAccess; override;
   private
     PartitionExtentList: TPartitionExtentList;
     VolumeName: String;
-    function TryToGetPartitionExtentList: TPartitionExtentList;
     type
       TVolumeNameBuffer = Array[0..MAX_PATH] of Char;
       DISK_EXTENT = TPartitionExtentEntry;
@@ -34,29 +31,36 @@ type
         NumberOfDiskExtents: DWORD;
         Extents: Array[0..50] of DISK_EXTENT;
       end;
+    function TryToGetPartitionExtentList: TPartitionExtentList;
     function IsRAMDrive: Boolean;
     procedure IfRAMDriveRaiseException;
     function GetPartitionExtent: TPartitionExtentList;
     procedure GetPartitionExtentAndIfFailedRaiseException(
-      IOBuffer: TIoControlIOBuffer);
-    procedure ExtentsToTPartitionExtentList(DiskExtents: VOLUME_DISK_EXTENTS);
+      const IOBuffer: TIoControlIOBuffer);
+    function SetIOBufferToGetPartitionExtent(
+      const OutputBufferPointer: Pointer): TIoControlIOBuffer;
+    procedure ExtentsToTPartitionExtentList(
+      const DiskExtents: VOLUME_DISK_EXTENTS);
     procedure SetVolumeNameBuffer;
     function QueryDosDeviceSystemCall
-      (VolumePath: String; VolumeNameBuffer: TVolumeNameBuffer): String;
+      (const VolumePath: String;
+       const VolumeNameBuffer: TVolumeNameBuffer): String;
   end;
 
+  ERAMDrive = class(Exception);
 
 implementation
 
 { TPartitionExtent }
 
-constructor TPartitionExtentGetter.Create(FileToGetAccess: String);
+constructor TPartitionExtentGetter.Create(const FileToGetAccess: String);
 begin
+  inherited;
   CreateHandle(FileToGetAccess, DesiredReadWrite);
 end;
 
-function TPartitionExtentGetter.QueryDosDeviceSystemCall
-  (VolumePath: String; VolumeNameBuffer: TVolumeNameBuffer): String;
+function TPartitionExtentGetter.QueryDosDeviceSystemCall(
+  const VolumePath: String; const VolumeNameBuffer: TVolumeNameBuffer): String;
 begin
   QueryDosDevice(PChar(VolumePath), VolumeNameBuffer, MAX_PATH);
   IfOSErrorRaiseException;
@@ -91,8 +95,21 @@ begin
     raise ERAMDrive.Create('RAMDrive: PartitionExtent can''t target RAMDrive.');
 end;
 
+function TPartitionExtentGetter.SetIOBufferToGetPartitionExtent
+  (const OutputBufferPointer: Pointer): TIoControlIOBuffer;
+const
+  NullInputBuffer = nil;
+  NullInputBufferSize = 0;
+begin
+  result.InputBuffer.Buffer := NullInputBuffer;
+  result.InputBuffer.Size := NullInputBufferSize;
+
+  result.OutputBuffer.Buffer := OutputBufferPointer;
+  result.OutputBuffer.Size := SizeOf(VOLUME_DISK_EXTENTS);
+end;
+
 procedure TPartitionExtentGetter.GetPartitionExtentAndIfFailedRaiseException
-  (IOBuffer: TIoControlIOBuffer);
+  (const IOBuffer: TIoControlIOBuffer);
 var
   ReturnedBytes: Cardinal;
 begin
@@ -103,7 +120,7 @@ begin
 end;
 
 procedure TPartitionExtentGetter.ExtentsToTPartitionExtentList
-  (DiskExtents: VOLUME_DISK_EXTENTS);
+  (const DiskExtents: VOLUME_DISK_EXTENTS);
 var
   CurrentExtent: Integer;
 begin
@@ -114,10 +131,11 @@ end;
 
 function TPartitionExtentGetter.GetPartitionExtent: TPartitionExtentList;
 var
+  IOBuffer: TIoControlIOBuffer;
   OSVolumeDiskExtents: VOLUME_DISK_EXTENTS;
 begin
-  GetPartitionExtentAndIfFailedRaiseException(
-    BuildOSBufferByOutput<VOLUME_DISK_EXTENTS>(OSVolumeDiskExtents));
+  IOBuffer := SetIOBufferToGetPartitionExtent(@OSVolumeDiskExtents);
+  GetPartitionExtentAndIfFailedRaiseException(IOBuffer);
   ExtentsToTPartitionExtentList(OSVolumeDiskExtents);
   exit(PartitionExtentList);
 end;

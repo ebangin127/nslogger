@@ -3,14 +3,13 @@ unit Device.PhysicalDrive;
 interface
 
 uses
-  Windows, SysUtils,
-  Device.BusPhysicalDrive, Device.OSPhysicalDrive,
-  OSFile, OSFile.Interfaced,
-  Getter.DiskGeometry, Getter.PartitionList, Getter.DriveAvailability,
-  BufferInterpreter, Device.SMART.List, Getter.NCQAvailability, Partition.List;
+  Windows, SysUtils, Device.PhysicalDrive.Bus, Device.PhysicalDrive.OS, OSFile,
+  OSFile.Interfaced,
+  Getter.PhysicalDrive.PartitionList,
+  BufferInterpreter, Getter.PhysicalDrive.NCQAvailability, OS.Handle;
 
 type
-  IPhysicalDrive = interface
+  IPhysicalDrive = interface['{6D76DB52-42D7-4E84-AFAB-61594C7456F9}']
     function GetDiskSizeInByte: TLargeInteger;
     function GetIsDriveAvailable: Boolean;
     function GetIdentifyDeviceResult: TIdentifyDeviceResult;
@@ -26,6 +25,7 @@ type
     property NCQAvailability: TNCQAvailability
       read GetNCQAvailability;
     function GetPartitionList: TPartitionList;
+    function Unlock: IOSFileUnlock;
   end;
 
   TPhysicalDrive = class(TInterfacedOSFile, IPhysicalDrive)
@@ -46,8 +46,9 @@ type
     property NCQAvailability: TNCQAvailability
       read GetNCQAvailability;
     function GetPartitionList: TPartitionList;
-    constructor Create(FileToGetAccess: String); override;
-    class function BuildFileAddressByNumber(DriveNumber: Cardinal): String;
+    function Unlock: IOSFileUnlock;
+    constructor Create(const FileToGetAccess: String); override;
+    class function BuildFileAddressByNumber(const DriveNumber: Cardinal): String;
     destructor Destroy; override;
   end;
 
@@ -55,7 +56,7 @@ implementation
 
 { TPhysicalDrive }
 
-constructor TPhysicalDrive.Create(FileToGetAccess: String);
+constructor TPhysicalDrive.Create(const FileToGetAccess: String);
 begin
   inherited Create(FileToGetAccess);
   BusPhysicalDrive := TBusPhysicalDrive.Create(FileToGetAccess);
@@ -63,7 +64,7 @@ begin
 end;
 
 class function TPhysicalDrive.BuildFileAddressByNumber(
-  DriveNumber: Cardinal): String;
+  const DriveNumber: Cardinal): String;
 begin
   result :=
     ThisComputerPrefix + PhysicalDrivePrefix + UIntToStr(DriveNumber);
@@ -101,6 +102,11 @@ end;
 function TPhysicalDrive.GetIdentifyDeviceResult: TIdentifyDeviceResult;
 begin
   result := BusPhysicalDrive.IdentifyDeviceResult;
+end;
+
+function TPhysicalDrive.Unlock: IOSFileUnlock;
+begin
+  result := BusPhysicalDrive.Unlock;
 end;
 
 end.

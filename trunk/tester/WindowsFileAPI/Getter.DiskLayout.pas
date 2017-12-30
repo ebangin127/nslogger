@@ -57,7 +57,7 @@ begin
   ReturnedBytes := IoControl(TIoControlCode.GetDriveLayout, IOBuffer);
   if ReturnedBytes = 0 then
     ENoDataReturnedFromIO.Create
-      ('NoDataReturnedFromIO: No data returned from GetDriveGeometryEX');
+      ('NoDataReturnedFromIO: No data returned from GetDriveLayout');
 end;
 
 function TDiskLayoutGetter.GetIOBufferToGetLayout

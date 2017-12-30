@@ -12,19 +12,18 @@ const
 type
   TOSFile = class abstract(TObject)
   public
-    constructor Create(FileToGetAccess: String); virtual;
-    function IsPathEqual(OSFileToCompare: TOSFile): Boolean; overload;
-    function IsPathEqual(PathToCompare: String): Boolean; overload;
+    constructor Create(const FileToGetAccess: String); virtual;
+    function IsPathEqual(const PathToCompare: String): Boolean;
     function GetPathOfFileAccessing: String; virtual;
     function GetPathOfFileAccessingWithoutPrefix: String; virtual;
   protected
     procedure IfOSErrorRaiseException;
   private
     PathOfFileAccessing: String;
-    function DeletePrefix(PrefixToDelete: String): String;
+    function DeletePrefix(const PrefixToDelete: String): String;
     function IsPathOfFileAccessingHavePrefix
-      (PrefixToCheck: String): Boolean;
-    function GetOSErrorString(OSErrorCode: Integer): String;
+      (const PrefixToCheck: String): Boolean;
+    function GetOSErrorString(const OSErrorCode: Integer): String;
     function IsLastSystemCallSucceed: Boolean;
   end;
 
@@ -32,14 +31,9 @@ type
 
 implementation
 
-function TOSFile.IsPathEqual(OSFileToCompare: TOSFile): Boolean;
+function TOSFile.IsPathEqual(const PathToCompare: String): Boolean;
 begin
-  result := IsPathEqual(OSFileToCompare.GetPathOfFileAccessing);
-end;
-
-function TOSFile.IsPathEqual(PathToCompare: String): Boolean;
-begin
-  result := GetPathOfFileAccessing = PathToCompare;
+  result := GetPathOfFileAccessing = UpperCase(PathToCompare);
 end;
 
 function TOSFile.IsLastSystemCallSucceed: Boolean;
@@ -48,7 +42,7 @@ begin
     GetLastError = ERROR_SUCCESS;
 end;
 
-function TOSFile.GetOSErrorString(OSErrorCode: Integer): String;
+function TOSFile.GetOSErrorString(const OSErrorCode: Integer): String;
 begin
   result :=
     'OS Error: ' +
@@ -72,7 +66,7 @@ begin
   exit(PathOfFileAccessing);
 end;
 
-function TOSFile.DeletePrefix(PrefixToDelete: String): String;
+function TOSFile.DeletePrefix(const PrefixToDelete: String): String;
 var
   PathToDeletePrefix: String;
 begin
@@ -82,8 +76,8 @@ begin
       Length(PathToDeletePrefix) - Length(PrefixToDelete));
 end;
 
-function TOSFile.IsPathOfFileAccessingHavePrefix
-  (PrefixToCheck: String): Boolean;
+function TOSFile.IsPathOfFileAccessingHavePrefix(
+  const PrefixToCheck: String): Boolean;
 begin
   result :=
     Copy(GetPathOfFileAccessing, 0, Length(PrefixToCheck)) = PrefixToCheck;
@@ -91,16 +85,16 @@ end;
 
 function TOSFile.GetPathOfFileAccessingWithoutPrefix: String;
 begin
-  if IsPathOfFileAccessingHavePrefix
-    (ThisComputerPrefix + PhysicalDrivePrefix) then
-    exit(DeletePrefix(ThisComputerPrefix + PhysicalDrivePrefix))
+  if IsPathOfFileAccessingHavePrefix(
+    ThisComputerPrefix + PhysicalDrivePrefix) then
+      exit(DeletePrefix(ThisComputerPrefix + PhysicalDrivePrefix))
   else if IsPathOfFileAccessingHavePrefix(ThisComputerPrefix) then
     exit(DeletePrefix(ThisComputerPrefix))
   else
     exit(GetPathOfFileAccessing);
 end;
 
-constructor TOSFile.Create(FileToGetAccess: String);
+constructor TOSFile.Create(const FileToGetAccess: String);
 begin
   inherited Create;
   PathOfFileAccessing := UpperCase(FileToGetAccess);

@@ -1,4 +1,4 @@
-unit BufferInterpreter.NVMe.Samsung;
+unit BufferInterpreter.NVMe;
 
 interface
 
@@ -8,6 +8,7 @@ uses
 
 type
   TSMARTValueID = (
+    None,
     CriticalWarning,
     TemperatureInKelvin,
     AvailableSpare,
@@ -23,73 +24,89 @@ type
     MediaErrors,
     NumberOfErrorInformationLogEntries);
 
-  TSamsungNVMeBufferInterpreter = class sealed(TBufferInterpreter)
+  TNVMeBufferInterpreter = class(TBufferInterpreter)
   public
-    function BufferToIdentifyDeviceResult
-      (Buffer: T512Buffer): TIdentifyDeviceResult; override;
-    function BufferToSMARTValueList
-      (Buffer: T512Buffer): TSMARTValueList; override;
-    function BufferToCapacityAndLBA(Buffer: T512Buffer): TIdentifyDeviceResult;
-
+    function BufferToIdentifyDeviceResult(
+      const Buffer: TSmallBuffer): TIdentifyDeviceResult; override;
+    function BufferToSMARTValueList(
+      const Buffer: TSmallBuffer): TSMARTValueList; override;
+    function LargeBufferToIdentifyDeviceResult(
+      const Buffer: TLargeBuffer): TIdentifyDeviceResult; override;
+    function LargeBufferToSMARTValueList(
+      const Buffer: TLargeBuffer): TSMARTValueList; override;
+    function BufferToCapacityAndLBA(const Buffer: TSmallBuffer):
+      TIdentifyDeviceResult;
   private
-    BufferInterpreting: T512Buffer;
+    BufferInterpreting: TSmallBuffer;
     function GetFirmwareFromBuffer: String;
     function GetLBASizeFromBuffer: Cardinal;
     function GetModelFromBuffer: String;
     function GetSerialFromBuffer: String;
-    function GetLBASize(Buffer: T512Buffer): Integer;
-    function SeperateCriticalWarningFrom(Buffer: T512Buffer): TSMARTValueEntry;
-    function SeperateTemperatureFrom(Buffer: T512Buffer): TSMARTValueEntry;
-    function SeperateAvailableSpareFrom(Buffer: T512Buffer): TSMARTValueEntry;
-    function SeperatePercentageUsedFrom(Buffer: T512Buffer): TSMARTValueEntry;
-    function SeperateDataUnitsReadFrom(Buffer: T512Buffer): TSMARTValueEntry;
-    function SeperateDataUnitsWrittenFrom(Buffer: T512Buffer): TSMARTValueEntry;
-    function SeperateHostReadCommandsFrom(Buffer: T512Buffer): TSMARTValueEntry;
-    function SeperateHostWriteCommandsFrom(
-      Buffer: T512Buffer): TSMARTValueEntry;
-    function SeperateControllerBusyTimeFrom(
-      Buffer: T512Buffer): TSMARTValueEntry;
-    function SeperatePowerCyclesFrom(Buffer: T512Buffer): TSMARTValueEntry;
-    function SeperatePowerOnHoursFrom(Buffer: T512Buffer): TSMARTValueEntry;
-    function SeperateUnsafeShutdownsFrom(Buffer: T512Buffer): TSMARTValueEntry;
-    function SeperateMediaErrorsFrom(Buffer: T512Buffer): TSMARTValueEntry;
-    function SeperateNumberOfErrorsFrom(Buffer: T512Buffer): TSMARTValueEntry;
+    function GetLBASize(const Buffer: TSmallBuffer): Integer;
+    function SeparateCriticalWarningFrom(const Buffer: TSmallBuffer):
+      TSMARTValueEntry;
+    function SeparateTemperatureFrom(const Buffer: TSmallBuffer):
+      TSMARTValueEntry;
+    function SeparateAvailableSpareFrom(const Buffer: TSmallBuffer):
+      TSMARTValueEntry;
+    function SeparatePercentageUsedFrom(const Buffer: TSmallBuffer):
+      TSMARTValueEntry;
+    function SeparateDataUnitsReadFrom(const Buffer: TSmallBuffer):
+      TSMARTValueEntry;
+    function SeparateDataUnitsWrittenFrom(const Buffer: TSmallBuffer):
+      TSMARTValueEntry;
+    function SeparateHostReadCommandsFrom(const Buffer: TSmallBuffer):
+      TSMARTValueEntry;
+    function SeparateHostWriteCommandsFrom(
+      const Buffer: TSmallBuffer): TSMARTValueEntry;
+    function SeparateControllerBusyTimeFrom(
+      const Buffer: TSmallBuffer): TSMARTValueEntry;
+    function SeparatePowerCyclesFrom(const Buffer: TSmallBuffer):
+      TSMARTValueEntry;
+    function SeparatePowerOnHoursFrom(const Buffer: TSmallBuffer):
+      TSMARTValueEntry;
+    function SeparateUnsafeShutdownsFrom(const Buffer: TSmallBuffer):
+      TSMARTValueEntry;
+    function SeparateMediaErrorsFrom(const Buffer: TSmallBuffer):
+      TSMARTValueEntry;
+    function SeparateNumberOfErrorsFrom(const Buffer: TSmallBuffer):
+      TSMARTValueEntry;
   end;
 
 implementation
 
-{ uSamsungNVMeBufferInterpreter }
+{ TNVMeBufferInterpreter }
 
-function TSamsungNVMeBufferInterpreter.BufferToSMARTValueList
-  (Buffer: T512Buffer): TSMARTValueList;
+function TNVMeBufferInterpreter.BufferToSMARTValueList(
+  const Buffer: TSmallBuffer): TSMARTValueList;
 begin
   result := TSMARTValueList.Create;
-  result.Add(SeperateCriticalWarningFrom(Buffer));
-  result.Add(SeperateTemperatureFrom(Buffer));
-  result.Add(SeperateAvailableSpareFrom(Buffer));
-  result.Add(SeperatePercentageUsedFrom(Buffer));
-  result.Add(SeperateDataUnitsReadFrom(Buffer));
-  result.Add(SeperateDataUnitsWrittenFrom(Buffer));
-  result.Add(SeperateHostReadCommandsFrom(Buffer));
-  result.Add(SeperateHostWriteCommandsFrom(Buffer));
-  result.Add(SeperateControllerBusyTimeFrom(Buffer));
-  result.Add(SeperatePowerCyclesFrom(Buffer));
-  result.Add(SeperatePowerOnHoursFrom(Buffer));
-  result.Add(SeperateUnsafeShutdownsFrom(Buffer));
-  result.Add(SeperateMediaErrorsFrom(Buffer));
-  result.Add(SeperateNumberOfErrorsFrom(Buffer));
+  result.Add(SeparateCriticalWarningFrom(Buffer));
+  result.Add(SeparateTemperatureFrom(Buffer));
+  result.Add(SeparateAvailableSpareFrom(Buffer));
+  result.Add(SeparatePercentageUsedFrom(Buffer));
+  result.Add(SeparateDataUnitsReadFrom(Buffer));
+  result.Add(SeparateDataUnitsWrittenFrom(Buffer));
+  result.Add(SeparateHostReadCommandsFrom(Buffer));
+  result.Add(SeparateHostWriteCommandsFrom(Buffer));
+  result.Add(SeparateControllerBusyTimeFrom(Buffer));
+  result.Add(SeparatePowerCyclesFrom(Buffer));
+  result.Add(SeparatePowerOnHoursFrom(Buffer));
+  result.Add(SeparateUnsafeShutdownsFrom(Buffer));
+  result.Add(SeparateMediaErrorsFrom(Buffer));
+  result.Add(SeparateNumberOfErrorsFrom(Buffer));
 end;
 
-function TSamsungNVMeBufferInterpreter.SeperateCriticalWarningFrom
-  (Buffer: T512Buffer): TSMARTValueEntry;
+function TNVMeBufferInterpreter.SeparateCriticalWarningFrom(
+  const Buffer: TSmallBuffer): TSMARTValueEntry;
 begin
   FillChar(result, SizeOf(result), 0);
   result.ID := Ord(TSMARTValueID.CriticalWarning);
   result.RAW := Buffer[0];
 end;
 
-function TSamsungNVMeBufferInterpreter.SeperateTemperatureFrom
-  (Buffer: T512Buffer): TSMARTValueEntry;
+function TNVMeBufferInterpreter.SeparateTemperatureFrom(
+  const Buffer: TSmallBuffer): TSMARTValueEntry;
 var
   CurrentByte: Integer;
 const
@@ -106,8 +123,8 @@ begin
   end;
 end;
 
-function TSamsungNVMeBufferInterpreter.SeperateAvailableSpareFrom
-  (Buffer: T512Buffer): TSMARTValueEntry;
+function TNVMeBufferInterpreter.SeparateAvailableSpareFrom(
+  const Buffer: TSmallBuffer): TSMARTValueEntry;
 begin
   FillChar(result, SizeOf(result), 0);
   result.ID := Ord(TSMARTValueID.AvailableSpare);
@@ -115,16 +132,16 @@ begin
   result.Threshold := Buffer[4];
 end;
 
-function TSamsungNVMeBufferInterpreter.SeperatePercentageUsedFrom
-  (Buffer: T512Buffer): TSMARTValueEntry;
+function TNVMeBufferInterpreter.SeparatePercentageUsedFrom(
+  const Buffer: TSmallBuffer): TSMARTValueEntry;
 begin
   FillChar(result, SizeOf(result), 0);
   result.ID := Ord(TSMARTValueID.PercentageUsed);
   result.RAW := Buffer[5];
 end;
 
-function TSamsungNVMeBufferInterpreter.SeperateDataUnitsReadFrom
-  (Buffer: T512Buffer): TSMARTValueEntry;
+function TNVMeBufferInterpreter.SeparateDataUnitsReadFrom(
+  const Buffer: TSmallBuffer): TSMARTValueEntry;
 var
   CurrentByte: Integer;
 const
@@ -141,8 +158,8 @@ begin
   end;
 end;
 
-function TSamsungNVMeBufferInterpreter.SeperateDataUnitsWrittenFrom
-  (Buffer: T512Buffer): TSMARTValueEntry;
+function TNVMeBufferInterpreter.SeparateDataUnitsWrittenFrom(
+  const Buffer: TSmallBuffer): TSMARTValueEntry;
 var
   CurrentByte: Integer;
 const
@@ -159,8 +176,8 @@ begin
   end;
 end;
 
-function TSamsungNVMeBufferInterpreter.SeperateHostReadCommandsFrom
-  (Buffer: T512Buffer): TSMARTValueEntry;
+function TNVMeBufferInterpreter.SeparateHostReadCommandsFrom(
+  const Buffer: TSmallBuffer): TSMARTValueEntry;
 var
   CurrentByte: Integer;
 const
@@ -177,8 +194,8 @@ begin
   end;
 end;
 
-function TSamsungNVMeBufferInterpreter.SeperateHostWriteCommandsFrom
-  (Buffer: T512Buffer): TSMARTValueEntry;
+function TNVMeBufferInterpreter.SeparateHostWriteCommandsFrom(
+  const Buffer: TSmallBuffer): TSMARTValueEntry;
 var
   CurrentByte: Integer;
 const
@@ -195,8 +212,8 @@ begin
   end;
 end;
 
-function TSamsungNVMeBufferInterpreter.SeperateControllerBusyTimeFrom
-  (Buffer: T512Buffer): TSMARTValueEntry;
+function TNVMeBufferInterpreter.SeparateControllerBusyTimeFrom(
+  const Buffer: TSmallBuffer): TSMARTValueEntry;
 var
   CurrentByte: Integer;
 const
@@ -213,8 +230,8 @@ begin
   end;
 end;
 
-function TSamsungNVMeBufferInterpreter.SeperatePowerCyclesFrom
-  (Buffer: T512Buffer): TSMARTValueEntry;
+function TNVMeBufferInterpreter.SeparatePowerCyclesFrom(
+  const Buffer: TSmallBuffer): TSMARTValueEntry;
 var
   CurrentByte: Integer;
 const
@@ -231,8 +248,8 @@ begin
   end;
 end;
 
-function TSamsungNVMeBufferInterpreter.SeperatePowerOnHoursFrom
-  (Buffer: T512Buffer): TSMARTValueEntry;
+function TNVMeBufferInterpreter.SeparatePowerOnHoursFrom(
+  const Buffer: TSmallBuffer): TSMARTValueEntry;
 var
   CurrentByte: Integer;
 const
@@ -249,8 +266,8 @@ begin
   end;
 end;
 
-function TSamsungNVMeBufferInterpreter.SeperateUnsafeShutdownsFrom
-  (Buffer: T512Buffer): TSMARTValueEntry;
+function TNVMeBufferInterpreter.SeparateUnsafeShutdownsFrom(
+  const Buffer: TSmallBuffer): TSMARTValueEntry;
 var
   CurrentByte: Integer;
 const
@@ -267,8 +284,8 @@ begin
   end;
 end;
 
-function TSamsungNVMeBufferInterpreter.SeperateMediaErrorsFrom
-  (Buffer: T512Buffer): TSMARTValueEntry;
+function TNVMeBufferInterpreter.SeparateMediaErrorsFrom(
+  const Buffer: TSmallBuffer): TSMARTValueEntry;
 var
   CurrentByte: Integer;
 const
@@ -285,8 +302,8 @@ begin
   end;
 end;
 
-function TSamsungNVMeBufferInterpreter.SeperateNumberOfErrorsFrom
-  (Buffer: T512Buffer): TSMARTValueEntry;
+function TNVMeBufferInterpreter.SeparateNumberOfErrorsFrom(
+  const Buffer: TSmallBuffer): TSMARTValueEntry;
 var
   CurrentByte: Integer;
 const
@@ -303,7 +320,7 @@ begin
   end;
 end;
 
-function TSamsungNVMeBufferInterpreter.GetModelFromBuffer: String;
+function TNVMeBufferInterpreter.GetModelFromBuffer: String;
 const
   ModelStart = 24;
   ModelEnd = 63;
@@ -316,7 +333,7 @@ begin
   result := Trim(result);
 end;
 
-function TSamsungNVMeBufferInterpreter.GetFirmwareFromBuffer: String;
+function TNVMeBufferInterpreter.GetFirmwareFromBuffer: String;
 const
   FirmwareStart = 64;
   FirmwareEnd = 71;
@@ -329,7 +346,7 @@ begin
   result := Trim(result);
 end;
 
-function TSamsungNVMeBufferInterpreter.GetSerialFromBuffer: String;
+function TNVMeBufferInterpreter.GetSerialFromBuffer: String;
 const
   SerialStart = 4;
   SerialEnd = 23;
@@ -342,14 +359,32 @@ begin
   result := Trim(result);
 end;
 
-function TSamsungNVMeBufferInterpreter.GetLBASizeFromBuffer: Cardinal;
+function TNVMeBufferInterpreter.LargeBufferToIdentifyDeviceResult(
+  const Buffer: TLargeBuffer): TIdentifyDeviceResult;
+var
+  SmallBuffer: TSmallBuffer;
+begin
+  Move(Buffer, SmallBuffer, SizeOf(SmallBuffer));
+  result := BufferToIdentifyDeviceResult(SmallBuffer);
+end;
+
+function TNVMeBufferInterpreter.LargeBufferToSMARTValueList(
+  const Buffer: TLargeBuffer): TSMARTValueList;
+var
+  SmallBuffer: TSmallBuffer;
+begin
+  Move(Buffer, SmallBuffer, SizeOf(SmallBuffer));
+  result := BufferToSMARTValueList(SmallBuffer);
+end;
+
+function TNVMeBufferInterpreter.GetLBASizeFromBuffer: Cardinal;
 const
   ATA_LBA_SIZE = 512;
 begin
   result := ATA_LBA_SIZE;
 end;
 
-function TSamsungNVMeBufferInterpreter.GetLBASize(Buffer: T512Buffer): Integer;
+function TNVMeBufferInterpreter.GetLBASize(const Buffer: TSmallBuffer): Integer;
 var
   CurrentByte: Integer;
 const
@@ -364,8 +399,8 @@ begin
   end;
 end;
 
-function TSamsungNVMeBufferInterpreter.BufferToCapacityAndLBA(Buffer:
-  T512Buffer): TIdentifyDeviceResult;
+function TNVMeBufferInterpreter.BufferToCapacityAndLBA(
+  const Buffer: TSmallBuffer): TIdentifyDeviceResult;
   function ByteToDenaryKB: TDatasizeUnitChangeSetting;
   begin
     result.FNumeralSystem := Denary;
@@ -390,8 +425,10 @@ begin
     ChangeDatasizeUnit(ResultInByte * result.LBASize, ByteToDenaryKB));
 end;
 
-function TSamsungNVMeBufferInterpreter.BufferToIdentifyDeviceResult
-  (Buffer: T512Buffer): TIdentifyDeviceResult;
+function TNVMeBufferInterpreter.BufferToIdentifyDeviceResult(
+  const Buffer: TSmallBuffer): TIdentifyDeviceResult;
+const
+  SSDRate = 1;
 begin
   BufferInterpreting := Buffer;
   result.Model := GetModelFromBuffer;
@@ -400,6 +437,8 @@ begin
   result.UserSizeInKB := 0;
   result.SATASpeed := TSATASpeed.NotSATA;
   result.LBASize := GetLBASizeFromBuffer;
+  result.RotationRate.Supported := true;
+  result.RotationRate.Value := SSDRate;
 end;
 
 end.

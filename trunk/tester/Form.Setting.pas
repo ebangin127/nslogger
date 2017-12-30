@@ -9,8 +9,8 @@ uses
   OS.Directory, SaveFile, SaveFile.SettingForm,
   Device.PhysicalDrive, Getter.PartitionList, Vcl.ComCtrls,
   MeasureUnit.DataSize, Getter.PhysicalDriveList.Auto,
-  Device.PhysicalDrive.List, LanguageStrings, Getter.DiskLayout,
-  Partition.List;
+  Device.PhysicalDrive.List, LanguageStrings,
+  Partition.List, Getter.PhysicalDrive.PartitionList;
 
 type
   EDriveNotFound = class(EResNotFound);
@@ -275,7 +275,6 @@ end;
 procedure TfSetting.RefreshDrives;
 var
   DriveList: TPhysicalDriveList;
-  DiskLayoutGetter: TDiskLayoutGetter;
   PartitionList: TPartitionList;
   PhysicalDrive: IPhysicalDrive;
   CurrentDriveNumber: Integer;
@@ -285,10 +284,7 @@ begin
     exit;
   for PhysicalDrive in DriveList do
   begin
-    DiskLayoutGetter :=
-      TDiskLayoutGetter.Create(PhysicalDrive.GetPathOfFileAccessing);
-    PartitionList := DiskLayoutGetter.GetPartitionList;
-    FreeAndNil(DiskLayoutGetter);
+    PartitionList := PhysicalDrive.GetPartitionList;
     if (PartitionList <> nil) and (PartitionList.Count = 0) then
     begin
       CurrentDriveNumber :=

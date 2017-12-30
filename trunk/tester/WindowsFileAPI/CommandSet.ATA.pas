@@ -12,9 +12,12 @@ type
   public
     function IdentifyDevice: TIdentifyDeviceResult; override;
     function SMARTReadData: TSMARTValueList; override;
+    function RAWIdentifyDevice: String; override;
+    function RAWSMARTReadData: String; override;
     function DataSetManagement(StartLBA, LBACount: Int64): Cardinal; override;
-    procedure Flush; override;
     function IsDataSetManagementSupported: Boolean; override;
+    function IsExternal: Boolean; override;
+    procedure Flush; override;
   private
     type
       ATA_SINGLE_TASK_FILE = record
@@ -46,20 +49,22 @@ type
       end;
       ATA_WITH_BUFFER = record
         Parameter: ATA_PASS_THROUGH_DIRECT;
-        Buffer: T512Buffer;
+        Buffer: TSmallBuffer;
       end;
     const
-      ATA_FLAGS_NON_DATA = 0;
       ATA_FLAGS_DRDY_REQUIRED = 1;
       ATA_FLAGS_DATA_IN = 1 shl 1;
       ATA_FLAGS_DATA_OUT = 1 shl 2;
       ATA_FLAGS_48BIT_COMMAND = 1 shl 3;
       ATA_FLAGS_USE_DMA = 1 shl 4;
       ATA_FLAGS_NO_MULTIPLE = 1 shl 5;
+      ATA_FLAGS_NON_DATA = 0;
   private
     IoInnerBuffer: ATA_WITH_BUFFER;
+    IoOSBuffer: TIoControlIOBuffer;
     function GetCommonBuffer: ATA_WITH_BUFFER;
     function GetCommonTaskFile: ATA_TASK_FILES;
+    procedure SetOSBufferByInnerBuffer;
     procedure SetInnerBufferAsFlagsAndTaskFile(Flags: ULONG;
       TaskFile: ATA_TASK_FILES);
     procedure SetInnerBufferToSMARTReadData;
@@ -72,6 +77,10 @@ type
     procedure SetBufferAndIdentifyDevice;
     function InterpretSMARTReadDataBuffer: TSMARTValueList;
     procedure SetBufferAndSMARTReadData;
+    procedure SetBufferAndSMARTReadThreshold;
+    procedure SetInnerBufferToSMARTReadThreshold;
+    function InterpretSMARTThresholdBuffer(
+      const OriginalResult: TSMARTValueList): TSMARTValueList;
     procedure SetInnerBufferToFlush;
   end;
 
@@ -112,12 +121,20 @@ begin
   SetInnerBufferAsFlagsAndTaskFile(ATA_FLAGS_DATA_IN, IoTaskFile);
 end;
 
+procedure TATACommandSet.SetOSBufferByInnerBuffer;
+begin
+  IoOSBuffer.InputBuffer.Size := SizeOf(IoInnerBuffer);
+  IoOSBuffer.InputBuffer.Buffer := @IOInnerBuffer;
+
+  IoOSBuffer.OutputBuffer.Size := SizeOf(IoInnerBuffer);
+  IoOSBuffer.OutputBuffer.Buffer := @IOInnerBuffer;
+end;
+
 procedure TATACommandSet.SetBufferAndIdentifyDevice;
 begin
   SetInnerBufferToIdentifyDevice;
-  IoControl(TIoControlCode.ATAPassThroughDirect,
-    BuildOSBufferBy<ATA_WITH_BUFFER, ATA_WITH_BUFFER>(IoInnerBuffer,
-      IoInnerBuffer));
+  SetOSBufferByInnerBuffer;
+  IoControl(TIoControlCode.ATAPassThroughDirect, IoOSBuffer);
 end;
 
 function TATACommandSet.InterpretIdentifyDeviceBuffer:
@@ -159,9 +176,8 @@ end;
 procedure TATACommandSet.SetBufferAndSMARTReadData;
 begin
   SetInnerBufferToSMARTReadData;
-  IoControl(TIoControlCode.ATAPassThroughDirect,
-    BuildOSBufferBy<ATA_WITH_BUFFER, ATA_WITH_BUFFER>(IoInnerBuffer,
-      IoInnerBuffer));
+  SetOSBufferByInnerBuffer;
+  IoControl(TIoControlCode.ATAPassThroughDirect, IoOSBuffer);
 end;
 
 function TATACommandSet.InterpretSMARTReadDataBuffer:
@@ -174,15 +190,84 @@ begin
   FreeAndNil(ATABufferInterpreter);
 end;
 
+procedure TATACommandSet.SetInnerBufferToSMARTReadThreshold;
+const
+  SMARTFeatures = $D1;
+  SMARTCycleLo = $4F;
+  SMARTCycleHi = $C2;
+  SMARTReadDataCommand = $B0;
+var
+  IoTaskFile: ATA_TASK_FILES;
+begin
+  IoTaskFile := GetCommonTaskFile;
+  IoTaskFile.CurrentTaskFile.Features := SMARTFeatures;
+  IoTaskFile.CurrentTaskFile.LBAMidCycleLo := SMARTCycleLo;
+  IoTaskFile.CurrentTaskFile.LBAHiCycleHi := SMARTCycleHi;
+  IoTaskFile.CurrentTaskFile.Command := SMARTReadDataCommand;
+  SetInnerBufferAsFlagsAndTaskFile(ATA_FLAGS_DATA_IN, IoTaskFile);
+end;
+
+procedure TATACommandSet.SetBufferAndSMARTReadThreshold;
+begin
+  SetInnerBufferToSMARTReadThreshold;
+  SetOSBufferByInnerBuffer;
+  IoControl(TIoControlCode.ATAPassThroughDirect, IoOSBuffer);
+end;
+
+function TATACommandSet.InterpretSMARTThresholdBuffer(
+  const OriginalResult: TSMARTValueList): TSMARTValueList;
+var
+  ATABufferInterpreter: TATABufferInterpreter;
+  ThresholdList: TSMARTValueList;
+begin
+  result := OriginalResult;
+  ATABufferInterpreter := TATABufferInterpreter.Create;
+  ThresholdList := ATABufferInterpreter.BufferToSMARTThresholdValueList(
+    IoInnerBuffer.Buffer);
+  try
+    OriginalResult.MergeThreshold(ThresholdList);
+  finally
+    FreeAndNil(ThresholdList);
+  end;
+  FreeAndNil(ATABufferInterpreter);
+end;
+
 function TATACommandSet.SMARTReadData: TSMARTValueList;
 begin
   SetBufferAndSMARTReadData;
   result := InterpretSMARTReadDataBuffer;
+  SetBufferAndSMARTReadThreshold;
+  result := InterpretSMARTThresholdBuffer(result);
 end;
 
 function TATACommandSet.IsDataSetManagementSupported: Boolean;
 begin
   exit(true);
+end;
+
+function TATACommandSet.IsExternal: Boolean;
+begin
+  result := false;
+end;
+
+function TATACommandSet.RAWIdentifyDevice: String;
+begin
+  SetBufferAndIdentifyDevice;
+  result :=
+    IdentifyDevicePrefix +
+    TBufferInterpreter.BufferToString(IoInnerBuffer.Buffer) + ';';
+end;
+
+function TATACommandSet.RAWSMARTReadData: String;
+begin
+  SetBufferAndSMARTReadData;
+  result :=
+    SMARTPrefix +
+    TBufferInterpreter.BufferToString(IoInnerBuffer.Buffer) + ';';
+  SetBufferAndSMARTReadThreshold;
+  result := result +
+    'Threshold' +
+    TBufferInterpreter.BufferToString(IoInnerBuffer.Buffer) + ';';
 end;
 
 procedure TATACommandSet.SetStartLBAToDataSetManagementBuffer(StartLBA: Int64);
@@ -211,8 +296,8 @@ begin
   IoInnerBuffer.Buffer[LBACountHi] := LBACount shr 8;
 end;
 
-procedure TATACommandSet.SetDataSetManagementBuffer
-  (StartLBA, LBACount: Int64);
+procedure TATACommandSet.SetDataSetManagementBuffer(
+  StartLBA, LBACount: Int64);
 begin
   SetStartLBAToDataSetManagementBuffer(StartLBA);
   SetLBACountToDataSetManagementBuffer(LBACount);
@@ -240,10 +325,9 @@ end;
 function TATACommandSet.DataSetManagement(StartLBA, LBACount: Int64): Cardinal;
 begin
   SetInnerBufferToDataSetManagement(StartLBA, LBACount);
+  SetOSBufferByInnerBuffer;
   result := ExceptionFreeIoControl
-    (TIoControlCode.ATAPassThroughDirect,
-      BuildOSBufferBy<ATA_WITH_BUFFER, ATA_WITH_BUFFER>(IoInnerBuffer,
-        IoInnerBuffer));
+    (TIoControlCode.ATAPassThroughDirect, IoOSBuffer);
 end;
 
 procedure TATACommandSet.SetInnerBufferToFlush;
